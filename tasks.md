@@ -477,7 +477,7 @@
 
 ## Phase 5-K: ASCII可視化への経済レイヤー追加
 
-- [ ] `economy/ascii.go`: RenderEconomyStatus(engine) string — ChiPool残高、毎ティック収支、赤字状態をテキスト表示。`[Chi: 45.2/150.0 | +5.0 -3.8 = +1.2/tick | OK]` のようなワンライン形式
+- [x] `economy/ascii.go`: RenderEconomyStatus(engine) string — ChiPool残高、毎ティック収支、赤字状態をテキスト表示。`[Chi: 45.2/150.0 | +5.0 -3.8 = +1.2/tick | OK]` のようなワンライン形式
 - [ ] `cmd/caveviz/main.go` 更新: `--economy` フラグで経済ステータス表示。画面上部にオーバーレイ
 
 ## Phase 5-L: 統合検証
