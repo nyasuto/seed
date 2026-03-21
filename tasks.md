@@ -516,7 +516,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-A: 延期タスク消化 — 仙獣進化（senju/ 拡張）
 
 - [x] `senju/evolution.go`: EvolutionCondition 構造体（MinLevel int, RequiredRoomElement types.Element（ゼロ値は条件なし）, MinChiRatio float64（部屋の気充填率条件））
-- [ ] `senju/evolution.go`: EvolutionPath 構造体（FromSpeciesID string, ToSpeciesID string, Condition EvolutionCondition, ChiCost float64（経済層からの進化コスト））
+- [x] `senju/evolution.go`: EvolutionPath 構造体（FromSpeciesID string, ToSpeciesID string, Condition EvolutionCondition, ChiCost float64（経済層からの進化コスト））
 - [ ] `senju/evolution_registry.go`: EvolutionRegistry（EvolutionPath のリスト管理、JSONロード）。GetPaths(speciesID string) []EvolutionPath。CheckEvolution(beast, roomChi, chiPoolBalance) *EvolutionPath — 条件を満たす進化先を返す（nil=条件未達）
 - [ ] `senju/evolution.go`: Evolve(beast, path, speciesRegistry) error — 進化実行（SpeciesID変更、ステータス再計算、レベル維持）
 - [ ] `senju/evolution_data.json`: 初期進化経路（各基本種族に1段階の進化先。翠龍Lv15→蒼龍、炎鳳Lv15→朱雀、岩亀Lv20→玄武、金狼Lv15→白虎、水蛇Lv15→青龍）

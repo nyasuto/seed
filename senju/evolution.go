@@ -21,3 +21,18 @@ type EvolutionCondition struct {
 	// A zero value means no chi ratio requirement.
 	MinChiRatio float64
 }
+
+// EvolutionPath defines a single evolution route from one species to another.
+type EvolutionPath struct {
+	// FromSpeciesID is the species that can evolve.
+	FromSpeciesID string
+
+	// ToSpeciesID is the species it evolves into.
+	ToSpeciesID string
+
+	// Condition defines the requirements that must be met for this evolution.
+	Condition EvolutionCondition
+
+	// ChiCost is the amount of chi consumed from the economy pool to perform the evolution.
+	ChiCost float64
+}
