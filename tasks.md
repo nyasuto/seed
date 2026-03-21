@@ -626,7 +626,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 6-L: 統合検証
 
-- [ ] `scenario/integration_test.go`: チュートリアルシナリオのシミュレーション（手動でゲーム状態を進める）:
+- [x] `scenario/integration_test.go`: チュートリアルシナリオのシミュレーション（手動でゲーム状態を進める）:
   - シナリオロード → InitialState から Cave 構築 → 地形適用
   - 地形バリデーション通過を確認
   - WaveSchedule → WaveConfig 変換を確認
