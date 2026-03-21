@@ -190,3 +190,146 @@ func TestB01_NoWave(t *testing.T) {
 		t.Error("FirstWaveRecorded should be false when no wave appeared")
 	}
 }
+
+func TestB06_StompRate(t *testing.T) {
+	c := NewCollector()
+	c.RecordGameConfig(100, 200, 5) // maxCoreHP=100
+
+	// Simulate a game where CoreHP stays high.
+	c.OnTick(scenario.GameSnapshot{
+		Tick:   1,
+		CoreHP: 90,
+	}, nil)
+
+	c.RecordGameResult(simulation.Won)
+	c.RecordFinalRoomLevels([]int{3})
+
+	bd := c.BreakageMetrics()
+	if !bd.B06Stomp {
+		t.Error("B06Stomp should be true when CoreHP 90/100 (90% >= 80%)")
+	}
+
+	// Non-stomp: CoreHP at 70%.
+	c2 := NewCollector()
+	c2.RecordGameConfig(100, 200, 5)
+	c2.OnTick(scenario.GameSnapshot{Tick: 1, CoreHP: 70}, nil)
+	c2.RecordGameResult(simulation.Won)
+	c2.RecordFinalRoomLevels([]int{3})
+
+	bd2 := c2.BreakageMetrics()
+	if bd2.B06Stomp {
+		t.Error("B06Stomp should be false when CoreHP 70/100 (70% < 80%)")
+	}
+
+	// Loss should not be a stomp even with high HP.
+	c3 := NewCollector()
+	c3.RecordGameConfig(100, 200, 5)
+	c3.OnTick(scenario.GameSnapshot{Tick: 1, CoreHP: 95}, nil)
+	c3.RecordGameResult(simulation.Lost)
+
+	bd3 := c3.BreakageMetrics()
+	if bd3.B06Stomp {
+		t.Error("B06Stomp should be false on a loss")
+	}
+}
+
+func TestB07_EarlyWipeRate(t *testing.T) {
+	c := NewCollector()
+	c.RecordGameConfig(100, 200, 5) // maxTicks=200
+
+	// Simulate 80 ticks then lose (80 <= 200*0.5=100 → early wipe).
+	for tick := 1; tick <= 80; tick++ {
+		c.OnTick(scenario.GameSnapshot{
+			Tick: types.Tick(tick),
+		}, nil)
+	}
+
+	c.RecordGameResult(simulation.Lost)
+
+	bd := c.BreakageMetrics()
+	if !bd.B07EarlyWipe {
+		t.Error("B07EarlyWipe should be true when lost at tick 80 with maxTicks=200")
+	}
+
+	// Late loss should not be early wipe.
+	c2 := NewCollector()
+	c2.RecordGameConfig(100, 200, 5)
+	for tick := 1; tick <= 150; tick++ {
+		c2.OnTick(scenario.GameSnapshot{Tick: types.Tick(tick)}, nil)
+	}
+	c2.RecordGameResult(simulation.Lost)
+
+	bd2 := c2.BreakageMetrics()
+	if bd2.B07EarlyWipe {
+		t.Error("B07EarlyWipe should be false when lost at tick 150 with maxTicks=200")
+	}
+
+	// Win should not be early wipe.
+	c3 := NewCollector()
+	c3.RecordGameConfig(100, 200, 5)
+	for tick := 1; tick <= 50; tick++ {
+		c3.OnTick(scenario.GameSnapshot{Tick: types.Tick(tick)}, nil)
+	}
+	c3.RecordGameResult(simulation.Won)
+	c3.RecordFinalRoomLevels([]int{1})
+
+	bd3 := c3.BreakageMetrics()
+	if bd3.B07EarlyWipe {
+		t.Error("B07EarlyWipe should be false on a win")
+	}
+}
+
+func TestB08_PerfectionRate(t *testing.T) {
+	c := NewCollector()
+	c.RecordGameConfig(100, 200, 5) // maxRoomLevel=5
+
+	c.OnTick(scenario.GameSnapshot{Tick: 1, CoreHP: 100}, nil)
+	c.RecordGameResult(simulation.Won)
+	c.RecordFinalRoomLevels([]int{5, 5, 5}) // all rooms at max
+
+	bd := c.BreakageMetrics()
+	if !bd.B08Perfection {
+		t.Error("B08Perfection should be true when all rooms at MaxLv 5/5")
+	}
+
+	// Not all rooms at max.
+	c2 := NewCollector()
+	c2.RecordGameConfig(100, 200, 5)
+	c2.OnTick(scenario.GameSnapshot{Tick: 1, CoreHP: 100}, nil)
+	c2.RecordGameResult(simulation.Won)
+	c2.RecordFinalRoomLevels([]int{5, 3, 5})
+
+	bd2 := c2.BreakageMetrics()
+	if bd2.B08Perfection {
+		t.Error("B08Perfection should be false when not all rooms at MaxLv")
+	}
+}
+
+func TestB09_AvgRoomLevelRatio(t *testing.T) {
+	c := NewCollector()
+	c.RecordGameConfig(100, 200, 5) // maxRoomLevel=5
+
+	c.OnTick(scenario.GameSnapshot{Tick: 1, CoreHP: 100}, nil)
+	c.RecordGameResult(simulation.Won)
+	c.RecordFinalRoomLevels([]int{2, 3, 4}) // avg=3.0, ratio=3.0/5.0=0.6
+
+	bd := c.BreakageMetrics()
+
+	const epsilon = 0.001
+	want := 0.6
+	if bd.B09RoomLevelRatio < want-epsilon || bd.B09RoomLevelRatio > want+epsilon {
+		t.Errorf("B09RoomLevelRatio = %f, want %f", bd.B09RoomLevelRatio, want)
+	}
+
+	// Loss should not compute ratio.
+	c2 := NewCollector()
+	c2.RecordGameConfig(100, 200, 5)
+	c2.OnTick(scenario.GameSnapshot{Tick: 1}, nil)
+	c2.RecordGameResult(simulation.Lost)
+	c2.RecordFinalRoomLevels([]int{2, 3, 4})
+
+	bd2 := c2.BreakageMetrics()
+	if bd2.B09RoomLevelRatio != 0.0 {
+		t.Errorf("B09RoomLevelRatio should be 0.0 on loss, got %f", bd2.B09RoomLevelRatio)
+	}
+}

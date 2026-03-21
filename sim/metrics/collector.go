@@ -6,6 +6,12 @@ import (
 	"github.com/nyasuto/seed/core/types"
 )
 
+// stompThreshold is the fraction of MaxCoreHP above which a win is considered a stomp.
+const stompThreshold = 0.8
+
+// earlyWipeFraction is the fraction of MaxTicks within which a loss is considered early.
+const earlyWipeFraction = 0.5
+
 // waveOverlapWindow is the number of ticks to look back when checking
 // whether construction overlapped with a wave arrival.
 const waveOverlapWindow = 5
@@ -37,6 +43,15 @@ type Collector struct {
 	recentDigTicks  []types.Tick // ticks where DigRoom was attempted
 	waveOverlapHits int          // number of wave arrivals overlapping with construction
 	waveArrivals    int          // total wave arrivals observed
+
+	// B06-B09: game-end metrics config
+	maxCoreHP       int // maximum core HP (set via RecordGameConfig)
+	maxTicks        int // maximum ticks in the scenario (set via RecordGameConfig)
+	maxRoomLevel    int // maximum room level (set via RecordGameConfig)
+	gameConfigSet   bool
+	gameResult      simulation.GameStatus // set via RecordGameResult
+	gameResultSet   bool
+	finalRoomLevels []int // room levels at game end (set via RecordFinalRoomLevels)
 }
 
 // NewCollector creates a new Collector ready to receive tick data.
@@ -49,6 +64,28 @@ func NewCollector() *Collector {
 func (c *Collector) RecordBuildableCells(count int) {
 	c.initialBuildableCells = count
 	c.buildableCellsSet = true
+}
+
+// RecordGameConfig records scenario configuration needed for B06-B09.
+// maxCoreHP is the starting core HP, maxTicks is the scenario tick limit,
+// and maxRoomLevel is the maximum level a room can reach.
+func (c *Collector) RecordGameConfig(maxCoreHP, maxTicks, maxRoomLevel int) {
+	c.maxCoreHP = maxCoreHP
+	c.maxTicks = maxTicks
+	c.maxRoomLevel = maxRoomLevel
+	c.gameConfigSet = true
+}
+
+// RecordGameResult records the final game outcome for B06-B09 calculation.
+func (c *Collector) RecordGameResult(status simulation.GameStatus) {
+	c.gameResult = status
+	c.gameResultSet = true
+}
+
+// RecordFinalRoomLevels records the level of each room at game end
+// for B08 (PerfectionRate) and B09 (AvgRoomLevelRatio) calculation.
+func (c *Collector) RecordFinalRoomLevels(levels []int) {
+	c.finalRoomLevels = levels
 }
 
 // OnTick records statistics from a post-tick snapshot and the actions
@@ -149,7 +186,7 @@ func (c *Collector) pruneDigTicks(currentTick types.Tick) {
 	c.recentDigTicks = c.recentDigTicks[:n]
 }
 
-// BreakageMetrics returns the B01-B05 breakage sign metrics collected
+// BreakageMetrics returns the B01-B09 breakage sign metrics collected
 // during the game.
 func (c *Collector) BreakageMetrics() BreakageData {
 	bd := BreakageData{}
@@ -168,6 +205,31 @@ func (c *Collector) BreakageMetrics() BreakageData {
 
 	if c.waveArrivals > 0 {
 		bd.B05 = float64(c.waveOverlapHits) / float64(c.waveArrivals)
+	}
+
+	// B06: StompRate — won with CoreHP >= 80% of MaxCoreHP.
+	if c.gameConfigSet && c.gameResultSet && c.gameResult == simulation.Won && c.maxCoreHP > 0 {
+		ratio := float64(c.lastSnapshot.CoreHP) / float64(c.maxCoreHP)
+		bd.B06Stomp = ratio >= stompThreshold
+	}
+
+	// B07: EarlyWipeRate — lost within the first 50% of MaxTicks.
+	if c.gameConfigSet && c.gameResultSet && c.gameResult == simulation.Lost && c.maxTicks > 0 {
+		bd.B07EarlyWipe = c.tickCount <= int(float64(c.maxTicks)*earlyWipeFraction)
+	}
+
+	// B08/B09: PerfectionRate and AvgRoomLevelRatio (win only).
+	if c.gameConfigSet && c.gameResultSet && c.gameResult == simulation.Won && c.maxRoomLevel > 0 && len(c.finalRoomLevels) > 0 {
+		allMax := true
+		levelSum := 0
+		for _, lv := range c.finalRoomLevels {
+			levelSum += lv
+			if lv < c.maxRoomLevel {
+				allMax = false
+			}
+		}
+		bd.B08Perfection = allMax
+		bd.B09RoomLevelRatio = float64(levelSum) / float64(len(c.finalRoomLevels)*c.maxRoomLevel)
 	}
 
 	return bd
