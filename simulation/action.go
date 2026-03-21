@@ -43,13 +43,13 @@ type ActionResult struct {
 // DigRoomAction requests digging a new room in the cave.
 type DigRoomAction struct {
 	// RoomTypeID is the type of room to build (e.g. "dragon_lair").
-	RoomTypeID string
+	RoomTypeID string `json:"room_type_id"`
 	// Pos is the top-left position where the room will be placed.
-	Pos types.Pos
+	Pos types.Pos `json:"pos"`
 	// Width is the room width in cells.
-	Width int
+	Width int `json:"width"`
 	// Height is the room height in cells.
-	Height int
+	Height int `json:"height"`
 }
 
 // ActionType returns the action type identifier.
@@ -58,9 +58,9 @@ func (a DigRoomAction) ActionType() string { return "dig_room" }
 // DigCorridorAction requests connecting two rooms with a corridor.
 type DigCorridorAction struct {
 	// FromRoomID is the source room ID.
-	FromRoomID int
+	FromRoomID int `json:"from_room_id"`
 	// ToRoomID is the destination room ID.
-	ToRoomID int
+	ToRoomID int `json:"to_room_id"`
 }
 
 // ActionType returns the action type identifier.
@@ -69,9 +69,9 @@ func (a DigCorridorAction) ActionType() string { return "dig_corridor" }
 // PlaceBeastAction requests placing an existing beast into a room.
 type PlaceBeastAction struct {
 	// SpeciesID is the species of beast to place.
-	SpeciesID string
+	SpeciesID string `json:"species_id"`
 	// RoomID is the target room ID.
-	RoomID int
+	RoomID int `json:"room_id"`
 }
 
 // ActionType returns the action type identifier.
@@ -80,7 +80,7 @@ func (a PlaceBeastAction) ActionType() string { return "place_beast" }
 // UpgradeRoomAction requests upgrading a room to the next level.
 type UpgradeRoomAction struct {
 	// RoomID is the room to upgrade.
-	RoomID int
+	RoomID int `json:"room_id"`
 }
 
 // ActionType returns the action type identifier.
@@ -89,7 +89,7 @@ func (a UpgradeRoomAction) ActionType() string { return "upgrade_room" }
 // SummonBeastAction requests summoning a new beast of the given element.
 type SummonBeastAction struct {
 	// Element is the element of the beast to summon.
-	Element types.Element
+	Element types.Element `json:"element"`
 }
 
 // ActionType returns the action type identifier.
@@ -98,7 +98,7 @@ func (a SummonBeastAction) ActionType() string { return "summon_beast" }
 // EvolveBeastAction requests evolving a beast along its evolution path.
 type EvolveBeastAction struct {
 	// BeastID is the ID of the beast to evolve.
-	BeastID int
+	BeastID int `json:"beast_id"`
 }
 
 // ActionType returns the action type identifier.
