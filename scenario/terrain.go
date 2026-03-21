@@ -1,11 +1,20 @@
 package scenario
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
+
+// ErrTerrainBlocksRoom is returned when a prebuilt room position is blocked
+// by impassable terrain.
+var ErrTerrainBlocksRoom = errors.New("terrain blocks room placement")
+
+// ErrTerrainDisconnected is returned when impassable terrain separates
+// prebuilt room positions, making it impossible to connect them.
+var ErrTerrainDisconnected = errors.New("terrain disconnects room positions")
 
 // TerrainZone describes a rectangular zone of impassable terrain.
 type TerrainZone struct {
@@ -101,4 +110,83 @@ func ApplyTerrain(cave *world.Cave, zones []TerrainZone) error {
 		}
 	}
 	return nil
+}
+
+// ValidateTerrain checks that the cave terrain does not create an unsolvable
+// (詰み) state for the given prebuilt rooms. It verifies:
+//  1. Each room's Pos cell is not impassable (HardRock or Water).
+//  2. All room positions are connected through non-impassable cells,
+//     ensuring corridors can be excavated between them.
+//
+// This is a D002 safeguard: a terrain layout that isolates rooms from each
+// other or blocks their placement makes the scenario unwinnable.
+func ValidateTerrain(cave *world.Cave, prebuiltRooms []RoomPlacement) error {
+	if len(prebuiltRooms) == 0 {
+		return nil
+	}
+
+	grid := cave.Grid
+
+	// Check 1: each room's origin is not on impassable terrain.
+	for i, rp := range prebuiltRooms {
+		if !grid.InBounds(rp.Pos) {
+			return fmt.Errorf("prebuilt room %d (%s) at (%d,%d): position out of bounds",
+				i, rp.TypeID, rp.Pos.X, rp.Pos.Y)
+		}
+		cell, _ := grid.At(rp.Pos)
+		if cell.Type.IsImpassable() {
+			return fmt.Errorf("prebuilt room %d (%s) at (%d,%d): %w",
+				i, rp.TypeID, rp.Pos.X, rp.Pos.Y, ErrTerrainBlocksRoom)
+		}
+	}
+
+	// Check 2: all room positions are reachable from the first room
+	// via non-impassable cells (flood fill / BFS).
+	if len(prebuiltRooms) < 2 {
+		return nil
+	}
+
+	reachable := floodFillPassable(grid, prebuiltRooms[0].Pos)
+
+	for i := 1; i < len(prebuiltRooms); i++ {
+		rp := prebuiltRooms[i]
+		if !reachable[rp.Pos] {
+			return fmt.Errorf("prebuilt room %d (%s) at (%d,%d) unreachable from room 0 (%s) at (%d,%d): %w",
+				i, rp.TypeID, rp.Pos.X, rp.Pos.Y,
+				prebuiltRooms[0].TypeID, prebuiltRooms[0].Pos.X, prebuiltRooms[0].Pos.Y,
+				ErrTerrainDisconnected)
+		}
+	}
+
+	return nil
+}
+
+// floodFillPassable returns the set of positions reachable from start
+// by moving through orthogonally adjacent non-impassable cells.
+func floodFillPassable(grid *world.Grid, start types.Pos) map[types.Pos]bool {
+	visited := make(map[types.Pos]bool)
+	queue := []types.Pos{start}
+	visited[start] = true
+
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+
+		for _, nb := range cur.Neighbors() {
+			if visited[nb] {
+				continue
+			}
+			if !grid.InBounds(nb) {
+				continue
+			}
+			cell, _ := grid.At(nb)
+			if cell.Type.IsImpassable() {
+				continue
+			}
+			visited[nb] = true
+			queue = append(queue, nb)
+		}
+	}
+
+	return visited
 }

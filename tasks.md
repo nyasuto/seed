@@ -593,8 +593,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [x] `scenario/terrain.go`: TerrainGenerator 構造体。GenerateTerrain(width, height int, density float64, rng types.RNG) []TerrainZone — ランダムに掘削不可ゾーンを生成。TerrainZone 構造体（Pos types.Pos, Width int, Height int, Type world.CellType）
 - [x] `scenario/terrain.go`: ApplyTerrain(cave \*world.Cave, zones []TerrainZone) error — CaveにHardRock/Waterゾーンを配置。配置後にPrebuiltRooms との重複チェック
-- [ ] `scenario/terrain.go`: ValidateTerrain(cave \*world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
-- [ ] `scenario/terrain_test.go`: テンプレート適用テスト、掘削不可ゾーンに部屋配置が拒否されるテスト、決定論テスト（同一seed→同一地形）、ValidateTerrain が詰み地形を検出するテスト
+- [x] `scenario/terrain.go`: ValidateTerrain(cave \*world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
+- [x] `scenario/terrain_test.go`: テンプレート適用テスト、掘削不可ゾーンに部屋配置が拒否されるテスト、決定論テスト（同一seed→同一地形）、ValidateTerrain が詰み地形を検出するテスト
 
 ## Phase 6-I: シナリオローダーとバリデーション（scenario/）
 
