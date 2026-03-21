@@ -36,6 +36,18 @@ func DefaultScoreParams() *ScoreParams {
 	return &p
 }
 
+// MaxRoomScore returns the theoretical maximum feng shui score for a single
+// room, assuming full chi, dragon vein connectivity, and maxNeighbors adjacent
+// rooms with optimal elemental relationships. Use this to normalize CaveTotal
+// into a [0,1] range.
+func (p *ScoreParams) MaxRoomScore(maxNeighbors int) float64 {
+	adjBonus := p.GeneratesBonus
+	if p.SameElementBonus > adjBonus {
+		adjBonus = p.SameElementBonus
+	}
+	return p.ChiRatioWeight + p.DragonVeinBonus + float64(maxNeighbors)*adjBonus
+}
+
 // LoadScoreParams reads scoring parameters from a JSON file at the given path.
 func LoadScoreParams(path string) (*ScoreParams, error) {
 	data, err := os.ReadFile(path)

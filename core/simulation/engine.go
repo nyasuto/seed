@@ -286,7 +286,8 @@ func (e *SimulationEngine) advanceEconomy(tick types.Tick) []string {
 	caveScore := 0.0
 	if s.ScoreParams != nil {
 		ev := fengshui.NewEvaluator(s.Cave, s.RoomTypeRegistry, s.ScoreParams)
-		caveScore = ev.CaveTotal(s.ChiFlowEngine)
+		rawScore := ev.CaveTotal(s.ChiFlowEngine)
+		caveScore = normalizeCaveScore(rawScore, len(s.Cave.Rooms), s.ScoreParams)
 	}
 	econResult := s.EconomyEngine.Tick(
 		tick,
@@ -385,6 +386,21 @@ func derefRooms(rooms []*world.Room) []world.Room {
 		result[i] = *r
 	}
 	return result
+}
+
+// normalizeCaveScore converts a raw CaveTotal score into the [0,1] range
+// expected by CalcTickSupply. It divides by the theoretical maximum score
+// (numRooms × maxScorePerRoom) and clamps to [0,1].
+func normalizeCaveScore(rawScore float64, numRooms int, params *fengshui.ScoreParams) float64 {
+	if numRooms <= 0 {
+		return 0.0
+	}
+	maxPossible := float64(numRooms) * params.MaxRoomScore(4)
+	score := rawScore / maxPossible
+	if score > 1.0 {
+		return 1.0
+	}
+	return score
 }
 
 // evaluateEndConditions checks win and lose conditions against the current state.
