@@ -650,7 +650,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `simulation/doc.go`: パッケージドキュメント
 - [x] `simulation/state.go`: GameState 構造体（全サブシステムのエンジン + Scenario + Progress + RNG を統合保持）
 - [x] `simulation/state.go`: GameStatus（Running/Won/Lost）、GameResult（Status, FinalTick, Reason）
-- [ ] `simulation/action.go`: PlayerAction インターフェース。具体的なアクション:
+- [x] `simulation/action.go`: PlayerAction インターフェース。具体的なアクション:
   - DigRoomAction（roomTypeID, pos, width, height）
   - DigCorridorAction（fromRoomID, toRoomID）
   - PlaceBeastAction（speciesID, roomID）
