@@ -18,17 +18,20 @@ type DefeatResult struct {
 
 // DefeatProcessor handles beast defeat logic including stunning and revival calculation.
 type DefeatProcessor struct {
-	stunnedDuration int
-	revivalHPRatio  float64
-	levelPenalty    int
+	params *DefeatParams
 }
 
 // NewDefeatProcessor creates a DefeatProcessor with default parameters.
 func NewDefeatProcessor() *DefeatProcessor {
 	return &DefeatProcessor{
-		stunnedDuration: 20,
-		revivalHPRatio:  0.3,
-		levelPenalty:    1,
+		params: DefaultDefeatParams(),
+	}
+}
+
+// NewDefeatProcessorWithParams creates a DefeatProcessor with the given parameters.
+func NewDefeatProcessorWithParams(params *DefeatParams) *DefeatProcessor {
+	return &DefeatProcessor{
+		params: params,
 	}
 }
 
@@ -40,15 +43,15 @@ func (dp *DefeatProcessor) ProcessDefeat(beast *Beast, tick types.Tick) DefeatRe
 	beast.State = Stunned
 	beast.HP = 0
 
-	revivalTick := tick + types.Tick(dp.stunnedDuration)
+	revivalTick := tick + types.Tick(dp.params.StunnedDuration)
 
-	levelPenalty := dp.levelPenalty
+	levelPenalty := dp.params.LevelPenalty
 	newLevel := beast.Level - levelPenalty
 	if newLevel < 1 {
 		levelPenalty = beast.Level - 1
 	}
 
-	revivalHP := int(float64(beast.MaxHP) * dp.revivalHPRatio)
+	revivalHP := int(float64(beast.MaxHP) * dp.params.RevivalHPRatio)
 	if revivalHP < 1 {
 		revivalHP = 1
 	}

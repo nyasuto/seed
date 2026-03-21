@@ -531,8 +531,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - StunnedDuration ティック後に自動復活（HP = MaxHP × 0.3、レベル -1（最低1））
   - Stunned中は行動不可・戦闘不可
 - [x] `senju/defeat.go`: DefeatResult 構造体（BeastID int, NewState BeastState, RevivalTick types.Tick, LevelPenalty int, RevivalHP int）
-- [ ] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
-- [ ] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
+- [x] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
+- [x] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
 - [ ] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
 - [ ] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
 
