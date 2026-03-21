@@ -362,4 +362,4 @@
     - 波完了時にRewardChiが集計されること
     - 全過程がInvasionEventログとして記録されること
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [ ] Phase 4 完了。DECISIONS.md 更新（D002時間圧力のPhase 4段階の実装メモ、戦闘マッチングルールの判断記録）、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+- [x] Phase 4 完了。DECISIONS.md 更新（D002時間圧力のPhase 4段階の実装メモ、戦闘マッチングルールの判断記録）、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**

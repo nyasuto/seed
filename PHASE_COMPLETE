@@ -1,57 +1,73 @@
-# Phase 3.5 完了レポート — 仙獣AI行動システム（senju/）
+# Phase 4 完了レポート — 侵入システム（invasion/）
 
 ## 1. 実装した内容の要約
 
-### Phase 3.5-A: 行動パターン定義
-- BehaviorType（Guard/Patrol/Chase/Flee）と Behavior インターフェース
-- Action / ActionType（Stay/MoveToRoom/Attack/Retreat）構造体
-- GuardBehavior: 定点防衛AI（侵入者がいればAttack、いなければStay）
+### Phase 4-A: 侵入者基本型定義
+- InvaderClass（5種: 修行者/武闘家/鎧武者/盗賊/道士）、GoalType（DestroyCore/HuntBeasts/StealTreasure）
+- Invader 構造体（状態: Advancing/Fighting/Retreating/Defeated/GoalAchieved）
+- 目標別の Goal 実装（DestroyCoreGoal, HuntBeastsGoal, StealTreasureGoal）
 
-### Phase 3.5-B: 巡回と追跡AI
-- PatrolBehavior: 隣接部屋を順番に巡回、侵入者発見でChaseに遷移
-- ChaseBehavior: 侵入者の方向へ追跡移動、タイムアウトでPatrolに復帰
-- FleeBehavior: HP低下時に侵入者から逃走、回復室を目指す
+### Phase 4-B: 目標指向の経路探索
+- ExplorationMemory: 侵入者が訪問済み部屋・発見した特殊部屋を記憶
+- Pathfinder: BFSベースの最短経路 + 未知領域の探索的移動 + バックトラック
 
-### Phase 3.5-C: 行動エンジン
-- BehaviorEngine: 全仙獣の1ティック分の行動を一括決定
-- HP閾値による自動Flee遷移
-- 行動衝突の先着順解決
-- ApplyActions: 行動結果の適用（位置・状態更新）
+### Phase 4-C: 戦闘解決システム
+- CombatEngine: 先攻/後攻・属性相性・クリティカルを含む1ラウンド戦闘
+- ResolveRoomCombat: 同じ部屋の仙獣vs侵入者をSPD順でペアリングしてマッチング
+- CombatParams: 全パラメータをJSON外出し
 
-### Phase 3.5-D: AIパラメータ外出し
-- BehaviorParams: 逃走HP閾値、追跡タイムアウト、巡回滞在ティック
-- JSON からのパラメータ読み込み対応
+### Phase 4-D: 撤退ロジック
+- RetreatEvaluator: HP低下・士気崩壊・目標達成による撤退判定
+- RetreatPathfinder: 来た道を逆走して入口へ帰還
+- 盗賊の気奪取（StolenChi）
 
-### Phase 3.5-E: ASCII可視化
-- 仙獣の行動状態オーバーレイ表示（[G]/[P]/[!]/[←]/[+]）
-- caveviz コマンドの --ai フラグ対応
+### Phase 4-E: 罠効果システム
+- TrapEffect: 罠部屋通過時のダメージ + スロー効果
+- 属性相性に基づくダメージ倍率
 
-### Phase 3.5-F: 統合検証
-- 5部屋×3仙獣（Guard/Patrol/Chase）×20ティックの行動シミュレーション統合テスト
-- 疑似侵入者による追跡・逃走遷移の検証
+### Phase 4-F: 侵入波管理
+- InvasionWave: 波の状態管理（Pending/Active/Completed/Failed）
+- WaveGenerator: 難易度・Caveの部屋構成に基づく侵入者グループ生成
+- WaveSchedule: テスト用固定スケジュール（Phase 6で上書き前提）
+
+### Phase 4-G: 侵入ティックエンジン
+- InvasionEngine.Tick: 1ティック分の全処理（波アクティベーション→移動→罠→戦闘→撤退→波完了判定）
+- InvasionEvent: 全過程をイベントログとして記録
+- BuildInvaderPositions: senju.BehaviorEngine との連携用マップ生成
+- CollectRewards/CollectStolenChi: Phase 5経済システムとのインターフェース
+
+### Phase 4-H: シリアライズ
+- 全侵入波の状態（ExplorationMemory、Goal状態含む）の保存/復元
+
+### Phase 4-I: ASCII可視化
+- 侵入者のオーバーレイ表示（>>/XX/<</$$）
+- caveviz の --invasion/--battle フラグ
+
+### Phase 4-J: 統合検証
+- 50ティックのフルシミュレーション（6部屋、3仙獣、1波3体の侵入者）
+- 目標指向移動・罠・戦闘・撤退・士気崩壊・RewardChi集計をすべて検証
 
 ## 2. 未解決の課題や技術的負債
 
-- **進化システム未実装**: PRD記載の仙獣進化は未実装。Phase 4以降で対応
-- **行動AIの知能レベルが単純**: 現在のAIは最近傍の隣接部屋への移動のみ。複数部屋先を見据えた経路計画は未実装
-- **回復メカニクスが未完成**: FleeBehaviorで回復室到達後のRecovering状態からの復帰条件（HP回復速度等）は Phase 4 の戦闘システムと合わせて定義が必要
-- **侵入者が仮実装**: 侵入者位置は map[int][]int のモックデータ。Phase 4 で実際の Invader 型に置き換え
+- **侵入者の経路探索AIが単純**: 現在は1部屋ずつのBFS。複数ステップ先読みや、仙獣配置を回避する知能は未実装
+- **戦闘バランスが未調整**: CombatParams のデフォルト値はテスト用。Phase 7のシミュレーションで調整
+- **仙獣の敗北後処理が最小限**: BeastDefeated イベントは生成するが、仙獣の復活・消滅ロジックは Phase 5/6 で定義
+- **罠の盗賊回避率が未実装**: trap_test.go にスタブのみ。盗賊の SPD や専用スキルによる罠回避は将来拡張
+- **WaveSchedule がテスト用固定値**: Phase 6 のシナリオシステムで動的スケジュールに置き換え
 
 ## 3. 次フェーズへの申し送り事項
 
-- Phase 4（侵入システム invasion/）では以下を実装:
-  - Invader 型の定義（種類、強さ、HP、属性、経路探索AI）
-  - 侵入波（InvasionWave）の生成・スケジューリング
-  - 仙獣 vs 侵入者の戦闘解決ロジック
-  - 罠部屋の妨害効果
-- 侵入者の経路探索は入口から部屋を探索しながら進行。world.AdjacencyGraph を利用
-- 戦闘解決では `senju/combat_stats.go` の CalcCombatStats を使用
-- senju パッケージへの依存方向: invasion → senju（invasion が senju を呼ぶ）
-- BehaviorEngine の侵入者位置引数 `map[int][]int` は Phase 4 で invasion 側が構築する
+- Phase 5（経済システム economy/）では以下を実装:
+  - 気の収支バランス管理（ChiPool: 龍脈供給 - 部屋維持 - 仙獣消費 + RewardChi - StolenChi）
+  - 部屋の建設・拡張コストモデル
+  - 仙獣の召喚・育成コスト
+  - CollectRewards/CollectStolenChi からの経済への反映
+- invasion パッケージへの依存: economy → invasion（CollectRewards/CollectStolenChi を利用）
+- D002「リソースが常に不足する」原則を economy の設計根幹に据える
+- 風水スコア（Phase 2-D の FengShuiScore）を経済ボーナスに変換する仕組みを検討
 
 ## 4. LESSONS.md から特に重要な知見
 
-- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した前例。Phase 3.5 では ActionType と BeastState の定数名に注意して設計した
-- **パッケージ依存方向の厳守**: senju が invasion に依存しないよう、侵入者情報は map[int][]int で受け取る設計とした（DECISIONS.md D006）
-- **行動衝突は先着順**: 決定論的設計を保つため、複雑な優先度ルールよりシンプルな順序依存を選択（DECISIONS.md D005）
-- **golangci-lint v2 の破壊的変更**: 設定ファイルの互換性に注意
+- **パッケージ依存方向の厳守**: invasion は senju に依存するが、逆はない。BehaviorEngine への侵入者位置は map[int][]int で渡す設計が有効に機能した
+- **決定論的設計の徹底**: 戦闘のSPD順ペアリング、先攻/後攻判定のRNG利用箇所を最小限にし、同一seed→同一結果を保証
+- **イベントログ設計**: InvasionEvent を通じて全過程を記録する設計は、デバッグ・テスト・将来のリプレイ機能に有用
