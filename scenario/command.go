@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -33,6 +34,13 @@ func NewCommand(def CommandDef) (EventCommand, error) {
 	}
 }
 
+// spawnWaveParams holds the typed parameters for SpawnWaveCommand.
+type spawnWaveParams struct {
+	Difficulty  float64 `json:"difficulty"`
+	MinInvaders int     `json:"min_invaders"`
+	MaxInvaders int     `json:"max_invaders"`
+}
+
 // SpawnWaveCommand requests an additional invasion wave.
 type SpawnWaveCommand struct {
 	// Difficulty is the relative difficulty multiplier for the wave.
@@ -43,26 +51,21 @@ type SpawnWaveCommand struct {
 	MaxInvaders int
 }
 
-func newSpawnWaveCommand(params map[string]any) (*SpawnWaveCommand, error) {
-	difficulty, err := paramFloat64(params, "difficulty")
-	if err != nil {
-		return nil, fmt.Errorf("spawn_wave: %w", err)
+func newSpawnWaveCommand(params json.RawMessage) (*SpawnWaveCommand, error) {
+	var p spawnWaveParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("spawn_wave params: %w", err)
 	}
-	minInv, err := paramFloat64(params, "min_invaders")
-	if err != nil {
-		return nil, fmt.Errorf("spawn_wave: %w", err)
+	if p.Difficulty == 0 {
+		return nil, fmt.Errorf("spawn_wave: missing required parameter \"difficulty\"")
 	}
-	maxInv, err := paramFloat64(params, "max_invaders")
-	if err != nil {
-		return nil, fmt.Errorf("spawn_wave: %w", err)
-	}
-	if int(minInv) > int(maxInv) {
-		return nil, fmt.Errorf("spawn_wave: min_invaders (%d) exceeds max_invaders (%d)", int(minInv), int(maxInv))
+	if p.MinInvaders > p.MaxInvaders {
+		return nil, fmt.Errorf("spawn_wave: min_invaders (%d) exceeds max_invaders (%d)", p.MinInvaders, p.MaxInvaders)
 	}
 	return &SpawnWaveCommand{
-		Difficulty:  difficulty,
-		MinInvaders: int(minInv),
-		MaxInvaders: int(maxInv),
+		Difficulty:  p.Difficulty,
+		MinInvaders: p.MinInvaders,
+		MaxInvaders: p.MaxInvaders,
 	}, nil
 }
 
@@ -71,23 +74,37 @@ func (c *SpawnWaveCommand) Execute() string {
 	return fmt.Sprintf("spawn wave: difficulty=%.1f invaders=%d-%d", c.Difficulty, c.MinInvaders, c.MaxInvaders)
 }
 
+// modifyChiParams holds the typed parameters for ModifyChiCommand.
+type modifyChiParams struct {
+	Amount float64 `json:"amount"`
+}
+
 // ModifyChiCommand requests a change to the chi pool balance.
 type ModifyChiCommand struct {
 	// Amount is the chi to add (positive) or subtract (negative).
 	Amount float64
 }
 
-func newModifyChiCommand(params map[string]any) (*ModifyChiCommand, error) {
-	amount, err := paramFloat64(params, "amount")
-	if err != nil {
-		return nil, fmt.Errorf("modify_chi: %w", err)
+func newModifyChiCommand(params json.RawMessage) (*ModifyChiCommand, error) {
+	var p modifyChiParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("modify_chi params: %w", err)
 	}
-	return &ModifyChiCommand{Amount: amount}, nil
+	if p.Amount == 0 {
+		return nil, fmt.Errorf("modify_chi: missing required parameter \"amount\"")
+	}
+	return &ModifyChiCommand{Amount: p.Amount}, nil
 }
 
 // Execute returns a description of the chi modification.
 func (c *ModifyChiCommand) Execute() string {
 	return fmt.Sprintf("modify chi: %+.1f", c.Amount)
+}
+
+// modifyConstraintParams holds the typed parameters for ModifyConstraintCommand.
+type modifyConstraintParams struct {
+	Constraint string   `json:"constraint"`
+	Value      *float64 `json:"value"`
 }
 
 // ModifyConstraintCommand requests a change to a scenario constraint.
@@ -98,21 +115,28 @@ type ModifyConstraintCommand struct {
 	Value float64
 }
 
-func newModifyConstraintCommand(params map[string]any) (*ModifyConstraintCommand, error) {
-	constraint, err := paramString(params, "constraint")
-	if err != nil {
-		return nil, fmt.Errorf("modify_constraint: %w", err)
+func newModifyConstraintCommand(params json.RawMessage) (*ModifyConstraintCommand, error) {
+	var p modifyConstraintParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("modify_constraint params: %w", err)
 	}
-	value, err := paramFloat64(params, "value")
-	if err != nil {
-		return nil, fmt.Errorf("modify_constraint: %w", err)
+	if p.Constraint == "" {
+		return nil, fmt.Errorf("modify_constraint: missing required parameter \"constraint\"")
 	}
-	return &ModifyConstraintCommand{Constraint: constraint, Value: value}, nil
+	if p.Value == nil {
+		return nil, fmt.Errorf("modify_constraint: missing required parameter \"value\"")
+	}
+	return &ModifyConstraintCommand{Constraint: p.Constraint, Value: *p.Value}, nil
 }
 
 // Execute returns a description of the constraint modification.
 func (c *ModifyConstraintCommand) Execute() string {
 	return fmt.Sprintf("modify constraint: %s=%.1f", c.Constraint, c.Value)
+}
+
+// messageParams holds the typed parameters for MessageCommand.
+type messageParams struct {
+	Text string `json:"text"`
 }
 
 // MessageCommand delivers a notification message to the player.
@@ -121,28 +145,18 @@ type MessageCommand struct {
 	Text string
 }
 
-func newMessageCommand(params map[string]any) (*MessageCommand, error) {
-	text, err := paramString(params, "text")
-	if err != nil {
-		return nil, fmt.Errorf("message: %w", err)
+func newMessageCommand(params json.RawMessage) (*MessageCommand, error) {
+	var p messageParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("message params: %w", err)
 	}
-	return &MessageCommand{Text: text}, nil
+	if p.Text == "" {
+		return nil, fmt.Errorf("message: missing required parameter \"text\"")
+	}
+	return &MessageCommand{Text: p.Text}, nil
 }
 
 // Execute returns the message text.
 func (c *MessageCommand) Execute() string {
 	return c.Text
-}
-
-// paramString extracts a string parameter by key from a params map.
-func paramString(params map[string]any, key string) (string, error) {
-	v, ok := params[key]
-	if !ok {
-		return "", fmt.Errorf("missing required parameter %q", key)
-	}
-	s, ok := v.(string)
-	if !ok {
-		return "", fmt.Errorf("parameter %q must be a string, got %T", key, v)
-	}
-	return s, nil
 }

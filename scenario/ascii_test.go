@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/types"
@@ -13,7 +14,7 @@ func TestRenderScenarioStatus_Standard(t *testing.T) {
 			MaxTicks: 500,
 		},
 		WinConditions: []ConditionDef{
-			{Type: "fengshui_score", Params: map[string]any{"threshold": 80.0}},
+			{Type: "fengshui_score", Params: json.RawMessage(`{"threshold": 80}`)},
 		},
 	}
 	prog := &ScenarioProgress{
@@ -65,9 +66,9 @@ func TestRenderScenarioStatus_MultipleWinConditions(t *testing.T) {
 			MaxTicks: types.Tick(1000),
 		},
 		WinConditions: []ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 1000.0}},
-			{Type: "fengshui_score", Params: map[string]any{"threshold": 60.0}},
-			{Type: "chi_pool", Params: map[string]any{"threshold": 200.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 1000}`)},
+			{Type: "fengshui_score", Params: json.RawMessage(`{"threshold": 60}`)},
+			{Type: "chi_pool", Params: json.RawMessage(`{"threshold": 200}`)},
 		},
 	}
 	prog := &ScenarioProgress{
@@ -96,7 +97,7 @@ func TestRenderScenarioStatus_ZeroWaves(t *testing.T) {
 			MaxTicks: 200,
 		},
 		WinConditions: []ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 200.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 200}`)},
 		},
 	}
 	prog := &ScenarioProgress{

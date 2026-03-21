@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -34,18 +35,26 @@ func NewCondition(def ConditionDef) (ConditionEvaluator, error) {
 	}
 }
 
+// surviveUntilParams holds the typed parameters for surviveUntil.
+type surviveUntilParams struct {
+	Ticks float64 `json:"ticks"`
+}
+
 // surviveUntil evaluates true when the current tick reaches the target
 // and CoreHP is still positive.
 type surviveUntil struct {
 	ticks types.Tick
 }
 
-func newSurviveUntil(params map[string]any) (*surviveUntil, error) {
-	ticks, err := paramFloat64(params, "ticks")
-	if err != nil {
-		return nil, fmt.Errorf("survive_until: %w", err)
+func newSurviveUntil(params json.RawMessage) (*surviveUntil, error) {
+	var p surviveUntilParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("survive_until params: %w", err)
 	}
-	return &surviveUntil{ticks: types.Tick(ticks)}, nil
+	if p.Ticks == 0 {
+		return nil, fmt.Errorf("survive_until: missing required parameter \"ticks\"")
+	}
+	return &surviveUntil{ticks: types.Tick(p.Ticks)}, nil
 }
 
 // Evaluate returns true when the game has survived to at least the
@@ -63,18 +72,26 @@ func (c *defeatAllWaves) Evaluate(snap GameSnapshot) bool {
 	return snap.TotalWaves > 0 && snap.DefeatedWaves >= snap.TotalWaves
 }
 
+// fengshuiScoreParams holds the typed parameters for fengshuiScore.
+type fengshuiScoreParams struct {
+	Threshold float64 `json:"threshold"`
+}
+
 // fengshuiScore evaluates true when the cave fengshui score meets or
 // exceeds a threshold.
 type fengshuiScore struct {
 	threshold float64
 }
 
-func newFengshuiScore(params map[string]any) (*fengshuiScore, error) {
-	threshold, err := paramFloat64(params, "threshold")
-	if err != nil {
-		return nil, fmt.Errorf("fengshui_score: %w", err)
+func newFengshuiScore(params json.RawMessage) (*fengshuiScore, error) {
+	var p fengshuiScoreParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("fengshui_score params: %w", err)
 	}
-	return &fengshuiScore{threshold: threshold}, nil
+	if p.Threshold == 0 {
+		return nil, fmt.Errorf("fengshui_score: missing required parameter \"threshold\"")
+	}
+	return &fengshuiScore{threshold: p.Threshold}, nil
 }
 
 // Evaluate returns true when the snapshot's fengshui score is at or above
@@ -83,18 +100,26 @@ func (c *fengshuiScore) Evaluate(snap GameSnapshot) bool {
 	return snap.CaveFengShuiScore >= c.threshold
 }
 
+// chiPoolParams holds the typed parameters for chiPool.
+type chiPoolParams struct {
+	Threshold float64 `json:"threshold"`
+}
+
 // chiPool evaluates true when the chi pool balance meets or exceeds a
 // threshold.
 type chiPool struct {
 	threshold float64
 }
 
-func newChiPool(params map[string]any) (*chiPool, error) {
-	threshold, err := paramFloat64(params, "threshold")
-	if err != nil {
-		return nil, fmt.Errorf("chi_pool: %w", err)
+func newChiPool(params json.RawMessage) (*chiPool, error) {
+	var p chiPoolParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("chi_pool params: %w", err)
 	}
-	return &chiPool{threshold: threshold}, nil
+	if p.Threshold == 0 {
+		return nil, fmt.Errorf("chi_pool: missing required parameter \"threshold\"")
+	}
+	return &chiPool{threshold: p.Threshold}, nil
 }
 
 // Evaluate returns true when the snapshot's chi pool balance is at or
@@ -121,36 +146,30 @@ func (c *allBeastsDefeated) Evaluate(snap GameSnapshot) bool {
 	return snap.AliveBeasts == 0
 }
 
+// bankruptParams holds the typed parameters for bankrupt.
+type bankruptParams struct {
+	Ticks float64 `json:"ticks"`
+}
+
 // bankrupt evaluates true when the player has been running a chi deficit
 // for too many consecutive ticks (lose condition).
 type bankrupt struct {
 	ticksThreshold int
 }
 
-func newBankrupt(params map[string]any) (*bankrupt, error) {
-	ticks, err := paramFloat64(params, "ticks")
-	if err != nil {
-		return nil, fmt.Errorf("bankrupt: %w", err)
+func newBankrupt(params json.RawMessage) (*bankrupt, error) {
+	var p bankruptParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, fmt.Errorf("bankrupt params: %w", err)
 	}
-	return &bankrupt{ticksThreshold: int(ticks)}, nil
+	if p.Ticks == 0 {
+		return nil, fmt.Errorf("bankrupt: missing required parameter \"ticks\"")
+	}
+	return &bankrupt{ticksThreshold: int(p.Ticks)}, nil
 }
 
 // Evaluate returns true when ConsecutiveDeficitTicks meets or exceeds
 // the configured threshold.
 func (c *bankrupt) Evaluate(snap GameSnapshot) bool {
 	return snap.ConsecutiveDeficitTicks >= c.ticksThreshold
-}
-
-// paramFloat64 extracts a float64 parameter by key from a params map.
-// JSON numbers unmarshal as float64, so this handles the common case.
-func paramFloat64(params map[string]any, key string) (float64, error) {
-	v, ok := params[key]
-	if !ok {
-		return 0, fmt.Errorf("missing required parameter %q", key)
-	}
-	f, ok := v.(float64)
-	if !ok {
-		return 0, fmt.Errorf("parameter %q must be a number, got %T", key, v)
-	}
-	return f, nil
 }

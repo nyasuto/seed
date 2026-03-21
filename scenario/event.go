@@ -1,5 +1,7 @@
 package scenario
 
+import "encoding/json"
+
 // EventDef defines a scripted event triggered by game state.
 // When the Condition is met during a tick, the Commands are executed.
 // If OneShot is true, the event fires at most once per scenario run.
@@ -16,11 +18,11 @@ type EventDef struct {
 
 // CommandDef defines an event command in data-driven form.
 // Type identifies the kind of command, and Params holds
-// type-specific parameters loaded from JSON scenario data.
+// type-specific parameters as raw JSON loaded from scenario data.
 type CommandDef struct {
 	// Type is the command identifier used by the factory to instantiate
 	// the corresponding EventCommand.
 	Type string
-	// Params holds command-specific parameters.
-	Params map[string]any
+	// Params holds command-specific parameters as raw JSON.
+	Params json.RawMessage
 }

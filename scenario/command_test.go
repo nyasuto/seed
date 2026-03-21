@@ -1,18 +1,15 @@
 package scenario
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 )
 
 func TestNewCommand_SpawnWave(t *testing.T) {
 	def := CommandDef{
-		Type: "spawn_wave",
-		Params: map[string]any{
-			"difficulty":   1.5,
-			"min_invaders": 3.0,
-			"max_invaders": 6.0,
-		},
+		Type:   "spawn_wave",
+		Params: json.RawMessage(`{"difficulty": 1.5, "min_invaders": 3, "max_invaders": 6}`),
 	}
 	cmd, err := NewCommand(def)
 	if err != nil {
@@ -39,12 +36,8 @@ func TestNewCommand_SpawnWave(t *testing.T) {
 
 func TestNewCommand_SpawnWave_MinExceedsMax(t *testing.T) {
 	def := CommandDef{
-		Type: "spawn_wave",
-		Params: map[string]any{
-			"difficulty":   1.0,
-			"min_invaders": 10.0,
-			"max_invaders": 5.0,
-		},
+		Type:   "spawn_wave",
+		Params: json.RawMessage(`{"difficulty": 1.0, "min_invaders": 10, "max_invaders": 5}`),
 	}
 	_, err := NewCommand(def)
 	if err == nil {
@@ -55,7 +48,7 @@ func TestNewCommand_SpawnWave_MinExceedsMax(t *testing.T) {
 func TestNewCommand_ModifyChi(t *testing.T) {
 	def := CommandDef{
 		Type:   "modify_chi",
-		Params: map[string]any{"amount": -50.0},
+		Params: json.RawMessage(`{"amount": -50.0}`),
 	}
 	cmd, err := NewCommand(def)
 	if err != nil {
@@ -76,11 +69,8 @@ func TestNewCommand_ModifyChi(t *testing.T) {
 
 func TestNewCommand_ModifyConstraint(t *testing.T) {
 	def := CommandDef{
-		Type: "modify_constraint",
-		Params: map[string]any{
-			"constraint": "max_rooms",
-			"value":      10.0,
-		},
+		Type:   "modify_constraint",
+		Params: json.RawMessage(`{"constraint": "max_rooms", "value": 10.0}`),
 	}
 	cmd, err := NewCommand(def)
 	if err != nil {
@@ -105,7 +95,7 @@ func TestNewCommand_ModifyConstraint(t *testing.T) {
 func TestNewCommand_Message(t *testing.T) {
 	def := CommandDef{
 		Type:   "message",
-		Params: map[string]any{"text": "boss incoming!"},
+		Params: json.RawMessage(`{"text": "boss incoming!"}`),
 	}
 	cmd, err := NewCommand(def)
 	if err != nil {
@@ -126,7 +116,7 @@ func TestNewCommand_Message(t *testing.T) {
 func TestNewCommand_UnknownType(t *testing.T) {
 	def := CommandDef{
 		Type:   "explode",
-		Params: map[string]any{},
+		Params: json.RawMessage(`{}`),
 	}
 	_, err := NewCommand(def)
 	if !errors.Is(err, ErrUnknownCommandType) {
@@ -139,11 +129,11 @@ func TestNewCommand_MissingParams(t *testing.T) {
 		name string
 		def  CommandDef
 	}{
-		{"spawn_wave missing difficulty", CommandDef{Type: "spawn_wave", Params: map[string]any{"min_invaders": 1.0, "max_invaders": 3.0}}},
-		{"modify_chi missing amount", CommandDef{Type: "modify_chi", Params: map[string]any{}}},
-		{"modify_constraint missing constraint", CommandDef{Type: "modify_constraint", Params: map[string]any{"value": 1.0}}},
-		{"modify_constraint missing value", CommandDef{Type: "modify_constraint", Params: map[string]any{"constraint": "x"}}},
-		{"message missing text", CommandDef{Type: "message", Params: map[string]any{}}},
+		{"spawn_wave missing difficulty", CommandDef{Type: "spawn_wave", Params: json.RawMessage(`{"min_invaders": 1, "max_invaders": 3}`)}},
+		{"modify_chi missing amount", CommandDef{Type: "modify_chi", Params: json.RawMessage(`{}`)}},
+		{"modify_constraint missing constraint", CommandDef{Type: "modify_constraint", Params: json.RawMessage(`{"value": 1.0}`)}},
+		{"modify_constraint missing value", CommandDef{Type: "modify_constraint", Params: json.RawMessage(`{"constraint": "x"}`)}},
+		{"message missing text", CommandDef{Type: "message", Params: json.RawMessage(`{}`)}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
