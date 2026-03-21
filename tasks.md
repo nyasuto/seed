@@ -701,14 +701,14 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-F: AIプレイヤー（simulation/）
 
-- [ ] `simulation/ai_player.go`: AIPlayer インターフェース（DecideActions(snapshot GameSnapshot) []PlayerAction）
-- [ ] `simulation/ai_player.go`: SimpleAIPlayer — 最低限の自動プレイヤー:
+- [x] `simulation/ai_player.go`: AIPlayer インターフェース（DecideActions(snapshot GameSnapshot) []PlayerAction）
+- [x] `simulation/ai_player.go`: SimpleAIPlayer — 最低限の自動プレイヤー:
   1. ChiPool に余裕があれば最安の部屋を建設
   2. 仙獣部屋に空きがあれば召喚
   3. 侵入波が来る前に龍穴前にGuard仙獣を配置
   4. それ以外はNoAction
-- [ ] `simulation/ai_player.go`: RandomAIPlayer — ランダムにアクションを選択（RNG経由）。バランステストで「何をしても破綻しないか」の検証用
-- [ ] `simulation/ai_player_test.go`: SimpleAIがチュートリアルシナリオをクリアできるテスト、RandomAIが即座にクラッシュしないテスト
+- [x] `simulation/ai_player.go`: RandomAIPlayer — ランダムにアクションを選択（RNG経由）。バランステストで「何をしても破綻しないか」の検証用
+- [x] `simulation/ai_player_test.go`: SimpleAIがチュートリアルシナリオをクリアできるテスト、RandomAIが即座にクラッシュしないテスト
 
 ## Phase 7-G: D001 プロファイリング
 
