@@ -8,7 +8,7 @@
 
 ## Phase 0: プロジェクト初期化
 
-- [ ] **Task 0-A: simスケルトン作成**
+- [x] **Task 0-A: simスケルトン作成**
 
 モノレポ構成（go.work, core/, sim/, sim/go.mod, sim/docs/PRD.md）は既に存在する。
 以下の残作業を実施する：
