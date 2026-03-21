@@ -647,7 +647,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-A: 基本型定義（simulation/）
 
-- [ ] `simulation/doc.go`: パッケージドキュメント
+- [x] `simulation/doc.go`: パッケージドキュメント
 - [ ] `simulation/state.go`: GameState 構造体（全サブシステムのエンジン + Scenario + Progress + RNG を統合保持）
 - [ ] `simulation/state.go`: GameStatus（Running/Won/Lost）、GameResult（Status, FinalTick, Reason）
 - [ ] `simulation/action.go`: PlayerAction インターフェース。具体的なアクション:
