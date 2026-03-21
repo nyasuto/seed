@@ -19,6 +19,8 @@ type RoomType struct {
 	BaseChiCapacity int `json:"base_chi_capacity"`
 	// Description is a short description of the room type.
 	Description string `json:"description"`
+	// MaxBeasts is the maximum number of beasts that can be placed in this room type.
+	MaxBeasts int `json:"max_beasts"`
 }
 
 // RoomTypeRegistry holds a collection of room types indexed by ID.
@@ -78,6 +80,7 @@ type roomTypeJSON struct {
 	Element         string `json:"element"`
 	BaseChiCapacity int    `json:"base_chi_capacity"`
 	Description     string `json:"description"`
+	MaxBeasts       int    `json:"max_beasts"`
 }
 
 // elementFromString converts a string name to a types.Element value.
@@ -118,6 +121,7 @@ func LoadRoomTypesJSON(data []byte) (*RoomTypeRegistry, error) {
 			Element:         elem,
 			BaseChiCapacity: raw.BaseChiCapacity,
 			Description:     raw.Description,
+			MaxBeasts:       raw.MaxBeasts,
 		}
 		if err := reg.Register(rt); err != nil {
 			return nil, err

@@ -193,6 +193,90 @@ func TestRoomTypeRegistry_LoadJSON(t *testing.T) {
 	}
 }
 
+func TestRoomType_MaxBeasts(t *testing.T) {
+	reg, err := LoadDefaultRoomTypes()
+	if err != nil {
+		t.Fatalf("LoadDefaultRoomTypes: %v", err)
+	}
+
+	expected := map[string]int{
+		"dragon_hole":   1,
+		"chi_chamber":   0,
+		"senju_room":    3,
+		"trap_room":     2,
+		"recovery_room": 0,
+		"storage":       0,
+	}
+
+	for id, want := range expected {
+		rt, err := reg.Get(id)
+		if err != nil {
+			t.Fatalf("Get(%q): %v", id, err)
+		}
+		if rt.MaxBeasts != want {
+			t.Errorf("%s MaxBeasts = %d, want %d", id, rt.MaxBeasts, want)
+		}
+	}
+}
+
+func TestRoom_BeastCount(t *testing.T) {
+	room := &Room{ID: 1}
+	if room.BeastCount() != 0 {
+		t.Errorf("empty room BeastCount = %d, want 0", room.BeastCount())
+	}
+
+	room.BeastIDs = []int{10, 20}
+	if room.BeastCount() != 2 {
+		t.Errorf("BeastCount = %d, want 2", room.BeastCount())
+	}
+}
+
+func TestRoom_HasBeastCapacity(t *testing.T) {
+	senjuType := RoomType{ID: "senju_room", MaxBeasts: 3}
+	storageType := RoomType{ID: "storage", MaxBeasts: 0}
+
+	tests := []struct {
+		name     string
+		room     *Room
+		roomType RoomType
+		want     bool
+	}{
+		{
+			"empty room with capacity",
+			&Room{ID: 1},
+			senjuType,
+			true,
+		},
+		{
+			"room with space remaining",
+			&Room{ID: 1, BeastIDs: []int{10, 20}},
+			senjuType,
+			true,
+		},
+		{
+			"room at capacity",
+			&Room{ID: 1, BeastIDs: []int{10, 20, 30}},
+			senjuType,
+			false,
+		},
+		{
+			"room type disallows beasts",
+			&Room{ID: 1},
+			storageType,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.room.HasBeastCapacity(tt.roomType)
+			if got != tt.want {
+				t.Errorf("HasBeastCapacity = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRoomTypeRegistry_LoadJSON_AllTypes(t *testing.T) {
 	reg, err := LoadDefaultRoomTypes()
 	if err != nil {

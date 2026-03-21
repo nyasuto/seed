@@ -26,6 +26,19 @@ type Room struct {
 	Level int
 	// Entrances is the list of entrance points for this room.
 	Entrances []RoomEntrance
+	// BeastIDs is the list of beast IDs currently placed in this room.
+	BeastIDs []int
+}
+
+// BeastCount returns the number of beasts currently in this room.
+func (r *Room) BeastCount() int {
+	return len(r.BeastIDs)
+}
+
+// HasBeastCapacity reports whether the room can accept another beast
+// based on the given room type's MaxBeasts limit.
+func (r *Room) HasBeastCapacity(rt RoomType) bool {
+	return rt.MaxBeasts > 0 && len(r.BeastIDs) < rt.MaxBeasts
 }
 
 // Contains reports whether the given position is inside the room bounds.

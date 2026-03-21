@@ -37,6 +37,7 @@ type jsonRoom struct {
 	Height    int                `json:"height"`
 	Level     int                `json:"level"`
 	Entrances []jsonRoomEntrance `json:"entrances"`
+	BeastIDs  []int              `json:"beast_ids,omitempty"`
 }
 
 // jsonCorridor is the JSON representation of a Corridor.
@@ -146,6 +147,7 @@ func marshalRooms(rooms []*Room) []jsonRoom {
 			Height:    r.Height,
 			Level:     r.Level,
 			Entrances: entrances,
+			BeastIDs:  r.BeastIDs,
 		}
 	}
 	return result
@@ -169,6 +171,7 @@ func unmarshalRooms(jrooms []jsonRoom) []*Room {
 			Height:    jr.Height,
 			Level:     jr.Level,
 			Entrances: entrances,
+			BeastIDs:  jr.BeastIDs,
 		}
 	}
 	return rooms

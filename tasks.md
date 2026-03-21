@@ -151,10 +151,10 @@
 
 ## Phase 3-B: 部屋の仙獣容量（world/ 拡張）
 
-- [ ] `world/room_type.go` 拡張: RoomType に `MaxBeasts int` フィールドを追加（仙獣部屋: 3, 龍穴: 1, 罠部屋: 2, その他: 0）
-- [ ] `world/room_type_data.json` 更新: 全部屋タイプに MaxBeasts 値を追加
-- [ ] `world/room.go` 拡張: Room に `BeastIDs []int` フィールドを追加。BeastCount() int、HasBeastCapacity(roomType) bool メソッド
-- [ ] `world/room_test.go` 追加: BeastCapacity 関連テスト（容量内追加OK、容量超過NG、仙獣配置不可の部屋タイプNG）
+- [x] `world/room_type.go` 拡張: RoomType に `MaxBeasts int` フィールドを追加（仙獣部屋: 3, 龍穴: 1, 罠部屋: 2, その他: 0）
+- [x] `world/room_type_data.json` 更新: 全部屋タイプに MaxBeasts 値を追加
+- [x] `world/room.go` 拡張: Room に `BeastIDs []int` フィールドを追加。BeastCount() int、HasBeastCapacity(roomType) bool メソッド
+- [x] `world/room_test.go` 追加: BeastCapacity 関連テスト（容量内追加OK、容量超過NG、仙獣配置不可の部屋タイプNG）
 
 ## Phase 3-C: 仙獣インスタンスと配置（senju/）
 
