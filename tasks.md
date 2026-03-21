@@ -493,3 +493,145 @@
   - 全トランザクション履歴がシリアライズ/デシリアライズで保持されること
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 5 完了。DECISIONS.md にD009（ChiPool/ChiFlowEngine二層構造）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase6_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+
+# Phase 6 改訂版 — シナリオシステム（scenario/）+ 延期タスク消化
+
+> PRD Phase 6: ゲームの進行管理、イベント、勝利条件。
+> D002準拠: 3原則（不完全性の強制・時間圧力・トレードオフの連続）をシナリオレベルで統合する。
+> 延期タスクの消化: 仙獣進化・敗北処理を先に実装し、scenario本体に合流させる。
+
+## 設計方針メモ（DECISIONS.md D010, D011 として記録すること）
+
+**D010: 龍穴のHP導入**
+龍穴（コア部屋）にHP概念を追加する。侵入者の DestroyCoreGoal は「龍穴に到達して攻撃し、HPを0にする」で達成。一定ティック滞在ではなく攻撃ベースにすることで、仙獣による防衛の意味が増す（侵入者を殴って追い返せば龍穴HPは減らない）。CoreHP はRoomType定義にBaseCoreHP として追加し、部屋レベルで上昇。
+
+**D011: イベントはコマンドパターン**
+EventAction は MutableGameState を直接操作しない。代わりに EventCommand（SpawnWaveCommand, ModifyChiCommand 等）を返し、simulation層が適用する。これにより：
+- イベント実行の順序が明確
+- リプレイ時にイベントコマンドを再適用するだけで再現可能
+- イベントの副作用がログに残る
+
+---
+
+## Phase 6-A: 延期タスク消化 — 仙獣進化（senju/ 拡張）
+
+- [ ] `senju/evolution.go`: EvolutionCondition 構造体（MinLevel int, RequiredRoomElement types.Element（ゼロ値は条件なし）, MinChiRatio float64（部屋の気充填率条件））
+- [ ] `senju/evolution.go`: EvolutionPath 構造体（FromSpeciesID string, ToSpeciesID string, Condition EvolutionCondition, ChiCost float64（経済層からの進化コスト））
+- [ ] `senju/evolution_registry.go`: EvolutionRegistry（EvolutionPath のリスト管理、JSONロード）。GetPaths(speciesID string) []EvolutionPath。CheckEvolution(beast, roomChi, chiPoolBalance) *EvolutionPath — 条件を満たす進化先を返す（nil=条件未達）
+- [ ] `senju/evolution.go`: Evolve(beast, path, speciesRegistry) error — 進化実行（SpeciesID変更、ステータス再計算、レベル維持）
+- [ ] `senju/evolution_data.json`: 初期進化経路（各基本種族に1段階の進化先。翠龍Lv15→蒼龍、炎鳳Lv15→朱雀、岩亀Lv20→玄武、金狼Lv15→白虎、水蛇Lv15→青龍）
+- [ ] `senju/species_data.json` 更新: 進化後の5種族のステータスを追加
+- [ ] `senju/evolution_test.go`: 進化条件チェックテスト（レベル/部屋属性/気充填率/コスト）、進化実行テスト、条件未達テスト、進化後ステータス変更テスト
+
+## Phase 6-B: 延期タスク消化 — 仙獣敗北後処理（senju/ 拡張）
+
+- [ ] `senju/beast.go` 更新: BeastState に Stunned を追加（既存: Idle/Patrolling/Chasing/Fighting/Recovering/Fleeing）
+- [ ] `senju/defeat.go`: DefeatProcessor 構造体。ProcessDefeat(beast, tick) DefeatResult:
+  - HP 0以下の仙獣を Stunned 状態に遷移
+  - StunnedDuration ティック後に自動復活（HP = MaxHP × 0.3、レベル -1（最低1））
+  - Stunned中は行動不可・戦闘不可
+- [ ] `senju/defeat.go`: DefeatResult 構造体（BeastID int, NewState BeastState, RevivalTick types.Tick, LevelPenalty int, RevivalHP int）
+- [ ] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
+- [ ] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
+- [ ] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
+- [ ] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
+
+## Phase 6-C: world/ 拡張 — 地形バリエーション
+
+- [ ] `world/cell.go` 更新: CellType に HardRock（掘削不可岩盤）、Water（地下水脈、掘削不可）を追加
+- [ ] `world/room_placement.go` 更新: CanPlaceRoom で HardRock/Water セルへの配置を拒否
+- [ ] `world/corridor_builder.go` 更新: BuildCorridor で HardRock/Water を回避（通過不可）
+- [ ] `world/room_type.go` 更新: RoomType に BaseCoreHP int を追加（龍穴のみ非ゼロ値、D010）。CoreHPAtLevel(level) int メソッド
+- [ ] `world/room_type_data.json` 更新: 龍穴に BaseCoreHP: 100 を追加、他は 0
+- [ ] `world/room.go` 更新: Room に CoreHP int フィールドを追加（龍穴のみ使用）
+- [ ] `world/terrain_test.go`: HardRock/Water セルへの部屋配置拒否テスト、HardRock/Water を迂回する通路テスト、HardRock/Water で到達不能な場合のエラーテスト、CoreHP の初期化テスト
+
+## Phase 6-D: シナリオ基本型定義（scenario/）
+
+- [ ] `scenario/doc.go`: パッケージドキュメント。シナリオ定義（「何をするか」のみ）を管理。実行（「どう動かすか」）はPhase 7のsimulationが担当
+- [ ] `scenario/scenario.go`: Scenario 構造体（ID string, Name string, Description string, Difficulty string, InitialState InitialState, WinConditions []ConditionDef, LoseConditions []ConditionDef, WaveSchedule []WaveScheduleEntry, Events []EventDef, Constraints GameConstraints）
+- [ ] `scenario/initial_state.go`: InitialState 構造体（CaveWidth int, CaveHeight int, TerrainSeed int64, TerrainDensity float64, PrebuiltRooms []RoomPlacement, DragonVeins []DragonVeinPlacement, StartingChi float64, StartingBeasts []BeastPlacement）。RoomPlacement/DragonVeinPlacement/BeastPlacement の定義
+- [ ] `scenario/constraints.go`: GameConstraints 構造体（MaxRooms int, MaxBeasts int, MaxTicks types.Tick, ForbiddenRoomTypes []string）
+- [ ] `scenario/scenario_test.go`: 構造体の基本テスト
+
+## Phase 6-E: 勝利/敗北条件（scenario/）
+
+- [ ] `scenario/condition.go`: ConditionDef 構造体（Type string, Params map[string]any）。JSON で定義される条件のデータ形式
+- [ ] `scenario/condition.go`: ConditionEvaluator インターフェース（Evaluate(snapshot GameSnapshot) bool）。GameSnapshot 構造体（Tick, CoreHP, ChiPoolBalance, BeastCount, AliveBeasts, DefeatedWaves, TotalWaves, CaveFengShuiScore, ConsecutiveDeficitTicks）— 読み取り専用のスナップショット
+- [ ] `scenario/conditions.go`: 具体的な条件実装をファクトリパターンで生成。NewCondition(def ConditionDef) (ConditionEvaluator, error):
+  - "survive_until": 指定ティックまで CoreHP > 0
+  - "defeat_all_waves": 全波 Completed
+  - "fengshui_score": 風水スコア >= 閾値
+  - "chi_pool": ChiPool残高 >= 閾値
+  - "core_destroyed"（敗北）: CoreHP <= 0
+  - "all_beasts_defeated"（敗北）: AliveBeasts == 0
+  - "bankrupt"（敗北）: ConsecutiveDeficitTicks >= 閾値
+- [ ] `scenario/condition_test.go`: 各条件タイプの Evaluate テスト、不正な Type のエラーテスト
+
+## Phase 6-F: イベントシステム（scenario/）
+
+- [ ] `scenario/event.go`: EventDef 構造体（ID string, Condition ConditionDef, Commands []CommandDef, OneShot bool）。CommandDef 構造体（Type string, Params map[string]any）
+- [ ] `scenario/command.go`: EventCommand インターフェース（Execute() string で説明文を返すのみ。実際の適用はsimulation層）。具体的なコマンド:
+  - SpawnWaveCommand: 追加侵入波の定義を返す
+  - ModifyChiCommand: ChiPool への加算/減算額を返す
+  - ModifyConstraintCommand: 制約変更内容を返す
+  - MessageCommand: 通知メッセージを返す
+- [ ] `scenario/command.go`: NewCommand(def CommandDef) (EventCommand, error) — ファクトリ
+- [ ] `scenario/event_engine.go`: EventEngine 構造体。Tick(snapshot GameSnapshot, events []EventDef) []EventCommand — 条件を評価し、発火したイベントのコマンドリストを返す。OneShot管理（FiredEventsのSet）。コマンドの適用はsimulation層が行う（D011）
+- [ ] `scenario/event_test.go`: OneShot 1回実行テスト、条件未達で発火しないテスト、複数イベント同時発火テスト、FiredEventsの永続管理テスト
+
+## Phase 6-G: 動的侵入波スケジュール（scenario/）
+
+- [ ] `scenario/wave_schedule.go`: WaveScheduleEntry 構造体（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int, PreferredClasses []string, PreferredGoals []string）
+- [ ] `scenario/wave_schedule.go`: WaveScheduleBuilder 構造体。BuildSchedule(entries []WaveScheduleEntry, rng) []invasion.WaveConfig — シナリオ定義からPhase 4のWaveConfigに変換
+- [ ] `scenario/wave_schedule.go`: CalcFirstWaveTiming(initialState InitialState, constructionCosts economy.ConstructionCost) types.Tick — D002「時間圧力」のヘルパー。StartingChi と最安部屋コストから「最低限の構築に必要なティック数」を概算し、その途中のティックを返す。シナリオ設計の参考値
+- [ ] `scenario/wave_schedule_test.go`: スケジュール変換テスト、CalcFirstWaveTiming が構築完了前を返すテスト
+
+## Phase 6-H: 地形テンプレート生成（scenario/）
+
+- [ ] `scenario/terrain.go`: TerrainGenerator 構造体。GenerateTerrain(width, height int, density float64, rng types.RNG) []TerrainZone — ランダムに掘削不可ゾーンを生成。TerrainZone 構造体（Pos types.Pos, Width int, Height int, Type world.CellType）
+- [ ] `scenario/terrain.go`: ApplyTerrain(cave *world.Cave, zones []TerrainZone) error — CaveにHardRock/Waterゾーンを配置。配置後にPrebuiltRooms との重複チェック
+- [ ] `scenario/terrain.go`: ValidateTerrain(cave *world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
+- [ ] `scenario/terrain_test.go`: テンプレート適用テスト、掘削不可ゾーンに部屋配置が拒否されるテスト、決定論テスト（同一seed→同一地形）、ValidateTerrain が詰み地形を検出するテスト
+
+## Phase 6-I: シナリオローダーとバリデーション（scenario/）
+
+- [ ] `scenario/loader.go`: LoadScenario(data []byte) (*Scenario, error) — JSONからシナリオ全体をロード
+- [ ] `scenario/loader.go`: ValidateScenario(s *Scenario) []error — シナリオ整合性チェック:
+  - 勝利条件が少なくとも1つ存在
+  - 敗北条件が少なくとも1つ存在
+  - InitialState の部屋配置が Cave サイズ内
+  - WaveSchedule の TriggerTick が MaxTicks 以内
+  - 参照する RoomTypeID / SpeciesID / InvaderClassID が存在
+  - TerrainDensity が 0.0〜0.5 の範囲（0.5超は詰みやすい）
+  - PrebuiltRooms に龍穴が含まれる
+- [ ] `scenario/testdata/tutorial.json`: チュートリアルシナリオ（小マップ16x16、HardRock少、弱い侵入波1つ、survive_until条件のみ、仙獣1体配置済み）
+- [ ] `scenario/testdata/standard.json`: 標準シナリオ（中マップ32x32、HardRock中密度、5波、defeat_all_waves + fengshui_score の勝利条件、イベント2つ）
+- [ ] `scenario/testdata/antipattern_rich.json`: D002アンチパターン検証用（StartingChi を極端に多く、侵入波を弱く設定。「リソースが潤沢で全部に投資できる」状態を再現。Phase 7でこのシナリオが面白くないことを検証する素材）
+- [ ] `scenario/testdata/antipattern_impossible.json`: D002アンチパターン検証用（HardRock密度0.5、初波tick10、StartingChi極小。「0点（詰み）」に近い状態。ValidateTerrainが警告を出すことを確認）
+- [ ] `scenario/loader_test.go`: JSONロードテスト、バリデーション全項目テスト、不正シナリオの拒否テスト、アンチパターンシナリオのロードテスト
+
+## Phase 6-J: シリアライズ（scenario/）
+
+- [ ] `scenario/progress.go`: ScenarioProgress 構造体（ScenarioID string, CurrentTick types.Tick, FiredEventIDs []string, WaveResults []WaveResult, CoreHP int）。WaveResult 構造体（WaveID int, Result string, CompletedTick types.Tick）
+- [ ] `scenario/serialization.go`: MarshalProgress / UnmarshalProgress — 進行状況の保存/復元
+- [ ] `scenario/serialization_test.go`: 保存→復元→等価検証テスト
+
+## Phase 6-K: ASCII可視化
+
+- [ ] `scenario/ascii.go`: RenderScenarioStatus(scenario, progress, snapshot) string — `[standard | Tick 150/500 | Waves 2/5 | Core HP 85/100 | Win: FengShui 45/80]` 形式
+- [ ] `cmd/caveviz/main.go` 更新: `--scenario <file>` でシナリオファイルを読み込み、ステータス表示
+
+## Phase 6-L: 統合検証
+
+- [ ] `scenario/integration_test.go`: チュートリアルシナリオのシミュレーション（手動でゲーム状態を進める）:
+  - シナリオロード → InitialState から Cave 構築 → 地形適用
+  - 地形バリデーション通過を確認
+  - WaveSchedule → WaveConfig 変換を確認
+  - 勝利条件・敗北条件の評価テスト（勝利可能/敗北可能の両方）
+  - イベント発火テスト（EventCommand が返り、直接状態変更しないことを確認、D011）
+  - 仙獣進化テスト（条件を手動で満たして進化発火）
+  - 仙獣敗北→Stunned→復活テスト
+  - CoreHP が侵入者攻撃で減少するテスト
+- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [ ] Phase 6 完了。DECISIONS.md に D010（CoreHP）, D011（EventCommand パターン）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase7_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
