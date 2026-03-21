@@ -1,52 +1,56 @@
-# Phase 2 完了レポート — 風水システム（fengshui/）
+# Phase 3 完了レポート — 仙獣システム（senju/）
 
 ## 1. 実装した内容の要約
 
-### Phase 2-A: 風水基本型定義
-- DragonVein（龍脈）: 入口から洞窟内へ気を運ぶ経路の定義
-- RoomChi: 各部屋の気の蓄積状態を管理する型
+### Phase 3-A: 仙獣基本型定義
+- Species（種族）: 5種族の定義（翠龍/炎鳳/岩亀/金狼/水蛇、各五行属性に1種）
+- SpeciesRegistry: JSON から種族データを一括ロード・管理
 
-### Phase 2-B: 龍脈の経路計算
-- BFS ベースの龍脈経路生成（BuildDragonVein）
-- 洞窟変更時の龍脈再計算（RebuildDragonVein）
+### Phase 3-B: 部屋の仙獣容量（world/ 拡張）
+- RoomType に MaxBeasts フィールドを追加（仙獣部屋: 3, 龍穴: 1, 罠部屋: 2, その他: 0）
+- Room に BeastIDs フィールドを追加、容量管理メソッド
 
-### Phase 2-C: 気の蓄積・伝播モデル
-- ChiFlowEngine: ティックベースの気の流れシミュレーション
-- 龍脈からの気の供給、隣接部屋間の伝播、減衰の3段階処理
-- 五行相性（相生/相克）による供給・伝播の倍率適用
-- FlowParams: パラメータの JSON 外出し対応
+### Phase 3-C: 仙獣インスタンスと配置
+- Beast 構造体: ステータス（HP/ATK/DEF/SPD）、レベル、EXP、状態管理
+- CombatStats: 部屋の気の属性相性に基づく実効戦闘ステータス計算
+- RoomAffinity / GrowthAffinity: 仙獣と部屋の属性相性倍率
+- PlaceBeast / RemoveBeast / MoveBeast: 配置・除去・移動ロジック
 
-### Phase 2-D: 風水評価スコア
-- FengShuiScore: 気充填率・隣接相性・龍脈接続の3要素による部屋スコア
-- Evaluator: 個別部屋・全部屋一括・洞窟全体のスコア評価
+### Phase 3-D: 成長システム
+- GrowthEngine: ティックベースの成長シミュレーション
+- 気を消費してEXPを獲得、レベルアップ処理
+- 属性相性と種族GrowthRateによる成長速度変化
+- GrowthEvent: 成長イベント（EXPGained/LevelUp/ChiStarved）の記録
 
-### Phase 2-E: シリアライズ
-- ChiFlowEngine の JSON 保存/復元（龍脈経路 + 各部屋の気状態）
-- 復元時の Cave との整合性検証
+### Phase 3-E: シリアライズ
+- MarshalBeasts / UnmarshalBeasts: 全仙獣の JSON 保存/復元
+- SpeciesID からの復元時検証
 
-### Phase 2-F: ASCII 可視化
-- 気の充填率オーバーレイ表示（░▒▓ によるグラデーション）
-- 龍脈経路の ~~ 表示
-- caveviz コマンドの --chi フラグ対応
+### Phase 3-F: ASCII可視化
+- RenderBeastOverlay: 仙獣の属性文字（W/F/E/M/A）のオーバーレイ表示
+- caveviz コマンドの --beasts / --all フラグ対応
 
-### Phase 2-G: 統合検証
-- 5部屋・2龍脈・20ティックの統合テスト
-- 相生ペアの部屋は気が多く、相克ペアは少ないことを検証
+### Phase 3-G: 統合検証
+- 3部屋×3仙獣×30ティックの成長シミュレーション統合テスト
+- 属性相性による成長速度差、気消費の検証
 
 ## 2. 未解決の課題や技術的負債
 
-- **OnCaveChanged の差分更新**: 現在は龍脈を全再計算している。部屋数が増えた場合にパフォーマンスボトルネックになる可能性がある（DECISIONS.md D001 参照）
-- **龍脈の動的追加/削除 API**: 現在は初期化時に設定するのみ。ゲームプレイ中の龍脈追加シナリオは Phase 6 以降で対応が必要
-- **気の伝播の収束保証**: 特定の相生ループ配置で気が際限なく増加しないことの数学的証明はしていない（Capacity クランプで実用上は問題なし）
+- **仙獣の行動AI未実装**: 現在の仙獣は配置された部屋に静止しているだけ。巡回・追跡・逃走などの行動パターンは Phase 3.5 で実装予定
+- **進化システム未実装**: PRD に記載のある仙獣の進化（上位種族への変化）は未実装。Phase 3.5 以降で対応
+- **戦闘システム未実装**: CalcCombatStats は計算のみで、実際の戦闘解決ロジックは Phase 4 で実装
+- **仙獣の召喚コスト未実装**: 現在は制約なく配置可能。Phase 5（経済システム）で気の消費コストを導入
 
 ## 3. 次フェーズへの申し送り事項
 
-- Phase 3（仙獣システム）では `fengshui.RoomChi` を参照して仙獣の成長速度に影響を与える設計
-- 仙獣が気を消費する仕組みは ChiFlowEngine の RoomChi を直接操作するのではなく、GrowthEngine 側で消費量を計算して RoomChi.Current を減算する方式を推奨
-- `senju` パッケージは `fengshui` に依存する（依存方向: types ← world ← fengshui ← senju）
-- 仙獣の属性と部屋の属性の相性判定は `types.Generates` / `types.Overcomes` を再利用可能
+- Phase 3.5（仙獣AI）では `senju/behavior.go` に行動パターン（Guard/Patrol/Chase/Flee）を定義し、BehaviorEngine で1ティック分の行動決定を行う
+- 行動AIは仙獣の `State`（Idle/Patrolling/Chasing/Fighting/Recovering）を遷移させる。State フィールドは既に Beast 構造体に存在する
+- 侵入者の位置は Phase 4 まで未実装のため、Phase 3.5 では `map[int][]int`（部屋ID → 侵入者ID リスト）のモックデータでテストする
+- BehaviorEngine の行動決定は `world.AdjacencyGraph` に依存する（隣接部屋への移動判定）
+- `senju` パッケージの依存: `types` ← `world` ← `fengshui` ← `senju`（Phase 3.5 でも変更なし）
 
 ## 4. LESSONS.md から特に重要な知見
 
-- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した。同一パッケージ内で型名と定数名が被らないよう命名に注意する
-- **golangci-lint v2 の破壊的変更**: `version: "2"` 必須、`typecheck` は独立 linter ではなくなった、`gosimple` は `staticcheck` に統合。ツールのバージョンアップ時は設定ファイルの互換性を確認すること
+- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した前例がある。Phase 3 でも Beast の State 定数は `BeastState` 型として名前空間を分離した
+- **golangci-lint v2 の破壊的変更**: 設定ファイルの互換性に注意
+- **GrowthEngine の気消費方式**: RoomChi.Current を直接減算する方式を採用（DECISIONS.md D003 参照）。将来の経済システムとの整合に注意
