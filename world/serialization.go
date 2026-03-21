@@ -104,7 +104,7 @@ func marshalGrid(g *Grid) jsonGrid {
 		cells[y] = make([]jsonCell, g.Width)
 		for x := 0; x < g.Width; x++ {
 			c := g.cells[y][x]
-			cells[y][x] = jsonCell{Type: c.Type, RoomID: c.RoomID}
+			cells[y][x] = jsonCell(c)
 		}
 	}
 	return jsonGrid{Width: g.Width, Height: g.Height, Cells: cells}
@@ -124,7 +124,7 @@ func unmarshalGrid(jg jsonGrid) (*Grid, error) {
 				break
 			}
 			jc := jg.Cells[y][x]
-			grid.cells[y][x] = Cell{Type: jc.Type, RoomID: jc.RoomID}
+			grid.cells[y][x] = Cell(jc)
 		}
 	}
 	return grid, nil
