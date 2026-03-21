@@ -746,7 +746,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-K: 統合検証
 
-- [ ] `simulation/integration_test.go`: チュートリアルシナリオでSimpleAIが勝利するエンドツーエンドテスト
+- [x] `simulation/integration_test.go`: チュートリアルシナリオでSimpleAIが勝利するエンドツーエンドテスト
 - [ ] `simulation/integration_test.go`: 標準シナリオでSimpleAIが少なくとも3波は撃退できるテスト
 - [ ] `simulation/integration_test.go`: 同一seed×2回実行で完全一致テスト（決定論性）
 - [ ] `simulation/integration_test.go`: チェックポイント復元テスト（100tick→保存→復元→続行が元実行と一致）

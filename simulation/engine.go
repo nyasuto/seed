@@ -234,18 +234,19 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 		tickEvents = append(tickEvents, e.Executor.Messages...)
 	}
 
-	// 11. Victory/defeat condition evaluation.
-	result := evaluateEndConditions(s)
-
-	// 12. Record tick log.
+	// 11. Record tick log.
 	e.TickLog = append(e.TickLog, TickRecord{
 		Tick:     tick,
 		Commands: cmds,
 		Events:   tickEvents,
 	})
 
-	// Advance tick counter.
+	// Advance tick counter before condition evaluation so that
+	// survive_until(N) succeeds after processing the Nth tick.
 	s.Progress.CurrentTick++
+
+	// 12. Victory/defeat condition evaluation.
+	result := evaluateEndConditions(s)
 
 	if result.Status != Running {
 		result.FinalTick = tick
