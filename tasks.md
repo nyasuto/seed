@@ -158,11 +158,11 @@
 
 ## Phase 3-C: 仙獣インスタンスと配置（senju/）
 
-- [ ] `senju/beast.go`: Beast 構造体（ID int, SpeciesID string, Name string, Element types.Element, RoomID int, Level int, EXP int, HP int, MaxHP int, ATK int, DEF int, SPD int, BornTick types.Tick, State BeastState）。BeastState 型（Idle/Patrolling/Chasing/Fighting/Recovering）。NewBeast(id, species, tick) *Beast で基本ステータスをSpeciesから初期化
-- [ ] `senju/combat_stats.go`: CombatStats 構造体（HP int, ATK int, DEF int, SPD int）。Beast.CalcCombatStats(roomChi *fengshui.RoomChi) CombatStats — 基本ステータスに属性相性バフを適用した実効戦闘ステータスを返す。相生部屋: ATK/DEF/SPD ×1.3、同属性: ×1.1、中立: ×1.0、相克: ×0.7
-- [ ] `senju/affinity.go`: RoomAffinity(beastElement, roomElement types.Element) float64 — 仙獣と部屋の属性相性倍率を返す。GrowthAffinity(beastElement, roomElement types.Element) float64 — 成長速度への倍率（RoomAffinityと同じ値だが将来独立調整できるよう分離）
-- [ ] `senju/placement.go`: PlaceBeast(beast, room, roomType) error — 配置可能判定（部屋存在、MaxBeasts未達、仙獣配置可能な部屋タイプ）→配置実行（beast.RoomID設定、room.BeastIDs追加）。RemoveBeast(beast, room) error — 除去。MoveBeast(beast, fromRoom, toRoom, toRoomType) error — 部屋間移動
-- [ ] `senju/placement_test.go`: 正常配置テスト、容量超過拒否テスト、配置不可部屋タイプ拒否テスト、移動テスト、CalcCombatStatsの相性倍率テスト
+- [x] `senju/beast.go`: Beast 構造体（ID int, SpeciesID string, Name string, Element types.Element, RoomID int, Level int, EXP int, HP int, MaxHP int, ATK int, DEF int, SPD int, BornTick types.Tick, State BeastState）。BeastState 型（Idle/Patrolling/Chasing/Fighting/Recovering）。NewBeast(id, species, tick) *Beast で基本ステータスをSpeciesから初期化
+- [x] `senju/combat_stats.go`: CombatStats 構造体（HP int, ATK int, DEF int, SPD int）。Beast.CalcCombatStats(roomChi *fengshui.RoomChi) CombatStats — 基本ステータスに属性相性バフを適用した実効戦闘ステータスを返す。相生部屋: ATK/DEF/SPD ×1.3、同属性: ×1.1、中立: ×1.0、相克: ×0.7
+- [x] `senju/affinity.go`: RoomAffinity(beastElement, roomElement types.Element) float64 — 仙獣と部屋の属性相性倍率を返す。GrowthAffinity(beastElement, roomElement types.Element) float64 — 成長速度への倍率（RoomAffinityと同じ値だが将来独立調整できるよう分離）
+- [x] `senju/placement.go`: PlaceBeast(beast, room, roomType) error — 配置可能判定（部屋存在、MaxBeasts未達、仙獣配置可能な部屋タイプ）→配置実行（beast.RoomID設定、room.BeastIDs追加）。RemoveBeast(beast, room) error — 除去。MoveBeast(beast, fromRoom, toRoom, toRoomType) error — 部屋間移動
+- [x] `senju/placement_test.go`: 正常配置テスト、容量超過拒否テスト、配置不可部屋タイプ拒否テスト、移動テスト、CalcCombatStatsの相性倍率テスト
 
 ## Phase 3-D: 成長システム（senju/）
 
