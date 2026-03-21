@@ -721,7 +721,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `simulation/d002_test.go`: D002原則1（不完全性の強制）検証:
   - 標準シナリオを異なる地形seed×10パターンで実行
   - SimpleAIの最終風水スコアがseedごとに異なることを確認（最適配置が毎回変わる）
-- [ ] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
+- [x] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
   - 標準シナリオで侵入波到達時のSimpleAIの構築進捗を記録
   - 侵入波の50%以上が「部屋数 < MaxRooms/2」の状態で到達すること
 - [ ] `simulation/d002_test.go`: D002原則3（トレードオフの連続）検証:

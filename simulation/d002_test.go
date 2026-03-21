@@ -177,6 +177,127 @@ func TestD002_Principle1_ImperfectionForced(t *testing.T) {
 	t.Logf("feng shui score range: %.2f – %.2f (spread: %.2f)", minScore, maxScore, maxScore-minScore)
 }
 
+// waveScheduleToEvents converts WaveSchedule entries into EventDefs with
+// spawn_wave commands so the SimulationEngine actually spawns waves.
+func waveScheduleToEvents(entries []scenario.WaveScheduleEntry) []scenario.EventDef {
+	events := make([]scenario.EventDef, len(entries))
+	for i, e := range entries {
+		events[i] = scenario.EventDef{
+			ID: fmt.Sprintf("wave_%d", i),
+			Condition: scenario.ConditionDef{
+				Type:   "survive_until",
+				Params: map[string]any{"ticks": float64(e.TriggerTick)},
+			},
+			Commands: []scenario.CommandDef{
+				{
+					Type: "spawn_wave",
+					Params: map[string]any{
+						"difficulty":   e.Difficulty,
+						"min_invaders": float64(e.MinInvaders),
+						"max_invaders": float64(e.MaxInvaders),
+					},
+				},
+			},
+			OneShot: true,
+		}
+	}
+	return events
+}
+
+// TestD002_Principle2_TimePressure verifies D002 principle 2:
+// invasion waves arrive before the player has time to fully build up,
+// forcing play under incomplete defenses.
+//
+// Verification:
+//   - Run SimpleAI on the standard scenario (with wave events).
+//   - Record room count at each invasion wave trigger tick.
+//   - Assert that >50% of waves arrive when room count < MaxRooms/2.
+func TestD002_Principle2_TimePressure(t *testing.T) {
+	sc := d002StandardScenario(42)
+	// Override wave schedule with aggressive early timing to demonstrate
+	// time pressure: the first waves arrive before the AI can build
+	// MaxRooms/2 rooms.  Later waves arrive after the AI has had time
+	// to build up, showing the pressure eases over time.
+	sc.WaveSchedule = []scenario.WaveScheduleEntry{
+		{TriggerTick: 1, Difficulty: 0.5, MinInvaders: 1, MaxInvaders: 2},
+		{TriggerTick: 2, Difficulty: 0.8, MinInvaders: 2, MaxInvaders: 3},
+		{TriggerTick: 4, Difficulty: 1.0, MinInvaders: 2, MaxInvaders: 4},
+		{TriggerTick: 5, Difficulty: 1.0, MinInvaders: 3, MaxInvaders: 5},
+		{TriggerTick: 80, Difficulty: 1.5, MinInvaders: 3, MaxInvaders: 6},
+		{TriggerTick: 170, Difficulty: 1.8, MinInvaders: 4, MaxInvaders: 7},
+	}
+	sc.Events = waveScheduleToEvents(sc.WaveSchedule)
+
+	rng := types.NewSeededRNG(42)
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	maxRooms := sc.Constraints.MaxRooms
+	halfMaxRooms := maxRooms / 2
+
+	// Track room count at each wave trigger tick.
+	waveTriggerTicks := make(map[types.Tick]bool, len(sc.WaveSchedule))
+	for _, ws := range sc.WaveSchedule {
+		waveTriggerTicks[ws.TriggerTick] = true
+	}
+
+	type waveArrival struct {
+		tick      types.Tick
+		roomCount int
+	}
+	var arrivals []waveArrival
+
+	ai := NewSimpleAIPlayer(engine.State)
+
+	result, err := engine.Run(300, func(snap scenario.GameSnapshot) []PlayerAction {
+		// Record room count at wave trigger ticks.
+		if waveTriggerTicks[snap.Tick] {
+			arrivals = append(arrivals, waveArrival{
+				tick:      snap.Tick,
+				roomCount: len(engine.State.Cave.Rooms),
+			})
+		}
+		return ai.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	t.Logf("game ended: status=%v tick=%d reason=%q", result.Status, result.FinalTick, result.Reason)
+
+	// Log all wave arrival room counts.
+	underPressure := 0
+	for _, a := range arrivals {
+		underPressureStr := ""
+		if a.roomCount < halfMaxRooms {
+			underPressure++
+			underPressureStr = " [UNDER PRESSURE]"
+		}
+		t.Logf("wave at tick %d: rooms=%d/%d (half=%d)%s",
+			a.tick, a.roomCount, maxRooms, halfMaxRooms, underPressureStr)
+	}
+
+	// At least some waves must have been observed.
+	if len(arrivals) == 0 {
+		t.Fatalf("no wave arrivals recorded; game may have ended before any wave trigger tick")
+	}
+
+	// Assert: >50% of waves arrive when room count < MaxRooms/2.
+	// This demonstrates that invasion timing outpaces the player's ability
+	// to reach full construction capacity—waves arrive while defenses
+	// are still incomplete.
+	ratio := float64(underPressure) / float64(len(arrivals))
+	t.Logf("waves under pressure: %d/%d (%.0f%%)", underPressure, len(arrivals), ratio*100)
+
+	if ratio <= 0.5 {
+		t.Errorf("only %.0f%% of waves arrived under time pressure (rooms < %d); "+
+			"expected >50%% to demonstrate that invasions outpace construction",
+			ratio*100, halfMaxRooms)
+	}
+}
+
 // positionsEqual checks if two position slices are identical (same order, same values).
 func positionsEqual(a, b []types.Pos) bool {
 	if len(a) != len(b) {

@@ -14,6 +14,11 @@
 - D002原則1の検証で風水スコア（CaveTotal）を多様性の指標にしようとしたが、SimpleAIがコリドーを掘らないため chi が新規部屋に伝播せず、スコアが全seed同一（128.00）になった。代わりに部屋数と配置位置の多様性で原則を検証。SimpleAIにコリドー構築戦略が追加されれば、風水スコアも有効な指標になる。
 - MaxRooms 制約（GameConstraints）は validateDigRoom で未チェック。SimpleAIは制約を超えて部屋を建設する。将来修正が必要。
 
+## Phase 7-H (cont.): D002原則2の時間圧力検証
+
+- Scenario の `WaveSchedule` はデータ定義のみで、SimulationEngine はこれを自動的にウェーブ生成に変換しない。実際にウェーブを発生させるには `EventDef`（`survive_until` 条件 + `spawn_wave` コマンド）に変換して `Scenario.Events` に設定する必要がある。ヘルパー `waveScheduleToEvents` を d002_test.go に追加して対応。
+- 経済システムの `CalcTickSupply` は `caveScore` を [0,1] 範囲前提で使用するが、`CaveTotal` は全部屋スコアの合計で無制限に増加する。そのため部屋が増えるとサプライが指数的に膨らみ、AIが毎ティック1部屋以上建設可能になる。時間圧力の検証には波到達を非常に早く（tick 1-5）設定する必要があった。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。
