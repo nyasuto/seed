@@ -561,7 +561,7 @@ sim/balance/ パッケージを作成する。
 - アラート0件の場合に "No breakage detected" が表示されるテスト
 - アラートありの場合にメトリクスID + 壊れるサイン + 調整の方向が表示されるテスト
 
-- [ ] **Task 5-B: ダッシュボード — スイープ提案と比較**
+- [x] **Task 5-B: ダッシュボード — スイープ提案と比較**
 
 1. balance/suggest.go:
    - SuggestSweep(alert BreakageAlert) → パラメータ名と値の候補
