@@ -258,7 +258,7 @@
 
 ## Phase 4-B: 目標指向の経路探索（invasion/）
 
-- [ ] `invasion/exploration_memory.go`: ExplorationMemory 構造体（VisitedRooms map[int]types.Tick, KnownBeastRooms map[int]bool, KnownCoreRoom int, KnownTreasureRooms []int）。Visit(roomID, tick) で訪問記録。仙獣や特殊部屋の発見も記録
+- [x] `invasion/exploration_memory.go`: ExplorationMemory 構造体（VisitedRooms map[int]types.Tick, KnownBeastRooms map[int]bool, KnownCoreRoom int, KnownTreasureRooms []int）。Visit(roomID, tick) で訪問記録。仙獣や特殊部屋の発見も記録
 - [ ] `invasion/pathfinder.go`: Pathfinder 構造体（cave, adjacencyGraph）。FindPath(from int, to int) []int — A*ベースの最短経路（部屋IDの列）。ただし未訪問部屋は「存在するかもしれない」として探索的に進む
 - [ ] `invasion/pathfinder.go`: FindNextRoom(invader, cave, adjacencyGraph) int — 侵入者の次の移動先を決定:
   1. 目標部屋が既知なら最短経路で移動
