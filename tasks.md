@@ -191,7 +191,7 @@
 ## Phase 3-G: 統合検証
 
 - [x] `senju/integration_test.go`: Cave（部屋3つ、属性: 木/火/水）+ ChiFlowEngine（気供給あり）+ 仙獣3体（翠龍を木部屋、炎鳳を火部屋、水蛇を土部屋（相克））を配置→30ティック成長シミュレーション→相性のよい木・火部屋の仙獣はレベルが高く、相克の水蛇はレベルが低いことを検証→気の消費がRoomChiに反映されていることを検証→CalcCombatStatsが配置部屋に応じて変動することを検証
-- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [ ] Phase 3 完了。DECISIONS.md 更新、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase3_5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
 
 ---
