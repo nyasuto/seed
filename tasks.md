@@ -492,4 +492,4 @@
   - ChiPoolCapが蓄気室レベルに連動すること
   - 全トランザクション履歴がシリアライズ/デシリアライズで保持されること
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [ ] Phase 5 完了。DECISIONS.md にD009（ChiPool/ChiFlowEngine二層構造）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase6_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+- [x] Phase 5 完了。DECISIONS.md にD009（ChiPool/ChiFlowEngine二層構造）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase6_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
