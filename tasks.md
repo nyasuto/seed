@@ -212,14 +212,14 @@
 
 ## Phase 3.5-C: 行動エンジン（senju/）
 
-- [ ] `senju/behavior_engine.go`: BehaviorEngine 構造体。NewBehaviorEngine(cave, adjacencyGraph)。AssignBehavior(beast, behaviorType) — 仙獣に行動パターンを割り当て。Tick(beasts, invaderPositions map[int][]int, roomChi) []BeastAction — 全仙獣の行動を1ティック分一括決定:
+- [x] `senju/behavior_engine.go`: BehaviorEngine 構造体。NewBehaviorEngine(cave, adjacencyGraph)。AssignBehavior(beast, behaviorType) — 仙獣に行動パターンを割り当て。Tick(beasts, invaderPositions map[int][]int, roomChi) []BeastAction — 全仙獣の行動を1ティック分一括決定:
   1. 各仙獣の現在Behaviorに基づいてDecideAction呼び出し
   2. HP閾値チェック → Flee への自動遷移
   3. 行動の衝突解決（同じ部屋への移動は先着順）
   4. BeastAction リストを返す（実際の移動・攻撃の適用は呼び出し側）
-- [ ] `senju/behavior_engine.go`: BeastAction 構造体（BeastID int, Action Action, PreviousRoomID int, ResultingState BeastState）。行動の結果を記録
-- [ ] `senju/behavior_engine.go`: ApplyActions(beasts, rooms, actions) error — BeastAction リストを適用して仙獣の位置・状態を更新
-- [ ] `senju/behavior_engine_test.go`: 全仙獣Guard→侵入者なしで全員Stay テスト、Patrol仙獣が隣接部屋を巡回するテスト、侵入者発見→Chase遷移テスト、HP低下→Flee遷移テスト、行動の衝突解決テスト
+- [x] `senju/behavior_engine.go`: BeastAction 構造体（BeastID int, Action Action, PreviousRoomID int, ResultingState BeastState）。行動の結果を記録
+- [x] `senju/behavior_engine.go`: ApplyActions(beasts, rooms, actions) error — BeastAction リストを適用して仙獣の位置・状態を更新
+- [x] `senju/behavior_engine_test.go`: 全仙獣Guard→侵入者なしで全員Stay テスト、Patrol仙獣が隣接部屋を巡回するテスト、侵入者発見→Chase遷移テスト、HP低下→Flee遷移テスト、行動の衝突解決テスト
 
 ## Phase 3.5-D: 仙獣AI パラメータ外出し
 
