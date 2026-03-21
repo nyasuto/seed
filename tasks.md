@@ -307,7 +307,7 @@ sim/adapter/human/ パッケージを作成する。
 
 ## Phase 3: AI Mode（JSON I/O）
 
-- [ ] **Task 3-A: AI Modeプロトコル定義**
+- [x] **Task 3-A: AI Modeプロトコル定義**
 
 sim/adapter/ai/ パッケージを作成する。
 
