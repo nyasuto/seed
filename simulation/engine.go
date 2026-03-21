@@ -53,6 +53,11 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 	tick := s.Progress.CurrentTick
 	var tickEvents []string
 
+	// Record actions for replay.
+	if e.RecordedActions != nil {
+		e.RecordedActions[tick] = actions
+	}
+
 	// 1. Validate and execute player actions.
 	for _, action := range actions {
 		result, err := ApplyAction(action, s)
@@ -344,6 +349,8 @@ type SimulationEngine struct {
 	Executor *CommandExecutor
 	// TickLog records what happened on each tick for replay and debugging.
 	TickLog []TickRecord
+	// RecordedActions stores the player actions submitted on each tick for replay.
+	RecordedActions map[types.Tick][]PlayerAction
 }
 
 // NewSimulationEngine constructs a fully initialized SimulationEngine from the
