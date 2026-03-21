@@ -399,7 +399,7 @@ sim/adapter/ai/ パッケージを作成する。
 - E2Eテスト2件（wait完走、基本戦略完走）がパス
 - PROTOCOL.md が存在し、プロトコルの全メッセージ型をカバー
 
-- [ ] **Task 3-E: Phase 3 統合テストと完了**
+- [x] **Task 3-E: Phase 3 統合テストと完了**
 
 1. AI Mode の全機能の統合テスト
 2. Human Mode との共存テスト（同一バイナリで `--human` と `--ai` が切り替え可能）

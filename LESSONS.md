@@ -44,6 +44,13 @@
 - GameServer の runLoop は ActionProvider.OnTickComplete → 終了条件チェックの順なので、最終ティックの OnTickComplete は常に呼ばれる。ただし FF 中の場合、ffStartSnapshot のサマリーは表示されずに OnGameEnd に遷移する。
 - ASCII描画の目視確認テスト（`TestVisual_*`）は `-short` フラグでスキップ可能にしておくと CI で邪魔にならない。
 
+## sim Phase 3: AI Mode 統合
+
+- AI Mode の E2E テストでは `io.Pipe()` でサーバーとクライアントを接続し、クライアント側を goroutine で駆動する。`clientErr` チャネルでエラーを伝播し、`defer inW.Close()` でパイプの終端を保証する。
+- エラーリトライのテストでは、不正入力送信後に error メッセージと state メッセージの再送を順序通り読み取る必要がある。`switch msg["type"]` でメッセージ種別を振り分ける前に、リトライ中の error メッセージを読み飛ばさないよう注意。
+- AI Mode と NoAction プロバイダーで同一 seed・同一シナリオを実行すると、同じ tick 数・同じ結果が得られる（決定論性の確認）。これは AI Mode が wait アクションを送った場合、NoAction と等価であることの証明になる。
+- Human Mode と AI Mode は同一の `ActionProvider` インターフェースを実装しており、`GameServer.RunGame()` に渡すだけで切り替え可能。共存テストにより、同一バイナリで両モードが動作することを確認。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。
