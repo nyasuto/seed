@@ -415,7 +415,7 @@ sim/adapter/ai/ パッケージを作成する。
 
 ## Phase 4: Batch Mode + 壊れるサイン検出
 
-- [ ] **Task 4-A: Metrics — 壊れるサイン検出メトリクス B01〜B05**
+- [x] **Task 4-A: Metrics — 壊れるサイン検出メトリクス B01〜B05**
 
 metrics/collector.go に以下のメトリクス収集ロジックを実装する。
 
