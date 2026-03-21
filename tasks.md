@@ -712,8 +712,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-G: D001 プロファイリング
 
-- [ ] `simulation/benchmark_test.go`: OnCaveChanged のベンチマーク。部屋数 5/10/20/50 でのティック実行時間を計測
-- [ ] `simulation/benchmark_test.go`: 全体ティックのベンチマーク。標準シナリオ100ティックの実行時間を計測
+- [x] `simulation/benchmark_test.go`: OnCaveChanged のベンチマーク。部屋数 5/10/20/50 でのティック実行時間を計測
+- [x] `simulation/benchmark_test.go`: 全体ティックのベンチマーク。標準シナリオ100ティックの実行時間を計測
 - [ ] DECISIONS.md D001 を更新: ベンチマーク結果を記録し、差分更新が必要かどうかを判断
 
 ## Phase 7-H: D002 定量検証
