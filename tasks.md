@@ -70,7 +70,7 @@
 
 ## Phase 1-H: ASCII可視化ツール（world確認用）
 
-- [ ] `cmd/caveviz/main.go` 作成: ハードコードでCaveを生成（部屋3〜4個＋通路接続）し、ASCIIグリッドを標準出力に表示。凡例: `██`=岩盤, `..`=通路, `[]`=部屋床, `><`=入口, 部屋IDを部屋内に表示
+- [x] `cmd/caveviz/main.go` 作成: ハードコードでCaveを生成（部屋3〜4個＋通路接続）し、ASCIIグリッドを標準出力に表示。凡例: `██`=岩盤, `..`=通路, `[]`=部屋床, `><`=入口, 部屋IDを部屋内に表示
 - [ ] `world/ascii.go`: Cave.RenderASCII() string メソッド。Gridの各セルを文字にマッピング。部屋内にはRoomIDを1桁で表示（10以上はA,B,C...）
 - [ ] `world/ascii_test.go`: 小さなCave（8x8）でRenderASCIIの出力が期待文字列と一致するテスト
 - [ ] Makefileに `viz` ターゲット追加: `go run ./cmd/caveviz`
