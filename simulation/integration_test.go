@@ -86,6 +86,106 @@ func runWithSnapshots(t *testing.T, scenJSON []byte, seed int64) (RunResult, []s
 	}, snapshots
 }
 
+func TestIntegration_CheckpointRestore(t *testing.T) {
+	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	const seed int64 = 99
+
+	runner := &SimulationRunner{}
+
+	// --- Full run: collect snapshots for all ticks ---
+	fullEngine, fullSC, err := runner.createEngine(scenJSON, seed)
+	if err != nil {
+		t.Fatalf("createEngine (full): %v", err)
+	}
+	fullAI := NewSimpleAIPlayer(fullEngine.State)
+	maxTicks := runner.maxTicks(fullSC)
+
+	var fullSnapshots []scenario.GameSnapshot
+	fullResult, err := fullEngine.Run(maxTicks, func(snap scenario.GameSnapshot) []PlayerAction {
+		fullSnapshots = append(fullSnapshots, snap)
+		return fullAI.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("full Run: %v", err)
+	}
+
+	if len(fullSnapshots) < 100 {
+		t.Fatalf("simulation ended too early (%d ticks), need at least 100 for checkpoint test", len(fullSnapshots))
+	}
+
+	// --- Partial run to tick 100, then checkpoint ---
+	cpEngine, cpSC, err := runner.createEngine(scenJSON, seed)
+	if err != nil {
+		t.Fatalf("createEngine (checkpoint): %v", err)
+	}
+	cpAI := NewSimpleAIPlayer(cpEngine.State)
+
+	// Run exactly 100 ticks.
+	for i := 0; i < 100; i++ {
+		snap := BuildSnapshot(cpEngine.State)
+		actions := cpAI.DecideActions(snap)
+		if actions == nil {
+			actions = []PlayerAction{NoAction{}}
+		}
+		result, err := cpEngine.Step(actions)
+		if err != nil {
+			t.Fatalf("Step at tick %d: %v", i, err)
+		}
+		if result.Status != Running {
+			t.Fatalf("game ended early at tick %d before checkpoint", i)
+		}
+	}
+
+	cp, err := CreateCheckpoint(cpEngine)
+	if err != nil {
+		t.Fatalf("CreateCheckpoint: %v", err)
+	}
+
+	// --- Restore from checkpoint and continue ---
+	restoredEngine, err := RestoreCheckpoint(cp, cpSC)
+	if err != nil {
+		t.Fatalf("RestoreCheckpoint: %v", err)
+	}
+	restoredAI := NewSimpleAIPlayer(restoredEngine.State)
+
+	var restoredSnapshots []scenario.GameSnapshot
+	restoredResult, err := restoredEngine.Run(maxTicks-100, func(snap scenario.GameSnapshot) []PlayerAction {
+		restoredSnapshots = append(restoredSnapshots, snap)
+		return restoredAI.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("restored Run: %v", err)
+	}
+
+	// --- Compare results ---
+	if fullResult.Status != restoredResult.Status {
+		t.Errorf("status mismatch: full=%v restored=%v", fullResult.Status, restoredResult.Status)
+	}
+	if fullResult.FinalTick != restoredResult.FinalTick {
+		t.Errorf("final tick mismatch: full=%d restored=%d", fullResult.FinalTick, restoredResult.FinalTick)
+	}
+	if fullResult.Reason != restoredResult.Reason {
+		t.Errorf("reason mismatch: full=%q restored=%q", fullResult.Reason, restoredResult.Reason)
+	}
+
+	// Compare per-tick snapshots from tick 100 onward.
+	postCheckpointSnapshots := fullSnapshots[100:]
+	if len(postCheckpointSnapshots) != len(restoredSnapshots) {
+		t.Fatalf("snapshot count mismatch after checkpoint: full=%d restored=%d",
+			len(postCheckpointSnapshots), len(restoredSnapshots))
+	}
+	for i := range postCheckpointSnapshots {
+		if postCheckpointSnapshots[i] != restoredSnapshots[i] {
+			t.Errorf("snapshot mismatch at tick %d (post-checkpoint index %d):\n  full=%+v\n  restored=%+v",
+				100+i, i, postCheckpointSnapshots[i], restoredSnapshots[i])
+			break
+		}
+	}
+
+	t.Logf("Checkpoint restore verified: checkpoint at tick 100, %d ticks after restore, status=%v",
+		len(restoredSnapshots), restoredResult.Status)
+}
+
 func TestIntegration_Determinism_SameSeedIdenticalResults(t *testing.T) {
 	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
 	const seed int64 = 12345
