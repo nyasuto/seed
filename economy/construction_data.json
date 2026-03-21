@@ -1,0 +1,20 @@
+{
+  "room_cost": {
+    "dragon_den": 50.0,
+    "chi_storage": 20.0,
+    "beast_room": 15.0,
+    "trap_room": 25.0,
+    "recovery_room": 20.0,
+    "warehouse": 10.0
+  },
+  "corridor_cost_per_cell": 2.0,
+  "room_upgrade_cost_base": {
+    "dragon_den": 50.0,
+    "chi_storage": 20.0,
+    "beast_room": 15.0,
+    "trap_room": 25.0,
+    "recovery_room": 20.0,
+    "warehouse": 10.0
+  },
+  "room_upgrade_cost_per_level": 10.0
+}

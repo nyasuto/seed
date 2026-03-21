@@ -422,10 +422,10 @@
 
 ## Phase 5-E: 建設コストモデル（economy/）
 
-- [ ] `economy/construction.go`: ConstructionCost 構造体（RoomCost map[string]float64, CorridorCostPerCell float64, RoomUpgradeCostBase map[string]float64, RoomUpgradeCostPerLevel float64）。DefaultConstructionCost()。LoadConstructionCost(data []byte)
-- [ ] `economy/construction_data.json`: デフォルト建設コスト。部屋建設（龍穴: 50.0, 蓄気室: 20.0, 仙獣部屋: 15.0, 罠部屋: 25.0, 回復室: 20.0, 倉庫: 10.0）、通路: 2.0/セル、部屋強化基本コスト（タイプ別）、レベルごとの追加コスト: 10.0
-- [ ] `economy/construction.go`: CalcRoomCost(roomTypeID) float64。CalcCorridorCost(pathLength) float64。CalcUpgradeCost(roomTypeID, currentLevel) float64。すべて ConstructionCost から読み取り
-- [ ] `economy/construction_test.go`: 部屋建設コストテスト、通路コストテスト、部屋強化コストのレベルスケーリングテスト
+- [x] `economy/construction.go`: ConstructionCost 構造体（RoomCost map[string]float64, CorridorCostPerCell float64, RoomUpgradeCostBase map[string]float64, RoomUpgradeCostPerLevel float64）。DefaultConstructionCost()。LoadConstructionCost(data []byte)
+- [x] `economy/construction_data.json`: デフォルト建設コスト。部屋建設（龍穴: 50.0, 蓄気室: 20.0, 仙獣部屋: 15.0, 罠部屋: 25.0, 回復室: 20.0, 倉庫: 10.0）、通路: 2.0/セル、部屋強化基本コスト（タイプ別）、レベルごとの追加コスト: 10.0
+- [x] `economy/construction.go`: CalcRoomCost(roomTypeID) float64。CalcCorridorCost(pathLength) float64。CalcUpgradeCost(roomTypeID, currentLevel) float64。すべて ConstructionCost から読み取り
+- [x] `economy/construction_test.go`: 部屋建設コストテスト、通路コストテスト、部屋強化コストのレベルスケーリングテスト
 
 ## Phase 5-F: 仙獣コストモデル（economy/）
 
