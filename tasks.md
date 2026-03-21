@@ -521,7 +521,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `senju/evolution.go`: Evolve(beast, path, speciesRegistry) error — 進化実行（SpeciesID変更、ステータス再計算、レベル維持）
 - [x] `senju/evolution_data.json`: 初期進化経路（各基本種族に1段階の進化先。翠龍Lv15→蒼龍、炎鳳Lv15→朱雀、岩亀Lv20→玄武、金狼Lv15→白虎、水蛇Lv15→青龍）
 - [x] `senju/species_data.json` 更新: 進化後の5種族のステータスを追加
-- [ ] `senju/evolution_test.go`: 進化条件チェックテスト（レベル/部屋属性/気充填率/コスト）、進化実行テスト、条件未達テスト、進化後ステータス変更テスト
+- [x] `senju/evolution_test.go`: 進化条件チェックテスト（レベル/部屋属性/気充填率/コスト）、進化実行テスト、条件未達テスト、進化後ステータス変更テスト
 
 ## Phase 6-B: 延期タスク消化 — 仙獣敗北後処理（senju/ 拡張）
 
