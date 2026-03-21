@@ -124,8 +124,8 @@
 
 ## Phase 2-E: 風水シリアライズ（fengshui/）
 
-- [ ] `fengshui/serialization.go`: ChiFlowEngine.MarshalJSON() / UnmarshalChiFlowEngine(data, cave, registry, params) — 龍脈・各部屋の気の状態を保存/復元。龍脈のPathは保存するが、復元時にcaveとの整合性を検証
-- [ ] `fengshui/serialization_test.go`: 保存→復元→等価検証テスト、空の状態の保存/復元テスト
+- [x] `fengshui/serialization.go`: ChiFlowEngine.MarshalJSON() / UnmarshalChiFlowEngine(data, cave, registry, params) — 龍脈・各部屋の気の状態を保存/復元。龍脈のPathは保存するが、復元時にcaveとの整合性を検証
+- [x] `fengshui/serialization_test.go`: 保存→復元→等価検証テスト、空の状態の保存/復元テスト
 
 ## Phase 2-F: ASCII可視化への風水レイヤー追加
 
