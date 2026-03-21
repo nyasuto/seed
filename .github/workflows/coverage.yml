@@ -15,12 +15,12 @@ jobs:
         with:
           go-version: stable
 
-      - name: Run tests with coverage
-        run: go test -coverprofile=coverage.out ./...
+      - name: Run tests with coverage (core)
+        run: cd core && go test -coverprofile=coverage.out ./...
 
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          COVERAGE=$(cd core && go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Total coverage: ${COVERAGE}%"
           THRESHOLD=80.0
           if echo "$COVERAGE $THRESHOLD" | awk '{exit !($1 < $2)}'; then

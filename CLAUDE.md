@@ -1,9 +1,28 @@
-# CLAUDE.md — chaosseed-core コーディング規約
+# CLAUDE.md — chaosseed 開発規約
 
 ## プロジェクト概要
 
-カオスシード（風水回廊記）インスパイアのダンジョン経営シミュレーション・コアエンジン。
+カオスシード（風水回廊記）インスパイアのダンジョン経営シミュレーション。
 純Go、ゲームエンジン非依存、決定論的設計。
+
+## リポジトリ構造（モノレポ）
+
+```
+seed/
+├── go.work              # ワークスペース定義
+├── core/                # コアエンジン（ドメインロジック）
+│   ├── go.mod           # module github.com/nyasuto/seed/core
+│   └── types/ world/ fengshui/ senju/ invasion/ economy/ scenario/ simulation/
+├── sim/                 # シミュレーションツール・分析
+│   ├── go.mod           # module github.com/nyasuto/seed/sim
+│   └── ...              # require github.com/nyasuto/seed/core
+├── game/                # ゲームアプリケーション層
+│   ├── go.mod           # module github.com/nyasuto/seed/game
+│   └── ...
+├── DECISIONS.md         # プロジェクト横断の設計判断
+├── HANDOFF.md           # 引き継ぎドキュメント
+└── LESSONS.md           # 学んだ教訓
+```
 
 ## Go バージョン
 
@@ -13,7 +32,8 @@
 
 ### パッケージ設計
 
-- パッケージ間の依存方向: `types` ← `world` ← `fengshui` ← `senju` ← `invasion` ← `economy` ← `scenario` ← `simulation`
+- core内の依存方向: `types` ← `world` ← `fengshui` ← `senju` ← `invasion` ← `economy` ← `scenario` ← `simulation`
+- モジュール間の依存方向: `core` ← `sim` ← `game`
 - `types` は他のどのパッケージにも依存しない
 - 循環依存は絶対に作らない
 - 各パッケージは自身のドメインに閉じたロジックのみ持つ
@@ -63,27 +83,24 @@
 ## ビルドとテスト
 
 ```bash
-# 推奨: vet + lint + test-race を一括実行
+# 推奨: 全モジュールの vet + lint + test-race を一括実行
 make check
 
-# テスト実行
-go test ./...
+# 特定モジュールのテスト
+cd core && go test ./...
+cd sim && go test ./...
 
 # race detector 付き
-go test -race ./...
-
-# vet
-go vet ./...
+cd core && go test -race ./...
 
 # カバレッジ
-go test -coverprofile=coverage.out ./...
-go tool cover -html=coverage.out
+cd core && go test -coverprofile=coverage.out ./...
 ```
 
 ## ファイル構成テンプレート
 
 ```
-<package>/
+<module>/<package>/
 ├── doc.go              # パッケージドキュメント
 ├── <domain>.go         # 主要な型と基本操作
 ├── <domain>_ops.go     # 複合操作・ビジネスロジック
