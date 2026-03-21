@@ -1,4 +1,5 @@
 # tasks.md — chaosseed-core
+
 <!-- Phase: 1 (world/) — 洞窟マップシステム -->
 
 ## Phase 0: プロジェクト初期化
@@ -57,7 +58,7 @@
 
 ## Phase 1-F: シリアライズ（world/）
 
-- [x] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
+- [x] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (\*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
 - [x] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
 
 ## Phase 1-G: 統合検証
@@ -67,36 +68,73 @@
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 1 完了。tasks.md の Phase 2 タスクを追記する（PRD Phase 2 を参照して fengshui/ のタスクを展開）
 
+## Phase 1-H: ASCII可視化ツール（world確認用）
+
+- [ ] `cmd/caveviz/main.go` 作成: ハードコードでCaveを生成（部屋3〜4個＋通路接続）し、ASCIIグリッドを標準出力に表示。凡例: `██`=岩盤, `..`=通路, `[]`=部屋床, `><`=入口, 部屋IDを部屋内に表示
+- [ ] `world/ascii.go`: Cave.RenderASCII() string メソッド。Gridの各セルを文字にマッピング。部屋内にはRoomIDを1桁で表示（10以上はA,B,C...）
+- [ ] `world/ascii_test.go`: 小さなCave（8x8）でRenderASCIIの出力が期待文字列と一致するテスト
+- [ ] Makefileに `viz` ターゲット追加: `go run ./cmd/caveviz`
+
 ## Phase 2-A: 風水基本型定義（fengshui/）
 
 - [ ] `fengshui/doc.go`: パッケージドキュメント。龍脈・気・風水評価を扱うパッケージであることを記述
-- [ ] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路
-- [ ] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, ConsumptionRate float64）。部屋ごとの気の状態を管理。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド
-- [ ] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値テスト）
+- [ ] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路。RoomsOnPath(cave) []int で龍脈経路上の部屋IDリストを返す
+- [ ] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, Element types.Element）。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド。ElementはRoomTypeから引き継ぐ（気の属性＝部屋の属性）
+- [ ] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値、ゼロ容量のエッジケース）
 
-## Phase 2-B: 龍脈の経路計算（fengshui/）
+## Phase 2-B: 龍脈の経路計算と動的再計算（fengshui/）
 
-- [ ] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave *world.Cave, sourcePos types.Pos, element types.Element, flowRate float64) (*DragonVein, error) — 入口位置から通路・部屋を通って気を運ぶ経路をBFSで計算。RoomsOnPath(cave *world.Cave) []int で龍脈上にある部屋IDリストを返す
-- [ ] `fengshui/dragon_vein_test.go`: 龍脈が入口から通路を通って部屋に到達するテスト、到達不能ケースのテスト、複数部屋を経由する龍脈のテスト
+- [ ] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave, sourcePos, element, flowRate) (\*DragonVein, error) — 入口から通路・部屋床を通る経路をBFSで計算。岩盤は通過不可
+- [ ] `fengshui/dragon_vein_builder.go`: RebuildDragonVein(cave, existingVein) (\*DragonVein, error) — 既存龍脈をCaveの現在の地形で再計算。部屋追加/通路掘削で経路が変化する。元のSourcePos/Element/FlowRateは維持
+- [ ] `fengshui/dragon_vein_test.go`: 龍脈が入口から部屋に到達するテスト、到達不能ケースのエラーテスト、部屋追加後にRebuildで経路が伸びることのテスト、通路がない部屋には到達しないテスト
 
-## Phase 2-C: 気の蓄積・消費モデル（fengshui/）
+## Phase 2-C: 気の蓄積・伝播モデル（fengshui/）
 
-- [ ] `fengshui/chi_flow.go`: ChiFlowState 構造体（DragonVeins []DragonVein, RoomChi map[int]*RoomChi）。NewChiFlowState(cave *world.Cave, veins []DragonVein) *ChiFlowState で初期化（各部屋のCapacityはRoomTypeのBaseChiCapacityから取得）。Tick() で1ティック分の気の流れを計算: 龍脈上の部屋にFlowRateに応じて気を分配、各部屋のConsumptionRateを減算、Capacityを超えない・0を下回らないようクランプ
-- [ ] `fengshui/chi_flow_test.go`: 1部屋への気の蓄積テスト、容量上限でのクランプテスト、消費による減少テスト、複数ティック経過後の状態テスト、龍脈上にない部屋には気が流れないことのテスト
+- [ ] `fengshui/flow_params.go`: FlowParams 構造体（GeneratesMultiplier float64, OvercomesMultiplier float64, SameElementMultiplier float64, NeutralMultiplier float64, BaseDecayRate float64）。DefaultFlowParams() で初期値を返す。JSON読み込み対応: LoadFlowParams(path) (\*FlowParams, error)
+- [ ] `fengshui/flow_params_data.json`: デフォルトパラメータ定義（相生: 1.3, 相克: 0.6, 同属性: 1.1, 中立: 1.0, 基本減衰率: 0.02）
+- [ ] `fengshui/chi_flow.go`: ChiFlowEngine 構造体（Veins []DragonVein, RoomChi map[int]*RoomChi, Params *FlowParams, cave \*world.Cave）。NewChiFlowEngine(cave, veins, registry, params) で初期化。Tick() で1ティック分の気の流れを計算:
+  1. 龍脈上の各部屋にFlowRate分の気を供給（龍脈のElementと部屋のElementの相性でFlowRateに倍率適用）
+  2. 隣接部屋間の気の伝播: 気が多い部屋→少ない部屋へ差分の一定割合が移動。移動量に相生/相克の倍率を適用
+  3. 全部屋に基本減衰（BaseDecayRate）を適用
+  4. Capacityクランプ（0〜Capacity）
+- [ ] `fengshui/chi_flow.go`: ChiFlowEngine.OnCaveChanged(cave) — Cave変更時に龍脈を全再計算し、新しい部屋のRoomChiを追加。差分更新の最適化は後回し（DECISIONS.mdに記録）
+- [ ] `fengshui/chi_flow_test.go`:
+  - 龍脈上の部屋への気の供給テスト
+  - 龍脈Elementと部屋Elementが相生のとき供給量が増えるテスト
+  - 龍脈Elementと部屋Elementが相克のとき供給量が減るテスト
+  - 隣接部屋間の気の伝播テスト（高→低へ流れる）
+  - 隣接部屋間の相生/相克倍率テスト
+  - 基本減衰テスト
+  - Capacityクランプテスト（上限・下限）
+  - 龍脈上にない部屋には直接供給されないテスト
+  - 10ティック経過後に定常状態に近づくテスト
+  - OnCaveChanged: 部屋追加後に新部屋が気の計算に含まれるテスト
 
 ## Phase 2-D: 風水評価スコア（fengshui/）
 
-- [ ] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, BaseScore float64, AdjacencyBonus float64, DragonVeinBonus float64, TotalScore float64）。部屋単位のスコア内訳を保持
-- [ ] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave *world.Cave, registry *world.RoomTypeRegistry) *Evaluator。EvaluateRoom(roomID int, veins []DragonVein) (FengShuiScore, error) — 個別部屋の風水スコアを算出。EvaluateAll(veins []DragonVein) ([]FengShuiScore, error) — 全部屋のスコアを一括算出。スコアリングルール: (1) BaseScore = 部屋の気の充填率 × 100, (2) AdjacencyBonus = 隣接部屋との五行相性（相生: +20, 相克: -15, 同属性: +5, その他: 0）の合計, (3) DragonVeinBonus = 龍脈に接続されていれば +30
-- [ ] `fengshui/evaluator_test.go`: 単独部屋のスコア計算テスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト
+- [ ] `fengshui/score_params.go`: ScoreParams 構造体（GeneratesBonus float64, OvercomesPenalty float64, SameElementBonus float64, DragonVeinBonus float64, ChiRatioWeight float64）。DefaultScoreParams() で初期値。JSON読み込み対応: LoadScoreParams(path)
+- [ ] `fengshui/score_params_data.json`: デフォルトスコアパラメータ（相生: +20, 相克: -15, 同属性: +5, 龍脈接続: +30, 気充填率ウェイト: 100）
+- [ ] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, ChiScore float64, AdjacencyScore float64, DragonVeinScore float64, Total float64）。内訳を保持
+- [ ] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave, registry, params) で生成。EvaluateRoom(roomID, flowEngine) FengShuiScore — 個別部屋のスコア算出。EvaluateAll(flowEngine) []FengShuiScore — 全部屋一括。CaveTotal(flowEngine) float64 — 洞窟全体の風水スコア合計。スコアリング:
+  1. ChiScore = 部屋の気充填率 × ChiRatioWeight
+  2. AdjacencyScore = 隣接部屋との五行相性ボーナス/ペナルティの合計（Paramsから取得）
+  3. DragonVeinScore = 龍脈に接続されていれば DragonVeinBonus
+  4. Total = ChiScore + AdjacencyScore + DragonVeinScore
+- [ ] `fengshui/evaluator_test.go`: 単独部屋のスコアテスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト、パラメータ変更がスコアに反映されるテスト
 
 ## Phase 2-E: 風水シリアライズ（fengshui/）
 
-- [ ] `fengshui/serialization.go`: ChiFlowState.MarshalJSON() / UnmarshalChiFlowState() — 龍脈と部屋の気の状態を保存/復元
-- [ ] `fengshui/serialization_test.go`: 龍脈と気の状態を含むChiFlowStateの保存→復元→等価検証テスト
+- [ ] `fengshui/serialization.go`: ChiFlowEngine.MarshalJSON() / UnmarshalChiFlowEngine(data, cave, registry, params) — 龍脈・各部屋の気の状態を保存/復元。龍脈のPathは保存するが、復元時にcaveとの整合性を検証
+- [ ] `fengshui/serialization_test.go`: 保存→復元→等価検証テスト、空の状態の保存/復元テスト
 
-## Phase 2-F: 統合検証
+## Phase 2-F: ASCII可視化への風水レイヤー追加
 
-- [ ] `fengshui/integration_test.go`: 中規模Cave（32x32）に部屋5つ配置→龍脈2本設定→10ティック気の流れをシミュレーション→風水スコア評価→スコアが相生/相克の配置に応じて正しく変動することを検証
+- [ ] `fengshui/ascii.go`: RenderChiOverlay(cave, flowEngine) string — Caveの ASCII表示に気の充填率をオーバーレイ。充填率に応じて部屋内の表示を変える（0%: `__`, 1-33%: `░░`, 34-66%: `▒▒`, 67-99%: `▓▓`, 100%: `██`）。龍脈の経路を `~~` で表示
+- [ ] `cmd/caveviz/main.go` 更新: 風水レイヤー付き表示を追加。コマンドライン引数 `--chi` で切り替え
+- [ ] `fengshui/ascii_test.go`: 小さなCaveで風水オーバーレイの出力テスト
+
+## Phase 2-G: 統合検証
+
+- [ ] `fengshui/integration_test.go`: 中規模Cave（32x32）に部屋5つ配置（意図的に相生ペアと相克ペアを含む）→龍脈2本設定→20ティックシミュレーション→相生ペアの部屋は気が多く、相克ペアは少ないことを検証→風水スコアが配置に応じて正しく変動することを検証
 - [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [ ] Phase 2 完了。tasks.md の Phase 3 タスクを追記する（PRD Phase 3 を参照して senju/ のタスクを展開）
+- [ ] Phase 2 完了。DECISIONS.md に差分更新を後回しにした判断を記録。次フェーズのタスクドラフトを `tasks_phase3_draft.md` として生成し、**Ralph Loopを停止する**（tasks.mdには追記しない。チャットでのレビューを待つ）
