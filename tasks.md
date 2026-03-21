@@ -400,11 +400,11 @@
 
 ## Phase 5-C: 維持コストモデル（economy/）
 
-- [ ] `economy/cost_params.go`: CostParams 構造体（RoomMaintenancePerTick map[string]float64, BeastMaintenancePerTick float64, TrapMaintenancePerTick float64, ChiPoolCapPerStorageRoom float64, ChiPoolCapPerStorageLevel float64, ChiPoolBaseCap float64）。DefaultCostParams()。LoadCostParams(data []byte)
-- [ ] `economy/cost_params_data.json`: デフォルトコストパラメータ。部屋維持（龍穴: 0.5, 蓄気室: 0.1, 仙獣部屋: 0.2, 罠部屋: 0.4, 回復室: 0.3, 倉庫: 0.1）、仙獣経済維持: 0.3/tick、罠維持: 0.2/tick、ChiPool上限（基礎: 100.0, 蓄気室1つあたり: +50.0, 蓄気室レベルあたり: +20.0）
-- [ ] `economy/maintenance.go`: MaintenanceCalculator 構造体。CalcTickMaintenance(rooms, beasts, traps, params) MaintenanceBreakdown — 1ティック分の維持コスト。MaintenanceBreakdown 構造体（RoomCost float64, BeastCost float64, TrapCost float64, Total float64）で内訳を返す
-- [ ] `economy/maintenance.go`: CalcChiPoolCap(rooms, roomTypes, params) float64 — 蓄気室の数とレベルからChiPoolの上限を算出。蓄気室がなければ基礎値のみ
-- [ ] `economy/maintenance_test.go`: 部屋0で維持コスト0テスト、部屋タイプ別コストテスト、仙獣追加で維持コスト増加テスト、ChiPoolCap計算テスト（蓄気室あり/なし/レベルアップ）
+- [x] `economy/cost_params.go`: CostParams 構造体（RoomMaintenancePerTick map[string]float64, BeastMaintenancePerTick float64, TrapMaintenancePerTick float64, ChiPoolCapPerStorageRoom float64, ChiPoolCapPerStorageLevel float64, ChiPoolBaseCap float64）。DefaultCostParams()。LoadCostParams(data []byte)
+- [x] `economy/cost_params_data.json`: デフォルトコストパラメータ。部屋維持（龍穴: 0.5, 蓄気室: 0.1, 仙獣部屋: 0.2, 罠部屋: 0.4, 回復室: 0.3, 倉庫: 0.1）、仙獣経済維持: 0.3/tick、罠維持: 0.2/tick、ChiPool上限（基礎: 100.0, 蓄気室1つあたり: +50.0, 蓄気室レベルあたり: +20.0）
+- [x] `economy/maintenance.go`: MaintenanceCalculator 構造体。CalcTickMaintenance(rooms, beasts, traps, params) MaintenanceBreakdown — 1ティック分の維持コスト。MaintenanceBreakdown 構造体（RoomCost float64, BeastCost float64, TrapCost float64, Total float64）で内訳を返す
+- [x] `economy/maintenance.go`: CalcChiPoolCap(rooms, roomTypes, params) float64 — 蓄気室の数とレベルからChiPoolの上限を算出。蓄気室がなければ基礎値のみ
+- [x] `economy/maintenance_test.go`: 部屋0で維持コスト0テスト、部屋タイプ別コストテスト、仙獣追加で維持コスト増加テスト、ChiPoolCap計算テスト（蓄気室あり/なし/レベルアップ）
 
 ## Phase 5-D: 赤字処理（economy/）
 

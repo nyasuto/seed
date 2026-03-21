@@ -1,0 +1,15 @@
+{
+  "room_maintenance_per_tick": {
+    "dragon_hole": 0.5,
+    "chi_storage": 0.1,
+    "beast_room": 0.2,
+    "trap_room": 0.4,
+    "recovery_room": 0.3,
+    "warehouse": 0.1
+  },
+  "beast_maintenance_per_tick": 0.3,
+  "trap_maintenance_per_tick": 0.2,
+  "chi_pool_base_cap": 100.0,
+  "chi_pool_cap_per_storage_room": 50.0,
+  "chi_pool_cap_per_storage_level": 20.0
+}
