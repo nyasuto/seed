@@ -1,6 +1,8 @@
 package scenario
 
 import (
+	"fmt"
+
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
@@ -74,4 +76,29 @@ func (tg *TerrainGenerator) GenerateTerrain(width, height int, density float64, 
 	}
 
 	return zones
+}
+
+// ApplyTerrain places the given terrain zones onto the cave grid.
+// Each zone's cells are set to the zone's Type (HardRock or Water).
+// Returns an error if any zone cell is out of bounds or already belongs
+// to a room (RoomID != 0).
+func ApplyTerrain(cave *world.Cave, zones []TerrainZone) error {
+	for i, z := range zones {
+		for dy := 0; dy < z.Height; dy++ {
+			for dx := 0; dx < z.Width; dx++ {
+				pos := types.Pos{X: z.Pos.X + dx, Y: z.Pos.Y + dy}
+				if !cave.Grid.InBounds(pos) {
+					return fmt.Errorf("terrain zone %d: position (%d,%d) out of bounds", i, pos.X, pos.Y)
+				}
+				existing, _ := cave.Grid.At(pos)
+				if existing.RoomID != 0 {
+					return fmt.Errorf("terrain zone %d: position (%d,%d) overlaps with room %d", i, pos.X, pos.Y, existing.RoomID)
+				}
+				if err := cave.Grid.Set(pos, world.Cell{Type: z.Type}); err != nil {
+					return fmt.Errorf("terrain zone %d: %w", i, err)
+				}
+			}
+		}
+	}
+	return nil
 }
