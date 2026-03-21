@@ -160,7 +160,13 @@ func (br *BatchRunner) runSingleGame(index int) gameResult {
 		return gameResult{index: index, err: err}
 	}
 
-	provider := &batchProvider{}
+	var provider server.ActionProvider
+	switch br.config.AI {
+	case AISimple:
+		provider = &simpleAIBatchProvider{gs: gs}
+	default:
+		provider = &batchProvider{}
+	}
 
 	result, err := gs.RunGame(provider)
 	if err != nil {
@@ -188,6 +194,27 @@ func (p *batchProvider) ProvideActions(_ scenario.GameSnapshot) ([]simulation.Pl
 func (p *batchProvider) OnTickComplete(_ scenario.GameSnapshot) {}
 
 func (p *batchProvider) OnGameEnd(_ simulation.RunResult) {}
+
+// simpleAIBatchProvider implements server.ActionProvider using core's
+// SimpleAIPlayer. The AI is lazily created on the first ProvideActions
+// call because the engine's GameState is only available after RunGame
+// creates the engine.
+type simpleAIBatchProvider struct {
+	gs *server.GameServer
+	ai simulation.AIPlayer
+}
+
+func (p *simpleAIBatchProvider) ProvideActions(snapshot scenario.GameSnapshot) ([]simulation.PlayerAction, error) {
+	if p.ai == nil {
+		p.ai = simulation.NewSimpleAIPlayer(p.gs.Engine().State)
+	}
+	actions := p.ai.DecideActions(snapshot)
+	return actions, nil
+}
+
+func (p *simpleAIBatchProvider) OnTickComplete(_ scenario.GameSnapshot) {}
+
+func (p *simpleAIBatchProvider) OnGameEnd(_ simulation.RunResult) {}
 
 // aggregateBreakageData combines per-game BreakageData into a single
 // representative BreakageData for threshold detection. Boolean flags use

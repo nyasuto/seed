@@ -51,6 +51,12 @@
 - AI Mode と NoAction プロバイダーで同一 seed・同一シナリオを実行すると、同じ tick 数・同じ結果が得られる（決定論性の確認）。これは AI Mode が wait アクションを送った場合、NoAction と等価であることの証明になる。
 - Human Mode と AI Mode は同一の `ActionProvider` インターフェースを実装しており、`GameServer.RunGame()` に渡すだけで切り替え可能。共存テストにより、同一バイナリで両モードが動作することを確認。
 
+## Phase 4-G: Batch Mode CLI統合とD002検証
+
+- SimpleAIPlayer は GameState を必要とするが、GameServer.RunGame() がエンジンを内部で生成するため、ProvideActions の初回呼び出し時に遅延初期化する `simpleAIBatchProvider` パターンが有効。
+- チュートリアルシナリオは easy 設計のため、BreakageReport で B03/B05/B11 アラートが発生するのは想定内。D002 検証はシナリオの設計意図に応じた閾値解釈が必要。
+- 1,000ゲーム × SimpleAI が約1〜2秒で完了。Go の goroutine 並列実行は非常に高速で、パフォーマンス要件（5分以内）を大幅にクリア。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。

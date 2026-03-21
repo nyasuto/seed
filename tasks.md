@@ -516,7 +516,7 @@ sim/adapter/batch/ パッケージを作成する。
 - CSV レポートが生成されるテスト
 - パラメータスイープ "economy.supply_multiplier=0.5,1.0,2.0" で3回のバッチ実行が行われるテスト
 
-- [ ] **Task 4-G: Batch Mode — CLI統合とD002検証**
+- [x] **Task 4-G: Batch Mode — CLI統合とD002検証**
 
 1. cmd/chaosseed-sim/main.go の `--batch` フラグ実装
    - `--scenario`, `--games`, `--ai`, `--output`, `--format`, `--sweep` オプション

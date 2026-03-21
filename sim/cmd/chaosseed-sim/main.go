@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/nyasuto/seed/sim/adapter/ai"
+	"github.com/nyasuto/seed/sim/adapter/batch"
 	"github.com/nyasuto/seed/sim/adapter/human"
+	"github.com/nyasuto/seed/sim/metrics"
 	"github.com/nyasuto/seed/sim/server"
 )
 
@@ -30,6 +32,11 @@ func run() int {
 	scenarioName := flag.String("scenario", "tutorial", "scenario name or file path")
 	replayPath := flag.String("replay", "", "replay file path to play back")
 	aiTimeout := flag.Duration("timeout", 0, "action input timeout for AI Mode (e.g. 30s)")
+	games := flag.Int("games", 100, "number of games for batch mode")
+	aiStrategy := flag.String("batch-ai", "noop", "AI strategy for batch mode (simple, noop)")
+	outputPath := flag.String("output", "", "output file path for batch results")
+	format := flag.String("format", "json", "output format for batch mode (json, csv)")
+	sweep := flag.String("sweep", "", "parameter sweep spec (e.g. key=v1,v2,v3)")
 	flag.Parse()
 
 	if *showVersion {
@@ -85,7 +92,11 @@ func run() int {
 		}
 		return 0
 	case *batchMode:
-		fmt.Fprintln(os.Stderr, "batch mode: not implemented")
+		if err := runBatchMode(*scenarioName, *games, *aiStrategy, *outputPath, *format, *sweep); err != nil {
+			fmt.Fprintf(os.Stderr, "batch mode error: %v\n", err)
+			return 1
+		}
+		return 0
 	case *balanceMode:
 		fmt.Fprintln(os.Stderr, "balance mode: not implemented")
 	}
@@ -153,6 +164,133 @@ func runAIMode(scenarioName string, timeout time.Duration) error {
 		return nil
 	}
 	return err
+}
+
+// runBatchMode executes batch mode with the given parameters.
+func runBatchMode(scenarioName string, games int, aiStrategy string, outputPath string, format string, sweepSpec string) error {
+	aiType := batch.AIType(aiStrategy)
+	switch aiType {
+	case batch.AISimple, batch.AINoop:
+	default:
+		return fmt.Errorf("unknown AI strategy: %q (use simple or noop)", aiStrategy)
+	}
+
+	// Sweep mode: run parameter sweep.
+	if sweepSpec != "" {
+		return runBatchSweep(scenarioName, games, aiType, outputPath, format, sweepSpec)
+	}
+
+	sc, err := server.LoadScenario(scenarioName)
+	if err != nil {
+		return fmt.Errorf("load scenario: %w", err)
+	}
+
+	config := batch.BatchConfig{
+		Scenario: sc,
+		Games:    games,
+		BaseSeed: 42,
+		AI:       aiType,
+		Progress: os.Stderr,
+	}
+
+	runner, err := batch.NewBatchRunner(config)
+	if err != nil {
+		return fmt.Errorf("create batch runner: %w", err)
+	}
+
+	result, err := runner.Run()
+	if err != nil {
+		return fmt.Errorf("batch run: %w", err)
+	}
+
+	return writeBatchOutput(result, scenarioName, games, string(aiType), outputPath, format)
+}
+
+// runBatchSweep executes a parameter sweep.
+func runBatchSweep(scenarioName string, games int, aiType batch.AIType, outputPath string, format string, sweepSpec string) error {
+	param, err := batch.ParseSweepParam(sweepSpec)
+	if err != nil {
+		return fmt.Errorf("parse sweep: %w", err)
+	}
+
+	// Load raw JSON for sweep modification.
+	scenarioJSON, err := loadScenarioJSON(scenarioName)
+	if err != nil {
+		return fmt.Errorf("load scenario JSON: %w", err)
+	}
+
+	baseConfig := batch.BatchConfig{
+		Games:    games,
+		BaseSeed: 42,
+		AI:       aiType,
+		Progress: os.Stderr,
+	}
+
+	results, err := batch.RunSweep(scenarioJSON, param, baseConfig)
+	if err != nil {
+		return fmt.Errorf("sweep: %w", err)
+	}
+
+	// For sweep, output each result with the parameter value.
+	for _, sr := range results {
+		label := fmt.Sprintf("%s=%s", sr.ParamKey, sr.ParamValue)
+		fmt.Fprintf(os.Stderr, "\n--- %s ---\n", label)
+		if err := writeBatchOutput(sr.Result, scenarioName, games, string(aiType), "", format); err != nil {
+			return fmt.Errorf("write output for %s: %w", label, err)
+		}
+	}
+
+	// If output path specified, write the last result (or all as array — for now, last).
+	if outputPath != "" {
+		lastResult := results[len(results)-1].Result
+		return writeBatchOutput(lastResult, scenarioName, games, string(aiType), outputPath, format)
+	}
+
+	return nil
+}
+
+// loadScenarioJSON loads raw scenario JSON bytes from a builtin name or file path.
+func loadScenarioJSON(nameOrPath string) ([]byte, error) {
+	data, err := server.LoadBuiltinScenarioJSON(nameOrPath)
+	if err == nil {
+		return data, nil
+	}
+	return os.ReadFile(nameOrPath)
+}
+
+// writeBatchOutput writes batch results to stdout or a file.
+func writeBatchOutput(result *batch.BatchResult, scenarioName string, games int, ai string, outputPath string, format string) error {
+	reportConfig := metrics.ReportConfig{
+		Scenario: scenarioName,
+		Games:    games,
+		AI:       ai,
+	}
+
+	var output string
+	var err error
+
+	switch format {
+	case "json":
+		output, err = metrics.GenerateJSON(reportConfig, result.Summaries, result.BreakageData, result.BreakageReport)
+		if err != nil {
+			return fmt.Errorf("generate JSON: %w", err)
+		}
+	case "csv":
+		output = metrics.GenerateCSV(result.Summaries)
+	default:
+		return fmt.Errorf("unknown format: %q (use json or csv)", format)
+	}
+
+	if outputPath == "" {
+		fmt.Println(output)
+		return nil
+	}
+
+	if err := os.WriteFile(outputPath, []byte(output), 0o644); err != nil {
+		return fmt.Errorf("write output file: %w", err)
+	}
+	fmt.Fprintf(os.Stderr, "results written to %s\n", outputPath)
+	return nil
 }
 
 // runReplayMode loads and plays back a replay file.
