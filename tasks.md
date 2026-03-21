@@ -237,3 +237,129 @@
 - [x] `senju/ai_integration_test.go`: Cave（部屋5つ、通路接続）+ 仙獣3体（Guard×1, Patrol×1, Chase×1）+ 疑似侵入者位置（map[int][]int で手動設定）→20ティック行動シミュレーション→Guard仙獣は配置部屋に留まることを検証→Patrol仙獣は複数部屋を巡回することを検証→侵入者位置を設定するとChase仙獣が追跡方向に移動することを検証→HP低下でFleeに遷移することを検証
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 3.5 完了。DECISIONS.md 更新、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase4_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+
+
+# Phase 4 改訂版 — 侵入システム（invasion/）
+
+> PRD Phase 4: 侵入者の生成、目標指向の経路探索、戦闘解決。
+> D002準拠: 時間圧力の基盤をこのフェーズで構築する。シナリオレベルの調整はPhase 6で行う。
+
+## Phase 4-A: 侵入者基本型定義（invasion/）
+
+- [ ] `invasion/doc.go`: パッケージドキュメント。侵入者の種族定義・目標指向AI・経路探索・戦闘解決・侵入波管理を扱うパッケージであることを記述
+- [ ] `invasion/invader_class.go`: InvaderClass 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, RewardChi float64, PreferredGoal GoalType, RetreatThreshold float64, Description string）。InvaderClassRegistry（map管理、JSONから一括ロード）
+- [ ] `invasion/invader_class_data.json`: 初期侵入者クラス5種の定義。木: 木行の修行者（バランス型, 龍穴破壊を目指す, 撤退閾値0.3）、火: 火行の武闘家（攻撃型, 仙獣狩りを目指す, 撤退閾値0.15）、土: 土行の鎧武者（防御型, 龍穴破壊を目指す, 撤退閾値0.4）、金: 金行の盗賊（速度型, 宝物奪取を目指す, 撤退閾値0.5）、水: 水行の道士（回復型, 龍穴破壊を目指す, 撤退閾値0.25）
+- [ ] `invasion/goal.go`: GoalType 型（DestroyCore/HuntBeasts/StealTreasure）。Goal インターフェース — TargetRoomID(cave, invader, memory) int で目標部屋IDを返す、IsAchieved(cave, invader) bool で目標達成判定
+- [ ] `invasion/goal_destroy_core.go`: DestroyCoreGoal — 龍穴（コア部屋）を目指す。TargetRoomID は龍穴の部屋IDを返す。到達して一定ティック滞在で達成
+- [ ] `invasion/goal_hunt_beasts.go`: HuntBeastsGoal — 仙獣がいる部屋を目指す。最寄りの仙獣配置部屋をターゲット。仙獣を一定数撃破で達成
+- [ ] `invasion/goal_steal_treasure.go`: StealTreasureGoal — 倉庫部屋を目指す。到達で達成（気を奪って撤退）
+- [ ] `invasion/invader.go`: Invader 構造体（ID int, ClassID string, Name string, Element types.Element, Level int, HP int, MaxHP int, ATK int, DEF int, SPD int, CurrentRoomID int, Goal Goal, Memory *ExplorationMemory, State InvaderState, SlowTicks int, EntryTick types.Tick, StayTicks int）。InvaderState 型（Advancing/Fighting/Retreating/Defeated/GoalAchieved）。NewInvader(id, class, level, goal, entryRoomID, tick) *Invader
+- [ ] `invasion/invader_test.go`: InvaderClassRegistryのJSONロードテスト、レベルスケーリングテスト、GoalType別の目標部屋決定テスト
+
+## Phase 4-B: 目標指向の経路探索（invasion/）
+
+- [ ] `invasion/exploration_memory.go`: ExplorationMemory 構造体（VisitedRooms map[int]types.Tick, KnownBeastRooms map[int]bool, KnownCoreRoom int, KnownTreasureRooms []int）。Visit(roomID, tick) で訪問記録。仙獣や特殊部屋の発見も記録
+- [ ] `invasion/pathfinder.go`: Pathfinder 構造体（cave, adjacencyGraph）。FindPath(from int, to int) []int — A*ベースの最短経路（部屋IDの列）。ただし未訪問部屋は「存在するかもしれない」として探索的に進む
+- [ ] `invasion/pathfinder.go`: FindNextRoom(invader, cave, adjacencyGraph) int — 侵入者の次の移動先を決定:
+  1. 目標部屋が既知なら最短経路で移動
+  2. 目標部屋が未知なら未訪問の隣接部屋を優先探索
+  3. 全隣接部屋が訪問済みなら、未訪問部屋に最も近い方向へバックトラック
+  4. 完全探索済みならランダム移動（RNG経由）
+- [ ] `invasion/pathfinder_test.go`: 龍穴既知時の最短経路テスト、未知時の探索優先テスト、バックトラックテスト、盗賊が倉庫を目指すテスト、武闘家が仙獣部屋を目指すテスト
+
+## Phase 4-C: 戦闘解決システム（invasion/）
+
+- [ ] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
+- [ ] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
+- [ ] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi *fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
+  1. 仙獣の実効ステータス = beast.CalcCombatStats(roomChi)
+  2. 素早さ比較で先攻/後攻決定（同値はRNG）
+  3. 先攻側のダメージ計算: ATK × ATKMultiplier - 相手DEF × DEFReduction（MinDamage保証）
+  4. 属性相性倍率の適用（仙獣Element vs 侵入者Element、相生/相克で判定）
+  5. クリティカル判定（RNG経由）
+  6. 先攻ダメージ適用 → 後攻が生存していれば後攻の攻撃 → ダメージ適用
+  7. 結果を返す
+- [ ] `invasion/combat.go`: CombatRoundResult 構造体（BeastDamageTaken int, InvaderDamageTaken int, BeastHP int, InvaderHP int, IsBeastDefeated bool, IsInvaderDefeated bool, WasBeastCritical bool, WasInvaderCritical bool, FirstAttacker string）
+- [ ] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi *fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
+- [ ] `invasion/combat_test.go`: 基本ダメージ計算テスト、先攻/後攻テスト、属性有利/不利テスト、クリティカルテスト（FixedRNG）、MinDamage保証テスト、複数対複数のマッチングテスト
+
+## Phase 4-D: 撤退ロジック（invasion/）
+
+- [ ] `invasion/retreat.go`: RetreatEvaluator 構造体。ShouldRetreat(invader, wave) bool — 撤退判定:
+  1. HP が MaxHP × RetreatThreshold 以下 → 撤退
+  2. 同一波の仲間が半数以上 Defeated → 撤退（士気崩壊）
+  3. 目標達成済み（GoalAchieved）→ 撤退（戦利品を持って帰る）
+- [ ] `invasion/retreat.go`: RetreatPathfinder — 撤退時の経路。来た道を逆走して入口へ向かう。ExplorationMemoryの訪問順を逆順に辿る
+- [ ] `invasion/retreat.go`: RetreatResult 構造体（InvaderID int, Reason RetreatReason, StolenChi float64）。RetreatReason型（LowHP/MoraleBroken/GoalComplete）。盗賊がGoalCompleteで撤退する場合、StolenChi に奪った気の量をセット
+- [ ] `invasion/retreat_test.go`: HP低下撤退テスト、士気崩壊撤退テスト、目標達成撤退テスト、盗賊の気奪取テスト、撤退経路が来た道を逆走するテスト、入口到達で侵入者がマップから除去されるテスト
+
+## Phase 4-E: 罠効果システム（invasion/）
+
+- [ ] `invasion/trap.go`: TrapEffect 構造体（RoomID int, Element types.Element, DamagePerTrigger int, SlowTicks int）。BuildTrapEffects(cave, rooms, roomTypes) []TrapEffect — 罠部屋からTrapEffectリストを構築。罠部屋のElementを罠のElementとする
+- [ ] `invasion/trap.go`: ApplyTrap(invader, trap, params) TrapResult — 罠効果を侵入者に適用。ダメージ = TrapDamageBase × 属性相性倍率（罠Element vs 侵入者Element）。SlowTicks 中は移動を1ティック遅延
+- [ ] `invasion/trap.go`: TrapResult 構造体（InvaderID int, Damage int, IsSlowed bool, SlowTicksApplied int）
+- [ ] `invasion/trap_test.go`: 罠ダメージ計算テスト、属性相性倍率テスト、スロー効果テスト、罠部屋でない部屋は効果なしテスト、盗賊の罠回避率（将来拡張用のスタブ、現時点では全員同一処理）
+
+## Phase 4-F: 侵入波管理（invasion/）
+
+- [ ] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
+- [ ] `invasion/wave_generator.go`: WaveGenerator 構造体。NewWaveGenerator(classRegistry, rng)。GenerateWave(config WaveConfig, cave *world.Cave, tick types.Tick) *InvasionWave — 設定に基づいて侵入者グループを生成。洞窟の部屋構成から適切な Goal を割り当て（龍穴があれば DestroyCore が主、倉庫があれば盗賊を混ぜる）
+- [ ] `invasion/wave_schedule.go`: WaveSchedule 構造体（Waves []WaveConfig）。WaveConfig（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int）。LoadWaveSchedule(data []byte)。**注意: このスケジュールはPhase 6のシナリオシステムで上書きされる前提。Phase 4ではテスト用の固定スケジュールのみ**
+- [ ] `invasion/wave_schedule_data.json`: テスト用スケジュール（3波: tick 50/難易度1.0/2-3体, tick 150/難易度1.5/3-5体, tick 300/難易度2.0/5-7体）。D002の時間圧力を意識し、tick 50は「まだ構築が十分でない」タイミングを想定
+- [ ] `invasion/wave_test.go`: 波生成テスト、難易度スケーリングテスト、Goal割り当てテスト（龍穴あり/なしで変化）、WaveScheduleのJSONロードテスト、AliveCount/DefeatedCountテスト
+
+## Phase 4-G: 侵入ティックエンジン（invasion/）
+
+- [ ] `invasion/engine.go`: InvasionEngine 構造体（CombatEngine, Pathfinder, RetreatEvaluator, TrapEffects, cave, adjacencyGraph, rng）。NewInvasionEngine(cave, adjacencyGraph, combatParams, rng)
+- [ ] `invasion/engine.go`: InvasionEngine.Tick(currentTick, waves, beasts, rooms, roomTypes, roomChi) []InvasionEvent — 1ティック分の侵入処理:
+  1. TriggerTick に到達した Pending 波を Active に → WaveStarted イベント
+  2. 各侵入者の ExplorationMemory を更新（現在の部屋の情報を記録）
+  3. 撤退判定: ShouldRetreat が true なら State を Retreating に → InvaderRetreating イベント
+  4. Advancing 侵入者を移動: FindNextRoom で次の部屋へ → InvaderMoved イベント
+  5. Retreating 侵入者を撤退移動: RetreatPathfinder で入口方向へ → InvaderRetreating イベント。入口到達で除去
+  6. SlowTicks > 0 の侵入者は移動スキップ（SlowTicks 減算のみ）
+  7. 罠部屋にいる Advancing 侵入者に罠効果 → TrapTriggered イベント
+  8. 部屋ごとの戦闘マッチング: 同じ部屋の仙獣と侵入者を収集 → ResolveRoomCombat → CombatOccurred イベント
+  9. HP 0 以下の侵入者を Defeated に → InvaderDefeated イベント（RewardChi を記録）
+  10. HP 0 以下の仙獣を処理 → BeastDefeated イベント
+  11. 全侵入者が Defeated/Retreating/GoalAchieved なら波を Completed/Failed に → WaveCompleted/WaveFailed イベント
+- [ ] `invasion/engine.go`: InvasionEvent 構造体（Type InvasionEventType, Tick types.Tick, WaveID int, InvaderID int, BeastID int, RoomID int, Damage int, RewardChi float64, StolenChi float64, Details string）。InvasionEventType:
+  - WaveStarted / WaveCompleted / WaveFailed
+  - InvaderMoved / InvaderDefeated / InvaderRetreating / InvaderEscaped
+  - CombatOccurred / BeastDefeated / TrapTriggered
+  - GoalAchieved（侵入者が目標達成 → ゲーム的にはピンチ）
+- [ ] `invasion/engine.go`: InvasionEngine.BuildInvaderPositions(waves) map[int][]int — アクティブな Advancing/Fighting 侵入者の位置マップ。senju.BehaviorEngine.Tick に渡す用
+- [ ] `invasion/engine.go`: InvasionEngine.CollectRewards(events []InvasionEvent) float64 — InvaderDefeated イベントからRewardChiの合計を算出。Phase 5 の経済システムに渡すインターフェース
+- [ ] `invasion/engine.go`: InvasionEngine.CollectStolenChi(events []InvasionEvent) float64 — InvaderEscaped イベントからStolenChiの合計を算出。盗賊が持ち逃げした気の量。Phase 5 で ChiPool から減算する
+- [ ] `invasion/engine_test.go`: 波のアクティベーションテスト、目標指向移動テスト（龍穴へ向かう）、探索移動テスト（未知の部屋を探索）、戦闘マッチングテスト（同部屋の仙獣vs侵入者）、罠効果テスト、撤退判定→撤退経路テスト、HP低下撤退テスト、士気崩壊撤退テスト、目標達成→撤退テスト、波完了判定テスト、RewardChi集計テスト、StolenChi集計テスト、スロー効果による移動スキップテスト、BeastDefeatedイベント生成テスト
+
+## Phase 4-H: シリアライズ（invasion/）
+
+- [ ] `invasion/serialization.go`: MarshalInvasionState(waves []*InvasionWave) ([]byte, error) / UnmarshalInvasionState(data []byte, classRegistry) ([]*InvasionWave, error) — 全侵入波の状態を保存/復元。ExplorationMemory、Goal状態を含む
+- [ ] `invasion/serialization_test.go`: 保存→復元→等価検証テスト、途中状態（Advancing+Retreating混在）の保存/復元テスト、空リストの保存/復元テスト
+
+## Phase 4-I: ASCII可視化への侵入レイヤー追加
+
+- [ ] `invasion/ascii.go`: RenderInvasionOverlay(cave, waves) string — CaveのASCII表示に侵入者をオーバーレイ。Advancing: `>>`, Fighting: `XX`, Retreating: `<<`, 目標達成: `$$`。複数侵入者がいる部屋は人数表示（例: `3>>`）
+- [ ] `cmd/caveviz/main.go` 更新: `--invasion` フラグで侵入レイヤー表示。`--battle` フラグで全レイヤー（地形+気+仙獣+侵入者）を重ねて戦況表示
+- [ ] `invasion/ascii_test.go`: 各State の表示テスト、複数侵入者の人数表示テスト
+
+## Phase 4-J: 統合検証
+
+- [ ] `invasion/integration_test.go`: 以下のシナリオで50ティックのフルシミュレーション:
+  - Cave: 部屋6つ（龍穴×1、仙獣部屋×2、罠部屋×1、蓄気室×1、倉庫×1）、全接続
+  - ChiFlowEngine: 龍脈1本、気供給あり
+  - 仙獣: 3体（Guard×1を龍穴前、Patrol×1を巡回、Chase×1を仙獣部屋）
+  - 侵入波: 1波（修行者×2が龍穴を目指す、盗賊×1が倉庫を目指す）
+  - 検証項目:
+    - 修行者が龍穴方向に移動すること
+    - 盗賊が倉庫方向に移動すること
+    - 罠部屋通過でダメージを受けること
+    - Guard仙獣が龍穴前で迎撃すること
+    - Chase仙獣が侵入者を追跡すること
+    - HP低下した侵入者が撤退すること
+    - 士気崩壊による撤退が発生すること
+    - 波完了時にRewardChiが集計されること
+    - 全過程がInvasionEventログとして記録されること
+- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [ ] Phase 4 完了。DECISIONS.md 更新（D002時間圧力のPhase 4段階の実装メモ、戦闘マッチングルールの判断記録）、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
