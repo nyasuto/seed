@@ -22,6 +22,7 @@
 ## Phase 7-K: 統合検証
 
 - `SimulationEngine.Step` で `evaluateEndConditions` が tick カウンタのインクリメント前に呼ばれていたため、`survive_until(N)` と `max_ticks: N` が同じ値のシナリオで off-by-one が発生し、勝利条件が満たされなかった。tick インクリメントを条件評価の前に移動して解決。「tick N を処理完了したら N+1 tick 生存した」というセマンティクスが正しい。
+- `BuildSnapshot` の `TotalWaves` が `len(state.Waves)`（スポーン済みウェーブ数）のみを参照していたため、`defeat_all_waves` 勝利条件が最初の1波撃退で即勝利と判定されてしまった。`GameState.ScheduledWaves`（シナリオの`spawn_wave`イベント数）を追加し、`TotalWaves = max(len(Waves), ScheduledWaves)` とすることで解決。standard.json にも `spawn_wave` イベントを追加する必要があった（`wave_schedule` はデータ定義のみ）。
 
 ## Phase 0-B: エコシステム整備
 

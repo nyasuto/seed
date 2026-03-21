@@ -87,6 +87,46 @@
   ],
   "events": [
     {
+      "id": "wave_0",
+      "condition": {"type": "survive_until", "params": {"ticks": 100}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.5, "min_invaders": 1, "max_invaders": 3}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_1",
+      "condition": {"type": "survive_until", "params": {"ticks": 250}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.8, "min_invaders": 2, "max_invaders": 4}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_2",
+      "condition": {"type": "survive_until", "params": {"ticks": 400}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.0, "min_invaders": 2, "max_invaders": 5}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_3",
+      "condition": {"type": "survive_until", "params": {"ticks": 600}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.3, "min_invaders": 3, "max_invaders": 6}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_4",
+      "condition": {"type": "survive_until", "params": {"ticks": 800}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.8, "min_invaders": 4, "max_invaders": 8}}
+      ],
+      "one_shot": true
+    },
+    {
       "id": "mid_chi_bonus",
       "condition": {"type": "survive_until", "params": {"ticks": 400}},
       "commands": [

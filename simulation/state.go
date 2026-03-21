@@ -135,4 +135,9 @@ type GameState struct {
 
 	// TotalDeficitTicks is the total number of ticks where the economy was in deficit.
 	TotalDeficitTicks int
+
+	// ScheduledWaves is the total number of waves scheduled in the scenario
+	// (counted from spawn_wave event commands). Used by BuildSnapshot so that
+	// defeat_all_waves does not trigger before all waves have been spawned.
+	ScheduledWaves int
 }

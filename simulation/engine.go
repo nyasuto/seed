@@ -535,6 +535,17 @@ func NewSimulationEngine(sc *scenario.Scenario, rng types.RNG) (*SimulationEngin
 	// Create event engine.
 	eventEngine := scenario.NewEventEngine()
 
+	// Count scheduled spawn_wave events so defeat_all_waves knows
+	// how many waves to expect before declaring victory.
+	scheduledWaves := 0
+	for _, ev := range sc.Events {
+		for _, cmd := range ev.Commands {
+			if cmd.Type == "spawn_wave" {
+				scheduledWaves++
+			}
+		}
+	}
+
 	state := &GameState{
 		Cave:                   cave,
 		RoomTypeRegistry:       roomReg,
@@ -557,6 +568,7 @@ func NewSimulationEngine(sc *scenario.Scenario, rng types.RNG) (*SimulationEngin
 		NextWaveID:             1,
 		ScoreParams:            fengshui.DefaultScoreParams(),
 		ConsecutiveDeficitTicks: 0,
+		ScheduledWaves:         scheduledWaves,
 	}
 
 	return &SimulationEngine{

@@ -55,8 +55,15 @@ func BuildSnapshot(state *GameState) scenario.GameSnapshot {
 		BeastCount:             len(state.Beasts),
 		AliveBeasts:            aliveBeasts,
 		DefeatedWaves:          defeatedWaves,
-		TotalWaves:             len(state.Waves),
+		TotalWaves:             maxInt(len(state.Waves), state.ScheduledWaves),
 		CaveFengShuiScore:      caveFengShuiScore,
 		ConsecutiveDeficitTicks: state.ConsecutiveDeficitTicks,
 	}
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

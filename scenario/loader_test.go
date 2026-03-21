@@ -544,8 +544,8 @@ func TestLoadScenario_StandardJSON(t *testing.T) {
 	if len(s.WaveSchedule) != 5 {
 		t.Errorf("WaveSchedule len = %d, want 5", len(s.WaveSchedule))
 	}
-	if len(s.Events) != 2 {
-		t.Errorf("Events len = %d, want 2", len(s.Events))
+	if len(s.Events) != 7 {
+		t.Errorf("Events len = %d, want 7", len(s.Events))
 	}
 	if len(s.InitialState.DragonVeins) != 2 {
 		t.Errorf("DragonVeins len = %d, want 2", len(s.InitialState.DragonVeins))
