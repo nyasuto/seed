@@ -136,6 +136,21 @@ func (r *SimulationRunner) RunInteractive(scenarioJSON []byte, seed int64, actio
 	}, nil
 }
 
+// BatchRun runs the simulation across multiple seeds using the same scenario
+// and AI player factory. This is useful for balance testing — by running the
+// same scenario with many seeds, statistical patterns become visible.
+func (r *SimulationRunner) BatchRun(scenarioJSON []byte, seeds []int64, factory AIPlayerFactory) ([]RunResult, error) {
+	results := make([]RunResult, 0, len(seeds))
+	for _, seed := range seeds {
+		result, err := r.RunWithAI(scenarioJSON, seed, factory)
+		if err != nil {
+			return nil, fmt.Errorf("batch run seed %d: %w", seed, err)
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
 // createEngine loads a scenario from JSON and creates a SimulationEngine.
 func (r *SimulationRunner) createEngine(scenarioJSON []byte, seed int64) (*SimulationEngine, *scenario.Scenario, error) {
 	sc, err := scenario.LoadScenario(scenarioJSON)

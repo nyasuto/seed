@@ -92,6 +92,118 @@ func TestSimulationRunner_RunWithAI_Deterministic(t *testing.T) {
 	}
 }
 
+func TestSimulationRunner_BatchRun_MultipleSeeds(t *testing.T) {
+	runner := &SimulationRunner{}
+	scenJSON := tutorialScenarioJSON()
+	seeds := []int64{1, 2, 3, 42, 100}
+
+	results, err := runner.BatchRun(scenJSON, seeds, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("BatchRun: %v", err)
+	}
+
+	if len(results) != len(seeds) {
+		t.Fatalf("expected %d results, got %d", len(seeds), len(results))
+	}
+
+	for i, r := range results {
+		if r.Result.Status != Won {
+			t.Errorf("seed %d: expected Won, got %v (reason: %s)", seeds[i], r.Result.Status, r.Result.Reason)
+		}
+		if r.TickCount == 0 {
+			t.Errorf("seed %d: expected TickCount > 0", seeds[i])
+		}
+	}
+}
+
+func TestSimulationRunner_BatchRun_Deterministic(t *testing.T) {
+	runner := &SimulationRunner{}
+	scenJSON := tutorialScenarioJSON()
+	seeds := []int64{10, 20, 30}
+
+	results1, err := runner.BatchRun(scenJSON, seeds, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("BatchRun run1: %v", err)
+	}
+
+	results2, err := runner.BatchRun(scenJSON, seeds, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("BatchRun run2: %v", err)
+	}
+
+	for i := range seeds {
+		if results1[i].Result.Status != results2[i].Result.Status {
+			t.Errorf("seed %d: status mismatch: %v vs %v", seeds[i], results1[i].Result.Status, results2[i].Result.Status)
+		}
+		if results1[i].TickCount != results2[i].TickCount {
+			t.Errorf("seed %d: tick count mismatch: %d vs %d", seeds[i], results1[i].TickCount, results2[i].TickCount)
+		}
+		if results1[i].Statistics.PeakChi != results2[i].Statistics.PeakChi {
+			t.Errorf("seed %d: PeakChi mismatch: %f vs %f", seeds[i], results1[i].Statistics.PeakChi, results2[i].Statistics.PeakChi)
+		}
+		if results1[i].Statistics.DeficitTicks != results2[i].Statistics.DeficitTicks {
+			t.Errorf("seed %d: DeficitTicks mismatch: %d vs %d", seeds[i], results1[i].Statistics.DeficitTicks, results2[i].Statistics.DeficitTicks)
+		}
+	}
+}
+
+func TestSimulationRunner_BatchRun_EmptySeeds(t *testing.T) {
+	runner := &SimulationRunner{}
+	scenJSON := tutorialScenarioJSON()
+
+	results, err := runner.BatchRun(scenJSON, []int64{}, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("BatchRun: %v", err)
+	}
+	if len(results) != 0 {
+		t.Errorf("expected 0 results, got %d", len(results))
+	}
+}
+
+func TestSimulationRunner_BatchRun_InvalidJSON(t *testing.T) {
+	runner := &SimulationRunner{}
+	_, err := runner.BatchRun([]byte("{invalid"), []int64{1}, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+}
+
+func TestSimulationRunner_RunStatistics_Collection(t *testing.T) {
+	runner := &SimulationRunner{}
+	scenJSON := tutorialScenarioJSON()
+
+	result, err := runner.RunWithAI(scenJSON, 42, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("RunWithAI: %v", err)
+	}
+
+	stats := result.Statistics
+	// PeakChi should be positive (chi was flowing during the run)
+	if stats.PeakChi <= 0 {
+		t.Errorf("expected PeakChi > 0, got %f", stats.PeakChi)
+	}
+	// FinalFengShui should be non-negative
+	if stats.FinalFengShui < 0 {
+		t.Errorf("expected FinalFengShui >= 0, got %f", stats.FinalFengShui)
+	}
+	// No waves in tutorial scenario, so WavesDefeated should be 0
+	if stats.WavesDefeated != 0 {
+		t.Errorf("expected WavesDefeated == 0 (no waves), got %d", stats.WavesDefeated)
+	}
+}
+
 func TestSimulationRunner_RunWithAI_InvalidJSON(t *testing.T) {
 	runner := &SimulationRunner{}
 	_, err := runner.RunWithAI([]byte("{invalid"), 1, func(state *GameState) AIPlayer {
