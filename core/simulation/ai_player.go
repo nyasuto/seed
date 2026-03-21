@@ -64,6 +64,14 @@ func (ai *SimpleAIPlayer) DecideActions(snapshot scenario.GameSnapshot) []Player
 // position to build it. Returns nil if no room can be built.
 func (ai *SimpleAIPlayer) tryBuildRoom(snapshot scenario.GameSnapshot) PlayerAction {
 	s := ai.state
+
+	// Respect MaxRooms constraint.
+	if s.Scenario != nil && s.Scenario.Constraints.MaxRooms > 0 {
+		if len(s.Cave.Rooms) >= s.Scenario.Constraints.MaxRooms {
+			return nil
+		}
+	}
+
 	construction := s.EconomyEngine.Construction
 	balance := s.EconomyEngine.ChiPool.Balance()
 

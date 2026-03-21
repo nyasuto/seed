@@ -145,3 +145,81 @@ func TestSimpleAIPlayer_Interface(t *testing.T) {
 	var _ AIPlayer = NewSimpleAIPlayer(engine.State)
 	var _ AIPlayer = NewRandomAIPlayer(engine.State, types.NewSeededRNG(2))
 }
+
+func TestSimpleAIPlayer_RespectsMaxRooms(t *testing.T) {
+	sc := tutorialScenario()
+	// Allow building rooms by giving enough chi.
+	sc.InitialState.StartingChi = 500.0
+	// Set MaxRooms to 1. The prebuilt dragon_hole counts as 1 room.
+	sc.Constraints.MaxRooms = 1
+
+	rng := types.NewSeededRNG(1)
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	ai := NewSimpleAIPlayer(engine.State)
+	snapshot := BuildSnapshot(engine.State)
+	actions := ai.DecideActions(snapshot)
+
+	// AI should not attempt to build a room since MaxRooms is reached.
+	for _, a := range actions {
+		if a.ActionType() == "dig_room" {
+			t.Error("SimpleAIPlayer should not attempt dig_room when MaxRooms is reached")
+		}
+	}
+}
+
+func TestValidateAction_DigRoom_MaxRoomsAfterBuilding(t *testing.T) {
+	sc := tutorialScenario()
+	sc.InitialState.StartingChi = 500.0
+	// Allow up to 5 rooms total.
+	sc.Constraints.MaxRooms = 5
+
+	rng := types.NewSeededRNG(1)
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+	state := engine.State
+
+	// Build rooms until MaxRooms is reached.
+	positions := []types.Pos{
+		{X: 1, Y: 1},
+		{X: 5, Y: 1},
+		{X: 9, Y: 1},
+		{X: 13, Y: 1},
+	}
+	for _, pos := range positions {
+		action := DigRoomAction{
+			RoomTypeID: "trap_room",
+			Pos:        pos,
+			Width:      3,
+			Height:     3,
+		}
+		if _, err := ApplyAction(action, state); err != nil {
+			t.Fatalf("ApplyAction DigRoom at %v: %v", pos, err)
+		}
+	}
+
+	// Now we should have 5 rooms (1 prebuilt + 4 built).
+	if got := len(state.Cave.Rooms); got != 5 {
+		t.Fatalf("room count = %d, want 5", got)
+	}
+
+	// 6th room should be rejected.
+	action := DigRoomAction{
+		RoomTypeID: "trap_room",
+		Pos:        types.Pos{X: 1, Y: 10},
+		Width:      3,
+		Height:     3,
+	}
+	err = ValidateAction(action, state)
+	if err == nil {
+		t.Fatal("expected error when MaxRooms reached")
+	}
+	if got := err.Error(); got != "max rooms reached: 5/5" {
+		t.Errorf("error = %q, want %q", got, "max rooms reached: 5/5")
+	}
+}

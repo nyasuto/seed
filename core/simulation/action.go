@@ -135,6 +135,13 @@ func ValidateAction(action PlayerAction, state *GameState) error {
 }
 
 func validateDigRoom(a DigRoomAction, state *GameState) error {
+	// Check MaxRooms constraint.
+	if state.Scenario != nil && state.Scenario.Constraints.MaxRooms > 0 {
+		if len(state.Cave.Rooms) >= state.Scenario.Constraints.MaxRooms {
+			return fmt.Errorf("max rooms reached: %d/%d", len(state.Cave.Rooms), state.Scenario.Constraints.MaxRooms)
+		}
+	}
+
 	// Check room type exists.
 	if _, err := state.RoomTypeRegistry.Get(a.RoomTypeID); err != nil {
 		return fmt.Errorf("%w: %s", ErrRoomTypeNotFound, a.RoomTypeID)

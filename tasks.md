@@ -43,7 +43,7 @@
 
 ## Phase 1: core修正 + Game Server
 
-- [ ] **Task 1-A: core修正 — MaxRooms制約チェック追加**
+- [x] **Task 1-A: core修正 — MaxRooms制約チェック追加**
 
 core/simulation/action.go の validateDigRoom に GameConstraints.MaxRooms チェックを追加する。
 現在の部屋数が MaxRooms 以上なら DigRoom アクションを拒否する。
