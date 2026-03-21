@@ -1,92 +1,100 @@
-# Phase 5 完了レポート — 経済システム（economy/）
+# Phase 7 完了レポート — 統合シミュレーション（simulation/）
 
 ## 1. 実装した内容の要約
 
-### Phase 5-A: 経済基本型定義
-- ChiPool 構造体（Current, Cap, History）: プレイヤーの経済リソース「気」の通貨
-- ChiTransaction: 全取引の履歴記録（Supply/Maintenance/Reward/Theft/Construction/BeastSummon 等）
-- 残高不足時は部分引き落とし（残高ゼロ止まり、マイナスにしない）
+### Phase 7-A: 基本型定義
+- PlayerAction 型（DigRoom, DigCorridor, SummonBeast, UpgradeRoom）
+- GameState: 全サブシステムの状態を統合管理
+- アクションバリデーション・実行
 
-### Phase 5-B: 気の供給計算
-- SupplyCalculator: 龍脈本数 × 基本供給 + 気充填率ボーナス × 風水倍率
-- SupplyParams: JSON外出しパラメータ（BaseSupplyPerVein, FengShuiMultiplier 等）
+### Phase 7-B: コマンド実行器
+- CommandExecutor: EventCommand（Phase 6）の状態変更を実行
+- SpawnWaveCommand, ModifyChiCommand, ModifyConstraintCommand, MessageCommand に対応
 
-### Phase 5-C: 維持コストモデル
-- MaintenanceCalculator: 部屋タイプ別 + 仙獣 + 罠の維持コスト計算
-- CalcChiPoolCap: 蓄気室の数とレベルから ChiPool 上限を算出
-- CostParams: 全コストパラメータをJSON外出し
+### Phase 7-C: メインループ
+- SimulationEngine: 12ステップの厳密な更新順序（D012）
+- Step(actions) で1ティック実行、Run(actionProvider) で連続実行
+- GameSnapshot（読み取り専用ビュー）の構築
+- 勝利/敗北条件の評価
 
-### Phase 5-D: 赤字処理
-- DeficitProcessor: 維持コスト > 残高時の段階的ペナルティ
-  - 軽度: 仙獣成長速度半減
-  - 中度: 成長停止 + 気容量低下
-  - 重度: 仙獣HP減少 + 罠機能停止
-- DeficitParams: 閾値とペナルティ値をJSON外出し
+### Phase 7-D: チェックポイント
+- CreateCheckpoint / RestoreCheckpoint で任意時点の保存・復元
 
-### Phase 5-E: 建設コストモデル
-- ConstructionCost: 部屋建設・通路掘削・部屋強化のコスト計算
-- レベルスケーリング（レベルが上がるほど強化コスト増加）
+### Phase 7-E: リプレイ
+- RecordReplay / PlayReplay でアクション列の記録・再生
+- JSON シリアライズによるリプレイファイルの永続化
 
-### Phase 5-F: 仙獣コストモデル
-- BeastCost: 属性別の召喚コスト（金属性が最も高価）
-- 進化コストは進化システム延期に伴い未実装
+### Phase 7-F: AIプレイヤー
+- SimpleAIPlayer: 部屋建設→仙獣配置の基本戦略
+- RandomAIPlayer: ランダム行動（テスト・ベンチマーク用）
 
-### Phase 5-G: 侵入報酬と損失
-- InvasionEconomyProcessor: 侵入イベントから報酬/損失をChiPoolに反映
-- InvaderDefeated → Reward（ChiPool加算）、InvaderEscaped → Theft（ChiPool減算）
+### Phase 7-G: D001 プロファイリング
+- OnCaveChanged のベンチマーク実施
+- 50部屋で55μs、線形スケール。差分更新は不要と最終結論（D001 RESOLVED）
 
-### Phase 5-H: 経済ティックエンジン
-- EconomyEngine.Tick: 供給→維持→赤字処理の1ティック経済サイクル
-- TryBuildRoom/TrySummonBeast/TryUpgradeRoom/TryDigCorridor: 建設系操作API
+### Phase 7-H: D002 定量検証
+- 原則1（不完全性強制）: 異なるseedで異なる配置パターンを確認
+- 原則2（時間圧力）: 侵入波が構築中に到達することを確認
+- 原則3（トレードオフ）: 200ティックで全MAX到達率0%、供給2倍でもアンチパターン非発生
+- 4つのアンチパターン検証テストすべて通過
 
-### Phase 5-I: シリアライズ
-- ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
+### Phase 7-I: CLIシミュレーター向けインターフェース
+- SimulationRunner: RunWithAI, RunInteractive, BatchRun
+- RunResult / RunStatistics による実行結果の集約
 
-### Phase 5-J: 経済バランス検証
-- D002原則3「リソースが常に不足」の構造的検証（200ティックシミュレーション）
-- パラメータ感度テスト（供給2倍/維持半分でもアンチパターン非発生を確認）
+### Phase 7-J: ASCII統合表示
+- RenderFullStatus: マップ + 仙獣 + 侵入者 + 経済 + シナリオの統合表示
+- caveviz --simulate フラグでシナリオ自動実行
 
-### Phase 5-K: ASCII可視化
-- RenderEconomyStatus: ワンライン形式のステータス表示
-- caveviz の --economy フラグ
+### Phase 7-K: 統合検証
+- チュートリアルシナリオ E2E テスト
+- 標準シナリオ + defeat_all_waves テスト
+- 決定論性テスト（同一seed = 同一結果）
+- チェックポイント復元テスト（100tick → 保存 → 復元 → 続行が元実行と一致）
+- リプレイ再生テスト（記録 → シリアライズ → 再生 = 同一結果）
+- 大規模ストレステスト（64x64, 10部屋, 8仙獣, 10波, 1000tick以内完了）
+- go vet / go test -race クリーン通過
 
-### Phase 5-L: 統合検証
-- Cave + ChiFlowEngine + 仙獣 + 侵入波 + 経済エンジンの80ティックフルシミュレーション
-- 供給・維持・報酬・損失・赤字・建設・シリアライズの全フロー検証
+## 2. 未解決の課題や技術的負債
 
-## 2. 設計判断
+- **MaxRooms 制約未チェック**: validateDigRoom で GameConstraints.MaxRooms を参照していないため、SimpleAI が制約を超えて部屋を建設可能（LESSONS.md 記載）
+- **SimpleAI のコリドー戦略なし**: 部屋間の通路を掘らないため、気が新規部屋に伝播しない
+- **CalcTickSupply の caveScore 正規化**: CaveTotal が無制限に増加し、供給量が指数的に膨らむ可能性
+- **罠の盗賊回避率**: 盗賊の SPD による罠回避は未実装（将来拡張）
+- **侵入者AI高度化**: 複数ステップ先読み、仙獣回避は未実装（将来拡張）
 
-### D009: ChiPool（経済層）と ChiFlowEngine（物理層）の二層構造
-- 物理層（fengshui/ChiFlowEngine）: 部屋レベルの気の流れシミュレーション
-- 経済層（economy/ChiPool）: プレイヤーの通貨としての気
-- SupplyCalculator が物理層の状態を読み取り経済層への供給量に変換
-- 仙獣は「部屋の気を食べて成長（物理層、D003）」＋「存在するだけで維持費（経済層）」の二重構造
+## 3. 全フェーズの振り返り
 
-## 3. 未解決の課題や技術的負債
+| Phase | パッケージ | 内容 |
+|-------|-----------|------|
+| 0 | — | プロジェクト初期化、CI/CD、エコシステム整備 |
+| 1 | types/, world/ | マップシステム（グリッド、部屋、通路、洞窟、シリアライズ、ASCII可視化） |
+| 2 | fengshui/ | 風水システム（龍脈、気の流れ、風水スコア） |
+| 3 | senju/ | 仙獣システム（種族、配置、成長、行動AI） |
+| 4 | invasion/ | 侵入システム（侵入者、経路探索、戦闘、罠、波管理） |
+| 5 | economy/ | 経済システム（ChiPool、供給、維持、赤字、建設コスト） |
+| 6 | scenario/ | シナリオシステム（進化、敗北処理、地形、条件、イベント、CoreHP） |
+| 7 | simulation/ | 統合シミュレーション（メインループ、チェックポイント、リプレイ、AI、検証） |
 
-- **経済バランスの本格調整は未実施**: パラメータはテスト用デフォルト値。Phase 7のシミュレーションで調整
-- **進化コスト未実装**: 仙獣の進化システム自体が延期中（Phase 6以降）
-- **仙獣敗北後の復活コスト未実装**: BeastDefeated イベントは記録するが復活ロジックは Phase 6 で定義
-- **赤字ペナルティの適用は呼び出し側の責務**: DeficitResult を返すのみで、実際の成長速度変更等は上位レイヤーが適用する必要がある
-- **WaveSchedule のコスト面との連動**: 侵入タイミングと経済状態の相互作用はPhase 6のシナリオで設計
+## 4. LESSONS.md から特に重要な知見
 
-## 4. 次フェーズへの申し送り事項
+- **ティック更新順序の厳密性**: Step() 内の更新順序変更は決定論的再現を壊す。D012 で12ステップを固定
+- **tick カウンタと条件評価の off-by-one**: インクリメントと条件評価の順序を間違えると survive_until と max_ticks が噛み合わない
+- **TotalWaves の算出**: スポーン済みウェーブ数だけでなく、スケジュール上の総ウェーブ数も考慮が必要
+- **二層分離（物理層/経済層）の有効性**: パラメータ調整が独立に行え、物理層の変更が経済を直接破壊しない
+- **JSON外出しパラメータの徹底**: コード変更なくバランス調整が可能
 
-- Phase 6（シナリオシステム scenario/）では以下を実装:
-  - シナリオ定義（目標、制約、初期状態、勝利/敗北条件）
-  - イベントトリガーシステム（条件付きイベント発火）
-  - 動的WaveSchedule（シナリオごとの侵入波タイミング、D007残作業）
-  - 地形バリエーション（D002原則1「不完全性の強制」）
-  - 仙獣の進化システム（Phase 3から延期中）
-  - 仙獣の敗北後処理（復活/消滅ロジック）
-- economy パッケージへの依存: scenario → economy（経済状態の読み取り、建設指示）
-- D002の3原則すべてがPhase 6で統合される:
-  - 原則1: 地形制約で理想配置を不可能に
-  - 原則2: シナリオレベルの侵入波タイミング調整
-  - 原則3: 経済システム（Phase 5で構造実装済み）のバランス調整
+## 5. v1.0.0 リリースノート
 
-## 5. LESSONS.md から特に重要な知見
+chaosseed-core v1.0.0 は、カオスシード（風水回廊記）インスパイアのダンジョン経営シミュレーション・コアエンジンの初版リリースです。
 
-- **二層分離の有効性**: 物理層と経済層を分離したことで、パラメータ調整が独立に行える。物理層の龍脈追加が経済を直接破壊しない
-- **JSON外出しパラメータの徹底**: 全コスト・閾値をJSON外出しにしたことで、コード変更なくバランス調整が可能
-- **D002検証テストの価値**: balance_test.go のアンチパターン検出テストにより、パラメータ変更時に「トレードオフが消滅していないか」を自動検証できる
+- 純 Go 実装、外部ライブラリ依存なし
+- ゲームエンジン非依存の純粋ロジックライブラリ
+- 完全な決定論的設計（同一 RNG seed → 同一結果）
+- チェックポイント・リプレイによる再現可能性
+- 全ゲームデータは JSON 駆動（コード変更なくバランス調整可能）
+- D002「常に不完全な状態での判断」の3原則すべて実装・検証済み
+
+後続プロジェクト:
+- chaosseed-sim: CLI シミュレーター（SimulationRunner 活用）
+- chaosseed-game: Ebitengine GUI クライアント
