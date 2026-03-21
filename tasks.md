@@ -129,9 +129,9 @@
 
 ## Phase 2-F: ASCII可視化への風水レイヤー追加
 
-- [ ] `fengshui/ascii.go`: RenderChiOverlay(cave, flowEngine) string — Caveの ASCII表示に気の充填率をオーバーレイ。充填率に応じて部屋内の表示を変える（0%: `__`, 1-33%: `░░`, 34-66%: `▒▒`, 67-99%: `▓▓`, 100%: `██`）。龍脈の経路を `~~` で表示
-- [ ] `cmd/caveviz/main.go` 更新: 風水レイヤー付き表示を追加。コマンドライン引数 `--chi` で切り替え
-- [ ] `fengshui/ascii_test.go`: 小さなCaveで風水オーバーレイの出力テスト
+- [x] `fengshui/ascii.go`: RenderChiOverlay(cave, flowEngine) string — Caveの ASCII表示に気の充填率をオーバーレイ。充填率に応じて部屋内の表示を変える（0%: `__`, 1-33%: `░░`, 34-66%: `▒▒`, 67-99%: `▓▓`, 100%: `██`）。龍脈の経路を `~~` で表示
+- [x] `cmd/caveviz/main.go` 更新: 風水レイヤー付き表示を追加。コマンドライン引数 `--chi` で切り替え
+- [x] `fengshui/ascii_test.go`: 小さなCaveで風水オーバーレイの出力テスト
 
 ## Phase 2-G: 統合検証
 
