@@ -1,0 +1,44 @@
+[
+  {
+    "id": "dragon_hole",
+    "name": "龍穴",
+    "element": "Earth",
+    "base_chi_capacity": 100,
+    "description": "洞窟の中心となる特別な部屋。龍脈からの気を集中的に受け取る"
+  },
+  {
+    "id": "chi_chamber",
+    "name": "蓄気室",
+    "element": "Water",
+    "base_chi_capacity": 80,
+    "description": "気を蓄積するための部屋。龍脈の流れを安定させる"
+  },
+  {
+    "id": "senju_room",
+    "name": "仙獣部屋",
+    "element": "Wood",
+    "base_chi_capacity": 60,
+    "description": "仙獣を配置して育成するための部屋"
+  },
+  {
+    "id": "trap_room",
+    "name": "罠部屋",
+    "element": "Metal",
+    "base_chi_capacity": 40,
+    "description": "侵入者を妨害する罠を設置する部屋"
+  },
+  {
+    "id": "recovery_room",
+    "name": "回復室",
+    "element": "Fire",
+    "base_chi_capacity": 50,
+    "description": "仙獣の体力を回復させるための部屋"
+  },
+  {
+    "id": "storage",
+    "name": "倉庫",
+    "element": "Earth",
+    "base_chi_capacity": 30,
+    "description": "アイテムや資源を保管するための部屋"
+  }
+]
