@@ -346,7 +346,7 @@
 
 ## Phase 4-J: 統合検証
 
-- [ ] `invasion/integration_test.go`: 以下のシナリオで50ティックのフルシミュレーション:
+- [x] `invasion/integration_test.go`: 以下のシナリオで50ティックのフルシミュレーション:
   - Cave: 部屋6つ（龍穴×1、仙獣部屋×2、罠部屋×1、蓄気室×1、倉庫×1）、全接続
   - ChiFlowEngine: 龍脈1本、気供給あり
   - 仙獣: 3体（Guard×1を龍穴前、Patrol×1を巡回、Chase×1を仙獣部屋）
