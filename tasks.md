@@ -90,15 +90,15 @@
 
 ## Phase 2-C: 気の蓄積・伝播モデル（fengshui/）
 
-- [ ] `fengshui/flow_params.go`: FlowParams 構造体（GeneratesMultiplier float64, OvercomesMultiplier float64, SameElementMultiplier float64, NeutralMultiplier float64, BaseDecayRate float64）。DefaultFlowParams() で初期値を返す。JSON読み込み対応: LoadFlowParams(path) (\*FlowParams, error)
-- [ ] `fengshui/flow_params_data.json`: デフォルトパラメータ定義（相生: 1.3, 相克: 0.6, 同属性: 1.1, 中立: 1.0, 基本減衰率: 0.02）
-- [ ] `fengshui/chi_flow.go`: ChiFlowEngine 構造体（Veins []DragonVein, RoomChi map[int]*RoomChi, Params *FlowParams, cave \*world.Cave）。NewChiFlowEngine(cave, veins, registry, params) で初期化。Tick() で1ティック分の気の流れを計算:
+- [x] `fengshui/flow_params.go`: FlowParams 構造体（GeneratesMultiplier float64, OvercomesMultiplier float64, SameElementMultiplier float64, NeutralMultiplier float64, BaseDecayRate float64）。DefaultFlowParams() で初期値を返す。JSON読み込み対応: LoadFlowParams(path) (\*FlowParams, error)
+- [x] `fengshui/flow_params_data.json`: デフォルトパラメータ定義（相生: 1.3, 相克: 0.6, 同属性: 1.1, 中立: 1.0, 基本減衰率: 0.02）
+- [x] `fengshui/chi_flow.go`: ChiFlowEngine 構造体（Veins []DragonVein, RoomChi map[int]*RoomChi, Params *FlowParams, cave \*world.Cave）。NewChiFlowEngine(cave, veins, registry, params) で初期化。Tick() で1ティック分の気の流れを計算:
   1. 龍脈上の各部屋にFlowRate分の気を供給（龍脈のElementと部屋のElementの相性でFlowRateに倍率適用）
   2. 隣接部屋間の気の伝播: 気が多い部屋→少ない部屋へ差分の一定割合が移動。移動量に相生/相克の倍率を適用
   3. 全部屋に基本減衰（BaseDecayRate）を適用
   4. Capacityクランプ（0〜Capacity）
-- [ ] `fengshui/chi_flow.go`: ChiFlowEngine.OnCaveChanged(cave) — Cave変更時に龍脈を全再計算し、新しい部屋のRoomChiを追加。差分更新の最適化は後回し（DECISIONS.mdに記録）
-- [ ] `fengshui/chi_flow_test.go`:
+- [x] `fengshui/chi_flow.go`: ChiFlowEngine.OnCaveChanged(cave) — Cave変更時に龍脈を全再計算し、新しい部屋のRoomChiを追加。差分更新の最適化は後回し（DECISIONS.mdに記録）
+- [x] `fengshui/chi_flow_test.go`:
   - 龍脈上の部屋への気の供給テスト
   - 龍脈Elementと部屋Elementが相生のとき供給量が増えるテスト
   - 龍脈Elementと部屋Elementが相克のとき供給量が減るテスト
@@ -137,4 +137,4 @@
 
 - [ ] `fengshui/integration_test.go`: 中規模Cave（32x32）に部屋5つ配置（意図的に相生ペアと相克ペアを含む）→龍脈2本設定→20ティックシミュレーション→相生ペアの部屋は気が多く、相克ペアは少ないことを検証→風水スコアが配置に応じて正しく変動することを検証
 - [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [ ] Phase 2 完了。DECISIONS.md に差分更新を後回しにした判断を記録。次フェーズのタスクドラフトを `tasks_phase3_draft.md` として生成し、**Ralph Loopを停止する**（tasks.mdには追記しない。チャットでのレビューを待つ）
+- [ ] Phase 2 完了。DECISIONS.md に差分更新を後回しにした判断を記録。次フェーズのタスクドラフトを `tasks_phase3_draft.md` として生成し、プロジェクトルートに `PHASE_COMPLETE` ファイルを作成し、以下を記載: (1) 実装した内容の要約, (2) 未解決の課題や技術的負債, (3) 次フェーズへの申し送り事項, (4) LESSONS.md から特に重要な知見。**tasks.md には新しい未完了タスクを追加しない**（Ralph Loopは未完了タスク消滅により自動停止する。次フェーズのタスク作成はチャットでのレビューを経て行う）
