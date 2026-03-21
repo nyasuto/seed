@@ -387,6 +387,185 @@ func TestD002_Principle3_ContinuousTradeoffs(t *testing.T) {
 	}
 }
 
+// TestD002_Antipattern_Rich verifies that the antipattern_rich scenario is
+// "always profitable" — the player never experiences resource tension.
+// This proves that such a scenario lacks the economic pressure that makes
+// the game interesting (it serves as a negative example for D002).
+func TestD002_Antipattern_Rich(t *testing.T) {
+	sc := antipatternRichScenario()
+	sc.Events = waveScheduleToEvents(sc.WaveSchedule)
+
+	rng := types.NewSeededRNG(42)
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	ai := NewSimpleAIPlayer(engine.State)
+
+	// Track chi balance each tick to check for deficit.
+	minChi := sc.InitialState.StartingChi
+	alwaysSurplus := true
+
+	// Run beyond MaxTicks to allow survive_until win condition to trigger.
+	runTicks := int(sc.Constraints.MaxTicks) + 100
+	if sc.Constraints.MaxTicks == 0 {
+		runTicks = 1000
+	}
+
+	result, err := engine.Run(runTicks, func(snap scenario.GameSnapshot) []PlayerAction {
+		chi := snap.ChiPoolBalance
+		if chi < minChi {
+			minChi = chi
+		}
+		if chi <= 0 {
+			alwaysSurplus = false
+		}
+		return ai.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	t.Logf("antipattern_rich: status=%v tick=%d reason=%q minChi=%.2f",
+		result.Status, result.FinalTick, result.Reason, minChi)
+
+	// The rich scenario should always be surplus — chi never reaches 0.
+	if !alwaysSurplus {
+		t.Errorf("antipattern_rich: chi went to 0 or below; expected always surplus with starting_chi=%.0f",
+			sc.InitialState.StartingChi)
+	}
+
+	// The player should not lose — resources are so abundant that losing is
+	// nearly impossible.
+	if result.Status == Lost {
+		t.Errorf("antipattern_rich: game was lost (reason=%q); expected survival with abundant resources",
+			result.Reason)
+	}
+}
+
+// TestD002_Antipattern_Impossible verifies that the antipattern_impossible
+// scenario leads to immediate defeat. With minimal starting chi, dense terrain,
+// and an extremely early invasion wave, the AI cannot mount any defense.
+func TestD002_Antipattern_Impossible(t *testing.T) {
+	sc := antipatternImpossibleScenario()
+	sc.Events = waveScheduleToEvents(sc.WaveSchedule)
+
+	rng := types.NewSeededRNG(42)
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	ai := NewSimpleAIPlayer(engine.State)
+
+	runTicks := int(sc.Constraints.MaxTicks) + 100
+	if sc.Constraints.MaxTicks == 0 {
+		runTicks = 400
+	}
+
+	result, err := engine.Run(runTicks, func(snap scenario.GameSnapshot) []PlayerAction {
+		return ai.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	t.Logf("antipattern_impossible: status=%v tick=%d reason=%q",
+		result.Status, result.FinalTick, result.Reason)
+
+	// The impossible scenario should result in defeat.
+	if result.Status != Lost {
+		t.Errorf("antipattern_impossible: expected Lost but got %v (reason=%q); "+
+			"scenario with starting_chi=%.0f and first wave at tick %d should be unwinnable",
+			result.Status, result.Reason, sc.InitialState.StartingChi,
+			sc.WaveSchedule[0].TriggerTick)
+	}
+}
+
+// antipatternRichScenario returns the antipattern_rich scenario as a Go struct.
+// This mirrors scenario/testdata/antipattern_rich.json.
+func antipatternRichScenario() *scenario.Scenario {
+	return &scenario.Scenario{
+		ID:          "antipattern_rich",
+		Name:        "アンチパターン：潤沢リソース",
+		Description: "D002検証用。StartingChiが極端に多く侵入波が弱い。",
+		Difficulty:  "easy",
+		InitialState: scenario.InitialState{
+			CaveWidth:      32,
+			CaveHeight:     32,
+			TerrainSeed:    100,
+			TerrainDensity: 0.05,
+			PrebuiltRooms: []scenario.RoomPlacement{
+				{TypeID: "dragon_hole", Pos: types.Pos{X: 15, Y: 15}, Level: 1},
+			},
+			DragonVeins: []scenario.DragonVeinPlacement{
+				{SourcePos: types.Pos{X: 15, Y: 15}, Element: types.Wood, FlowRate: 2.0},
+				{SourcePos: types.Pos{X: 15, Y: 15}, Element: types.Fire, FlowRate: 2.0},
+				{SourcePos: types.Pos{X: 15, Y: 15}, Element: types.Earth, FlowRate: 2.0},
+			},
+			StartingChi: 9999.0,
+			StartingBeasts: []scenario.BeastPlacement{
+				{SpeciesID: "suiryu", RoomIndex: 0},
+			},
+		},
+		WinConditions: []scenario.ConditionDef{
+			{Type: "survive_until", Params: map[string]any{"ticks": 800.0}},
+		},
+		LoseConditions: []scenario.ConditionDef{
+			{Type: "core_destroyed"},
+		},
+		WaveSchedule: []scenario.WaveScheduleEntry{
+			{TriggerTick: 300, Difficulty: 0.1, MinInvaders: 1, MaxInvaders: 1},
+			{TriggerTick: 600, Difficulty: 0.2, MinInvaders: 1, MaxInvaders: 2},
+		},
+		Constraints: scenario.GameConstraints{
+			MaxRooms:  20,
+			MaxBeasts: 10,
+			MaxTicks:  800,
+		},
+	}
+}
+
+// antipatternImpossibleScenario returns the antipattern_impossible scenario as a Go struct.
+// This mirrors scenario/testdata/antipattern_impossible.json.
+func antipatternImpossibleScenario() *scenario.Scenario {
+	return &scenario.Scenario{
+		ID:          "antipattern_impossible",
+		Name:        "アンチパターン：詰みシナリオ",
+		Description: "D002検証用。HardRock密度0.5、初波tick10、StartingChi極小。龍脈なし。",
+		Difficulty:  "hard",
+		InitialState: scenario.InitialState{
+			CaveWidth:      32,
+			CaveHeight:     32,
+			TerrainSeed:    999,
+			TerrainDensity: 0.5,
+			PrebuiltRooms: []scenario.RoomPlacement{
+				{TypeID: "dragon_hole", Pos: types.Pos{X: 15, Y: 15}, Level: 1},
+			},
+			// No dragon veins — zero chi supply ensures rapid bankruptcy.
+			StartingChi: 10.0,
+		},
+		WinConditions: []scenario.ConditionDef{
+			{Type: "survive_until", Params: map[string]any{"ticks": 200.0}},
+		},
+		LoseConditions: []scenario.ConditionDef{
+			{Type: "core_destroyed"},
+			{Type: "bankrupt", Params: map[string]any{"ticks": 5.0}},
+		},
+		WaveSchedule: []scenario.WaveScheduleEntry{
+			{TriggerTick: 10, Difficulty: 0.9, MinInvaders: 3, MaxInvaders: 5},
+			{TriggerTick: 50, Difficulty: 1.0, MinInvaders: 4, MaxInvaders: 6},
+			{TriggerTick: 100, Difficulty: 1.0, MinInvaders: 5, MaxInvaders: 8},
+		},
+		Constraints: scenario.GameConstraints{
+			MaxRooms:  5,
+			MaxBeasts: 2,
+			MaxTicks:  200,
+		},
+	}
+}
+
 // positionsEqual checks if two position slices are identical (same order, same values).
 func positionsEqual(a, b []types.Pos) bool {
 	if len(a) != len(b) {
