@@ -9,6 +9,11 @@
 - CellType の定数 `Corridor` と構造体 `Corridor` が名前衝突した。CellType の定数を `CorridorFloor` にリネームして解決。同一パッケージ内で型名と定数名の衝突に注意。
 - BuildCorridor は BFS で最短経路を探索するため、fromRoomID/toRoomID を引数に取り、他部屋のRoomFloorセルを回避する設計とした。
 
+## Phase 7-H: D002 定量検証
+
+- D002原則1の検証で風水スコア（CaveTotal）を多様性の指標にしようとしたが、SimpleAIがコリドーを掘らないため chi が新規部屋に伝播せず、スコアが全seed同一（128.00）になった。代わりに部屋数と配置位置の多様性で原則を検証。SimpleAIにコリドー構築戦略が追加されれば、風水スコアも有効な指標になる。
+- MaxRooms 制約（GameConstraints）は validateDigRoom で未チェック。SimpleAIは制約を超えて部屋を建設する。将来修正が必要。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。

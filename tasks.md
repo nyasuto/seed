@@ -718,7 +718,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-H: D002 定量検証
 
-- [ ] `simulation/d002_test.go`: D002原則1（不完全性の強制）検証:
+- [x] `simulation/d002_test.go`: D002原則1（不完全性の強制）検証:
   - 標準シナリオを異なる地形seed×10パターンで実行
   - SimpleAIの最終風水スコアがseedごとに異なることを確認（最適配置が毎回変わる）
 - [ ] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
