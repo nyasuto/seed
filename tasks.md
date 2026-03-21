@@ -584,10 +584,10 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 6-G: 動的侵入波スケジュール（scenario/）
 
-- [ ] `scenario/wave_schedule.go`: WaveScheduleEntry 構造体（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int, PreferredClasses []string, PreferredGoals []string）
-- [ ] `scenario/wave_schedule.go`: WaveScheduleBuilder 構造体。BuildSchedule(entries []WaveScheduleEntry, rng) []invasion.WaveConfig — シナリオ定義からPhase 4のWaveConfigに変換
-- [ ] `scenario/wave_schedule.go`: CalcFirstWaveTiming(initialState InitialState, constructionCosts economy.ConstructionCost) types.Tick — D002「時間圧力」のヘルパー。StartingChi と最安部屋コストから「最低限の構築に必要なティック数」を概算し、その途中のティックを返す。シナリオ設計の参考値
-- [ ] `scenario/wave_schedule_test.go`: スケジュール変換テスト、CalcFirstWaveTiming が構築完了前を返すテスト
+- [x] `scenario/wave_schedule.go`: WaveScheduleEntry 構造体（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int, PreferredClasses []string, PreferredGoals []string）
+- [x] `scenario/wave_schedule.go`: WaveScheduleBuilder 構造体。BuildSchedule(entries []WaveScheduleEntry, rng) []invasion.WaveConfig — シナリオ定義からPhase 4のWaveConfigに変換
+- [x] `scenario/wave_schedule.go`: CalcFirstWaveTiming(initialState InitialState, constructionCosts economy.ConstructionCost) types.Tick — D002「時間圧力」のヘルパー。StartingChi と最安部屋コストから「最低限の構築に必要なティック数」を概算し、その途中のティックを返す。シナリオ設計の参考値
+- [x] `scenario/wave_schedule_test.go`: スケジュール変換テスト、CalcFirstWaveTiming が構築完了前を返すテスト
 
 ## Phase 6-H: 地形テンプレート生成（scenario/）
 
