@@ -733,7 +733,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-I: CLIシミュレーター向けインターフェース（simulation/）
 
-- [ ] `simulation/runner.go`: SimulationRunner。RunWithAI(scenarioJSON, seed, aiPlayer) RunResult。RunInteractive(scenarioJSON, seed, actionCh chan []PlayerAction, snapshotCh chan GameSnapshot) — チャネルベースの対話型実行
+- [x] `simulation/runner.go`: SimulationRunner。RunWithAI(scenarioJSON, seed, aiPlayer) RunResult。RunInteractive(scenarioJSON, seed, actionCh chan []PlayerAction, snapshotCh chan GameSnapshot) — チャネルベースの対話型実行
 - [ ] `simulation/runner.go`: RunResult（GameResult, TickCount, Statistics）。RunStatistics（PeakChi, WavesDefeated, FinalFengShui, Evolutions, DamageDealt, DamageReceived, DeficitTicks）
 - [ ] `simulation/runner.go`: BatchRun(scenarioJSON, seeds []int64, aiPlayer) []RunResult — 複数seedで一括実行。バランス調整用
 - [ ] `simulation/runner_test.go`: RunWithAI テスト、BatchRun の決定論性テスト、RunStatistics の集計テスト
