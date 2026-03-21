@@ -410,6 +410,42 @@ func TestBehaviorEngine_WithRoomChi(t *testing.T) {
 	}
 }
 
+func TestBehaviorEngine_StunnedBeastSkipped(t *testing.T) {
+	cave, ag, reg, rooms := setupTestCaveForEngine(t)
+
+	rt, _ := reg.Get("senju_room")
+	b1 := NewBeast(1, &Species{ID: "test", Element: types.Wood, BaseHP: 100, BaseATK: 10, BaseDEF: 10, BaseSPD: 10}, 0)
+	b2 := NewBeast(2, &Species{ID: "test", Element: types.Fire, BaseHP: 100, BaseATK: 10, BaseDEF: 10, BaseSPD: 10}, 0)
+
+	r1 := rooms[1]
+	r2 := rooms[2]
+	if err := PlaceBeast(b1, r1, rt); err != nil {
+		t.Fatal(err)
+	}
+	if err := PlaceBeast(b2, r2, rt); err != nil {
+		t.Fatal(err)
+	}
+
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
+	engine.AssignBehavior(b1, Guard)
+	engine.AssignBehavior(b2, Guard)
+
+	// Set beast 1 to Stunned state.
+	b1.State = Stunned
+	b1.HP = 0
+
+	beasts := []*Beast{b1, b2}
+	actions := engine.Tick(beasts, map[int][]int{}, nil)
+
+	// Only beast 2 should produce an action; beast 1 is stunned.
+	if len(actions) != 1 {
+		t.Fatalf("expected 1 action (stunned beast skipped), got %d", len(actions))
+	}
+	if actions[0].BeastID != 2 {
+		t.Errorf("expected action for beast 2, got beast %d", actions[0].BeastID)
+	}
+}
+
 func TestBehaviorEngine_GuardAttacksInvader(t *testing.T) {
 	cave, ag, reg, rooms := setupTestCaveForEngine(t)
 

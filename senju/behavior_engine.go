@@ -103,6 +103,11 @@ func (be *BehaviorEngine) Tick(beasts []*Beast, invaderPositions map[int][]int, 
 			continue
 		}
 
+		// Stunned beasts cannot act or fight; skip them entirely.
+		if beast.State == Stunned {
+			continue
+		}
+
 		// HP threshold check: auto-transition to Flee if needed.
 		be.checkFleeTransition(beast)
 

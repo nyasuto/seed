@@ -533,7 +533,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `senju/defeat.go`: DefeatResult 構造体（BeastID int, NewState BeastState, RevivalTick types.Tick, LevelPenalty int, RevivalHP int）
 - [x] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
 - [x] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
-- [ ] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
+- [x] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
 - [ ] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
 
 ## Phase 6-C: world/ 拡張 — 地形バリエーション
