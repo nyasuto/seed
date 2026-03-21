@@ -198,10 +198,10 @@
 
 ## Phase 3.5-A: 行動パターン定義（senju/）
 
-- [ ] `senju/behavior.go`: BehaviorType 型（Guard/Patrol/Chase/Flee）。Behavior インターフェース — DecideAction(beast, context BehaviorContext) Action。BehaviorContext 構造体（Beast の現在位置、部屋情報、隣接部屋の仙獣/侵入者情報、RoomChi）
-- [ ] `senju/action.go`: Action 構造体（Type ActionType, TargetRoomID int, TargetBeastID int）。ActionType 型（Stay/MoveToRoom/Attack/Retreat）。仙獣が1ティックで取れる行動を表現
-- [ ] `senju/behavior_guard.go`: GuardBehavior — 定点防衛。自分の配置部屋に留まる。侵入者が同じ部屋にいればAttack、いなければStay。最もシンプルなAI
-- [ ] `senju/behavior_guard_test.go`: 侵入者なし→Stay、侵入者あり→Attack のテスト
+- [x] `senju/behavior.go`: BehaviorType 型（Guard/Patrol/Chase/Flee）。Behavior インターフェース — DecideAction(beast, context BehaviorContext) Action。BehaviorContext 構造体（Beast の現在位置、部屋情報、隣接部屋の仙獣/侵入者情報、RoomChi）
+- [x] `senju/action.go`: Action 構造体（Type ActionType, TargetRoomID int, TargetBeastID int）。ActionType 型（Stay/MoveToRoom/Attack/Retreat）。仙獣が1ティックで取れる行動を表現
+- [x] `senju/behavior_guard.go`: GuardBehavior — 定点防衛。自分の配置部屋に留まる。侵入者が同じ部屋にいればAttack、いなければStay。最もシンプルなAI
+- [x] `senju/behavior_guard_test.go`: 侵入者なし→Stay、侵入者あり→Attack のテスト
 
 ## Phase 3.5-B: 巡回と追跡AI（senju/）
 
