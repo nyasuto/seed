@@ -78,8 +78,8 @@ func TestGenerates_AllCombinations(t *testing.T) {
 		generatingSet[pair] = true
 	}
 
-	for from := Element(0); from < Element(ElementCount); from++ {
-		for to := Element(0); to < Element(ElementCount); to++ {
+	for from := range Element(ElementCount) {
+		for to := range Element(ElementCount) {
 			want := generatingSet[[2]Element{from, to}]
 			got := Generates(from, to)
 			if got != want {
@@ -105,8 +105,8 @@ func TestOvercomes_AllCombinations(t *testing.T) {
 		overcomingSet[pair] = true
 	}
 
-	for from := Element(0); from < Element(ElementCount); from++ {
-		for to := Element(0); to < Element(ElementCount); to++ {
+	for from := range Element(ElementCount) {
+		for to := range Element(ElementCount) {
 			want := overcomingSet[[2]Element{from, to}]
 			got := Overcomes(from, to)
 			if got != want {

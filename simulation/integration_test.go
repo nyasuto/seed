@@ -121,7 +121,7 @@ func TestIntegration_CheckpointRestore(t *testing.T) {
 	cpAI := NewSimpleAIPlayer(cpEngine.State)
 
 	// Run exactly 100 ticks.
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		snap := BuildSnapshot(cpEngine.State)
 		actions := cpAI.DecideActions(snap)
 		if actions == nil {

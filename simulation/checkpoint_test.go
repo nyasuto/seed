@@ -33,7 +33,7 @@ func TestCreateCheckpoint_Success(t *testing.T) {
 	}
 
 	// Run a few ticks to advance state.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		if _, err := engine.Step([]PlayerAction{NoAction{}}); err != nil {
 			t.Fatalf("Step %d: %v", i, err)
 		}
@@ -84,7 +84,7 @@ func TestCheckpoint_RestoreThenContinue_SameResult(t *testing.T) {
 	}
 
 	// Run to checkpoint point.
-	for i := 0; i < ticksBeforeCheckpoint; i++ {
+	for i := range ticksBeforeCheckpoint {
 		if _, err := engineA.Step([]PlayerAction{NoAction{}}); err != nil {
 			t.Fatalf("Step (A pre-cp) %d: %v", i, err)
 		}
@@ -98,7 +98,7 @@ func TestCheckpoint_RestoreThenContinue_SameResult(t *testing.T) {
 
 	// Continue running path A.
 	var resultA GameResult
-	for i := 0; i < ticksAfterCheckpoint; i++ {
+	for i := range ticksAfterCheckpoint {
 		resultA, err = engineA.Step([]PlayerAction{NoAction{}})
 		if err != nil {
 			t.Fatalf("Step (A post-cp) %d: %v", i, err)
@@ -117,7 +117,7 @@ func TestCheckpoint_RestoreThenContinue_SameResult(t *testing.T) {
 
 	// Continue running path B with same actions.
 	var resultB GameResult
-	for i := 0; i < ticksAfterCheckpoint; i++ {
+	for i := range ticksAfterCheckpoint {
 		resultB, err = engineB.Step([]PlayerAction{NoAction{}})
 		if err != nil {
 			t.Fatalf("Step (B post-cp) %d: %v", i, err)
@@ -159,7 +159,7 @@ func TestCheckpoint_RestorePreservesState(t *testing.T) {
 	}
 
 	// Run a few ticks.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if _, err := engine.Step([]PlayerAction{NoAction{}}); err != nil {
 			t.Fatalf("Step %d: %v", i, err)
 		}

@@ -91,7 +91,7 @@ func (r *SimulationRunner) RunInteractive(scenarioJSON []byte, seed int64, actio
 	maxTicks := r.maxTicks(sc)
 	defer close(snapshotCh)
 
-	for i := 0; i < maxTicks; i++ {
+	for i := range maxTicks {
 		snapshot := BuildSnapshot(engine.State)
 		snapshotCh <- snapshot
 

@@ -91,10 +91,7 @@ func (wg *WaveGenerator) GenerateWave(config WaveConfig, cave *world.Cave, tick 
 	}
 
 	// Calculate invader level from difficulty.
-	level := int(config.Difficulty + 0.5)
-	if level < 1 {
-		level = 1
-	}
+	level := max(int(config.Difficulty+0.5), 1)
 
 	invaders := make([]*Invader, 0, count)
 	for i := 0; i < count; i++ {

@@ -65,7 +65,7 @@ func main() {
 			fmt.Printf("error building chi engine: %v\n", err)
 			return
 		}
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			engine.Tick()
 		}
 		fmt.Print(fengshui.RenderChiOverlay(cave, engine))
@@ -119,7 +119,7 @@ func main() {
 		}
 		ecoEngine := buildDemoEconomyEngine()
 		// Run 10 ticks of chi flow to populate RoomChi.
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			chiEngine.Tick()
 		}
 		// Prepare economy tick inputs.

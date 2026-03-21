@@ -1,6 +1,7 @@
 package invasion
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/ponpoko/chaosseed-core/types"
@@ -201,12 +202,7 @@ func (rp *RetreatPathfinder) buildMemoryPath(from, to int, memory *ExplorationMe
 
 // isAdjacent checks whether two rooms are directly connected in the adjacency graph.
 func (rp *RetreatPathfinder) isAdjacent(a, b int) bool {
-	for _, n := range rp.adjacencyGraph.Neighbors(a) {
-		if n == b {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(rp.adjacencyGraph.Neighbors(a), b)
 }
 
 // bfsPath finds the shortest path from 'from' to 'to' using BFS.

@@ -25,8 +25,8 @@ func TestApplyTerrain_Basic(t *testing.T) {
 	}
 
 	// Verify HardRock zone
-	for dy := 0; dy < 3; dy++ {
-		for dx := 0; dx < 2; dx++ {
+	for dy := range 3 {
+		for dx := range 2 {
 			cell, _ := cave.Grid.At(types.Pos{X: 1 + dx, Y: 1 + dy})
 			if cell.Type != world.HardRock {
 				t.Errorf("pos (%d,%d): got %v, want HardRock", 1+dx, 1+dy, cell.Type)

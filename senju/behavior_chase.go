@@ -1,5 +1,7 @@
 package senju
 
+import "slices"
+
 // ChaseBehavior implements the Chase AI pattern.
 // The beast pursues a detected intruder by moving through adjacent rooms
 // toward the intruder's location. If the beast reaches the same room as
@@ -38,12 +40,10 @@ func (c *ChaseBehavior) DecideAction(ctx BehaviorContext) Action {
 
 	// Intruder in the same room — attack.
 	if invaders := ctx.InvaderRoomIDs[ctx.RoomID]; len(invaders) > 0 {
-		for _, id := range invaders {
-			if id == c.TargetInvaderID {
-				return Action{
-					Type:          Attack,
-					TargetBeastID: c.TargetInvaderID,
-				}
+		if slices.Contains(invaders, c.TargetInvaderID) {
+			return Action{
+				Type:          Attack,
+				TargetBeastID: c.TargetInvaderID,
 			}
 		}
 		// Target not here but other invaders are — attack the first one.
@@ -56,12 +56,10 @@ func (c *ChaseBehavior) DecideAction(ctx BehaviorContext) Action {
 	// Look for the target invader in adjacent rooms.
 	for _, adjID := range ctx.AdjacentRoomIDs {
 		if invaders := ctx.InvaderRoomIDs[adjID]; len(invaders) > 0 {
-			for _, id := range invaders {
-				if id == c.TargetInvaderID {
-					return Action{
-						Type:         MoveToRoom,
-						TargetRoomID: adjID,
-					}
+			if slices.Contains(invaders, c.TargetInvaderID) {
+				return Action{
+					Type:         MoveToRoom,
+					TargetRoomID: adjID,
 				}
 			}
 		}

@@ -79,7 +79,7 @@ func TestMarshalReplay_ValidJSON(t *testing.T) {
 	}
 
 	// Verify it's valid JSON by parsing into a generic map.
-	var m map[string]interface{}
+	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
 		t.Fatalf("output is not valid JSON: %v", err)
 	}
@@ -234,7 +234,7 @@ func TestRecordReplay_PlayReplay_MultipleRuns(t *testing.T) {
 		t.Fatalf("RecordReplay: %v", err)
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		result, err := PlayReplay(replay, sc)
 		if err != nil {
 			t.Fatalf("PlayReplay iteration %d: %v", i, err)

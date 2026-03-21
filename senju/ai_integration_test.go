@@ -122,9 +122,9 @@ func TestAIIntegration_20TickSimulation(t *testing.T) {
 	room4ID := roomIDs[3] // Metal senju_metal
 
 	// Create 3 beasts
-	suiryu, _ := speciesReg.Get("suiryu")   // Wood
-	enhou, _ := speciesReg.Get("enhou")      // Fire
-	kinrou, _ := speciesReg.Get("kinrou")    // Metal
+	suiryu, _ := speciesReg.Get("suiryu") // Wood
+	enhou, _ := speciesReg.Get("enhou")   // Fire
+	kinrou, _ := speciesReg.Get("kinrou") // Metal
 
 	guardBeast := NewBeast(1, suiryu, 0)
 	patrolBeast := NewBeast(2, enhou, 0)
@@ -158,7 +158,7 @@ func TestAIIntegration_20TickSimulation(t *testing.T) {
 	// Track patrol beast room visits
 	patrolVisited := map[int]bool{}
 
-	for tick := 0; tick < 20; tick++ {
+	for tick := range 20 {
 		actions := engine.Tick(beasts, noInvaders, nil)
 		if err := ApplyActions(beasts, rooms, reg, actions); err != nil {
 			t.Fatalf("ApplyActions tick %d: %v", tick, err)
@@ -193,7 +193,7 @@ func TestAIIntegration_20TickSimulation(t *testing.T) {
 	initialChaseRoom := chaseBeast.RoomID
 	chaseMoved := false
 
-	for tick := 0; tick < 10; tick++ {
+	for tick := range 10 {
 		actions := engine.Tick(beasts, invaders, nil)
 		if err := ApplyActions(beasts, rooms, reg, actions); err != nil {
 			t.Fatalf("ApplyActions chase tick %d: %v", tick, err)
@@ -227,7 +227,7 @@ func TestAIIntegration_20TickSimulation(t *testing.T) {
 	}
 
 	// Run a few ticks — guard should transition to Flee
-	for tick := 0; tick < 5; tick++ {
+	for tick := range 5 {
 		actions := engine.Tick(beasts, fleeInvaders, nil)
 		if err := ApplyActions(beasts, rooms, reg, actions); err != nil {
 			t.Fatalf("ApplyActions flee tick %d: %v", tick, err)

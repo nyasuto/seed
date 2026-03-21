@@ -185,7 +185,7 @@ func TestGrowthEngine_MaxLevelClamp(t *testing.T) {
 	}
 
 	// Run enough ticks to exceed max level
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		engine.Tick([]*Beast{beast}, roomChi, rooms)
 	}
 

@@ -99,10 +99,7 @@ func (ge *GrowthEngine) Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi,
 		}
 
 		affinity := GrowthAffinity(beast.Element, chi.Element)
-		expGain := int(float64(ge.params.BaseEXPPerTick) * affinity * species.GrowthRate)
-		if expGain < 1 {
-			expGain = 1
-		}
+		expGain := max(int(float64(ge.params.BaseEXPPerTick)*affinity*species.GrowthRate), 1)
 
 		beast.EXP += expGain
 		events = append(events, GrowthEvent{

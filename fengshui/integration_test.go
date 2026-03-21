@@ -1,6 +1,7 @@
 package fengshui
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/types"
@@ -147,7 +148,7 @@ func TestIntegration_FengShuiSimulation(t *testing.T) {
 		t.Fatalf("RoomChi count = %d, want 5", len(engine.RoomChi))
 	}
 
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		engine.Tick()
 	}
 
@@ -215,11 +216,8 @@ func TestIntegration_FengShuiSimulation(t *testing.T) {
 	for _, s := range scores {
 		onVein := false
 		for _, vein := range veins {
-			for _, rid := range vein.RoomsOnPath(cave) {
-				if rid == s.RoomID {
-					onVein = true
-					break
-				}
+			if slices.Contains(vein.RoomsOnPath(cave), s.RoomID) {
+				onVein = true
 			}
 			if onVein {
 				break

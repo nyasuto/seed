@@ -3,6 +3,7 @@ package simulation
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/ponpoko/chaosseed-core/economy"
 	"github.com/ponpoko/chaosseed-core/fengshui"
@@ -85,23 +86,19 @@ func CreateCheckpoint(engine *SimulationEngine) (*Checkpoint, error) {
 	var defeatResults map[int]senju.DefeatResult
 	if len(s.DefeatResults) > 0 {
 		defeatResults = make(map[int]senju.DefeatResult, len(s.DefeatResults))
-		for k, v := range s.DefeatResults {
-			defeatResults[k] = v
-		}
+		maps.Copy(defeatResults, s.DefeatResults)
 	}
 
 	// Deep copy FiredEvents from EventEngine.
 	var firedEvents map[string]bool
 	if len(s.EventEngine.FiredEvents) > 0 {
 		firedEvents = make(map[string]bool, len(s.EventEngine.FiredEvents))
-		for k, v := range s.EventEngine.FiredEvents {
-			firedEvents[k] = v
-		}
+		maps.Copy(firedEvents, s.EventEngine.FiredEvents)
 	}
 
 	return &Checkpoint{
 		CaveData:                caveData,
-		ChiFlowData:            chiFlowData,
+		ChiFlowData:             chiFlowData,
 		BeastData:               beastData,
 		EconomyData:             economyData,
 		InvasionData:            invasionData,
@@ -206,18 +203,14 @@ func RestoreCheckpoint(cp *Checkpoint, sc *scenario.Scenario) (*SimulationEngine
 	// Restore EventEngine with fired events.
 	eventEngine := scenario.NewEventEngine()
 	if cp.FiredEvents != nil {
-		for k, v := range cp.FiredEvents {
-			eventEngine.FiredEvents[k] = v
-		}
+		maps.Copy(eventEngine.FiredEvents, cp.FiredEvents)
 	}
 
 	// Restore DefeatResults.
 	var defeatResults map[int]senju.DefeatResult
 	if cp.DefeatResults != nil {
 		defeatResults = make(map[int]senju.DefeatResult, len(cp.DefeatResults))
-		for k, v := range cp.DefeatResults {
-			defeatResults[k] = v
-		}
+		maps.Copy(defeatResults, cp.DefeatResults)
 	}
 
 	state := &GameState{

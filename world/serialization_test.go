@@ -149,8 +149,8 @@ func TestCaveSerialization_EmptyCave(t *testing.T) {
 	}
 
 	// All cells should be Rock
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
+	for y := range 8 {
+		for x := range 8 {
 			cell, _ := restored.Grid.At(types.Pos{X: x, Y: y})
 			if cell.Type != Rock || cell.RoomID != 0 {
 				t.Errorf("cell at (%d,%d): got %+v, want Rock with RoomID 0", x, y, cell)

@@ -48,7 +48,7 @@ func TestNewTestRNG_Deterministic(t *testing.T) {
 	rng2 := NewTestRNG(42)
 
 	// Same seed should produce same sequence
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		v1 := rng1.Intn(100)
 		v2 := rng2.Intn(100)
 		if v1 != v2 {
@@ -63,7 +63,7 @@ func TestNewTestRNG_DifferentSeeds(t *testing.T) {
 
 	// Different seeds should (very likely) produce different sequences
 	same := true
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if rng1.Intn(1000) != rng2.Intn(1000) {
 			same = false
 			break

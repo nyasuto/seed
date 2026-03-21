@@ -1,6 +1,8 @@
 package fengshui
 
 import (
+	"slices"
+
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
@@ -48,11 +50,8 @@ func (ev *Evaluator) EvaluateRoom(roomID int, engine *ChiFlowEngine) FengShuiSco
 	// 3. DragonVeinScore = bonus if room is on any vein path
 	for _, vein := range engine.Veins {
 		roomIDs := vein.RoomsOnPath(ev.cave)
-		for _, rid := range roomIDs {
-			if rid == roomID {
-				score.DragonVeinScore = ev.params.DragonVeinBonus
-				break
-			}
+		if slices.Contains(roomIDs, roomID) {
+			score.DragonVeinScore = ev.params.DragonVeinBonus
 		}
 		if score.DragonVeinScore > 0 {
 			break

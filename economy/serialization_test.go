@@ -30,7 +30,7 @@ func TestMarshalUnmarshalEconomyState_RoundTrip(t *testing.T) {
 	}
 
 	// Verify JSON is valid.
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		t.Fatalf("invalid JSON output: %v", err)
 	}
@@ -164,10 +164,10 @@ func TestMarshalUnmarshalEconomyState_WithAllTransactionTypes(t *testing.T) {
 
 	// Add transactions of all types.
 	txTypes := []struct {
-		amount float64
-		txType TransactionType
-		reason string
-		tick   types.Tick
+		amount  float64
+		txType  TransactionType
+		reason  string
+		tick    types.Tick
 		deposit bool
 	}{
 		{100, Supply, "supply", 1, true},

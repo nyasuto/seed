@@ -113,7 +113,7 @@ func TestIntegration_BeastGrowthSimulation(t *testing.T) {
 	chiEngine := fengshui.NewChiFlowEngine(cave, []*fengshui.DragonVein{vein}, roomReg, flowParams)
 
 	// Pre-fill chi so rooms have sufficient supply before beasts start consuming.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		chiEngine.Tick()
 	}
 
@@ -171,7 +171,7 @@ func TestIntegration_BeastGrowthSimulation(t *testing.T) {
 	totalEXP := map[int]int{beast1.ID: 0, beast2.ID: 0, beast3.ID: 0}
 	starvedCount := map[int]int{beast1.ID: 0, beast2.ID: 0, beast3.ID: 0}
 
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		chiEngine.Tick()
 		events := growthEngine.Tick(beasts, chiEngine.RoomChi, roomMap)
 		for _, e := range events {

@@ -31,7 +31,7 @@ func buildBenchCave(b *testing.B, numRooms int) (*world.Cave, *fengshui.ChiFlowE
 	// Room types to cycle through.
 	roomTypes := []string{"dragon_hole", "chi_chamber", "senju_room", "trap_room", "recovery_room", "storage"}
 
-	for i := 0; i < numRooms; i++ {
+	for i := range numRooms {
 		x := 1 + i*4
 		typeID := roomTypes[i%len(roomTypes)]
 		_, err := cave.AddRoom(typeID, types.Pos{X: x, Y: 2}, 3, 3, []world.RoomEntrance{
@@ -127,7 +127,7 @@ func BenchmarkFullTick(b *testing.B) {
 			b.Fatalf("NewSimulationEngine: %v", err)
 		}
 		noActions := []PlayerAction{NoAction{}}
-		for tick := 0; tick < 100; tick++ {
+		for tick := range 100 {
 			_, err := engine.Step(noActions)
 			if err != nil {
 				b.Fatalf("Step tick %d: %v", tick, err)
