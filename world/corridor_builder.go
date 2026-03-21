@@ -90,9 +90,13 @@ func BuildCorridor(grid *Grid, fromPos, toPos types.Pos, corridorID, fromRoomID,
 // canTraverse reports whether the given position can be included in a corridor path.
 // Rock, Corridor, and Entrance cells are always traversable.
 // RoomFloor cells are only traversable if they belong to the source or destination room.
+// HardRock and Water cells are impassable and cannot be traversed.
 func canTraverse(grid *Grid, pos types.Pos, fromRoomID, toRoomID int) bool {
 	cell, err := grid.At(pos)
 	if err != nil {
+		return false
+	}
+	if cell.Type.IsImpassable() {
 		return false
 	}
 	switch cell.Type {

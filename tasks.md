@@ -542,7 +542,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [x] `world/cell.go` 更新: CellType に HardRock（掘削不可岩盤）、Water（地下水脈、掘削不可）を追加
 - [x] `world/room_placement.go` 更新: CanPlaceRoom で HardRock/Water セルへの配置を拒否
-- [ ] `world/corridor_builder.go` 更新: BuildCorridor で HardRock/Water を回避（通過不可）
+- [x] `world/corridor_builder.go` 更新: BuildCorridor で HardRock/Water を回避（通過不可）
 - [ ] `world/room_type.go` 更新: RoomType に BaseCoreHP int を追加（龍穴のみ非ゼロ値、D010）。CoreHPAtLevel(level) int メソッド
 - [ ] `world/room_type_data.json` 更新: 龍穴に BaseCoreHP: 100 を追加、他は 0
 - [ ] `world/room.go` 更新: Room に CoreHP int フィールドを追加（龍穴のみ使用）
