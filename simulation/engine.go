@@ -59,29 +59,86 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 	}
 
 	// 1. Validate and execute player actions.
-	for _, action := range actions {
-		result, err := ApplyAction(action, s)
-		if err != nil {
-			return GameResult{}, fmt.Errorf("tick %d action %s: %w", tick, action.ActionType(), err)
-		}
-		if result.Success && result.Description != "" {
-			tickEvents = append(tickEvents, result.Description)
-		}
+	actionEvents, err := e.processActions(actions, tick)
+	if err != nil {
+		return GameResult{}, err
 	}
+	tickEvents = append(tickEvents, actionEvents...)
 
 	// 2. Chi flow: supply, propagation, decay.
 	s.ChiFlowEngine.Tick()
 
-	// 3. Beast growth from chi absorption.
+	// 3-5. Beast subsystems: growth, revival, evolution.
+	tickEvents = append(tickEvents, e.advanceBeastSystems(tick)...)
+
+	// 6. Beast behavior AI.
+	invaderPositions := buildInvaderPositions(s.Waves)
+	s.BehaviorEngine.Tick(s.Beasts, invaderPositions, s.ChiFlowEngine.RoomChi)
+
+	// 7-8. Invasion tick and economy processing.
+	tickEvents = append(tickEvents, e.advanceInvasion(tick)...)
+
+	// 9. Economy tick: supply, maintenance, deficit processing.
+	tickEvents = append(tickEvents, e.advanceEconomy(tick)...)
+
+	// 10. Event engine tick → command executor.
+	eventEvents, cmds, err := e.advanceEvents(tick)
+	if err != nil {
+		return GameResult{}, err
+	}
+	tickEvents = append(tickEvents, eventEvents...)
+
+	// 11. Record tick log.
+	e.TickLog = append(e.TickLog, TickRecord{
+		Tick:     tick,
+		Commands: cmds,
+		Events:   tickEvents,
+	})
+
+	// Advance tick counter before condition evaluation so that
+	// survive_until(N) succeeds after processing the Nth tick.
+	s.Progress.CurrentTick++
+
+	// 12. Victory/defeat condition evaluation.
+	result := evaluateEndConditions(s)
+	if result.Status != Running {
+		result.FinalTick = tick
+		return result, nil
+	}
+
+	return GameResult{Status: Running}, nil
+}
+
+// processActions validates and executes player actions, returning event descriptions.
+func (e *SimulationEngine) processActions(actions []PlayerAction, tick types.Tick) ([]string, error) {
+	var events []string
+	for _, action := range actions {
+		result, err := ApplyAction(action, e.State)
+		if err != nil {
+			return nil, fmt.Errorf("tick %d action %s: %w", tick, action.ActionType(), err)
+		}
+		if result.Success && result.Description != "" {
+			events = append(events, result.Description)
+		}
+	}
+	return events, nil
+}
+
+// advanceBeastSystems runs beast growth, stunned revival, and evolution checks.
+func (e *SimulationEngine) advanceBeastSystems(tick types.Tick) []string {
+	s := e.State
+	var events []string
+
+	// Growth from chi absorption.
 	roomMap := buildRoomMap(s.Cave.Rooms)
 	growthEvents := s.GrowthEngine.Tick(s.Beasts, s.ChiFlowEngine.RoomChi, roomMap)
 	for _, ge := range growthEvents {
 		if ge.Type == senju.LevelUp {
-			tickEvents = append(tickEvents, fmt.Sprintf("beast %d leveled up: %d→%d", ge.BeastID, ge.OldLevel, ge.NewLevel))
+			events = append(events, fmt.Sprintf("beast %d leveled up: %d→%d", ge.BeastID, ge.OldLevel, ge.NewLevel))
 		}
 	}
 
-	// 4. Stunned beast revival check.
+	// Stunned beast revival check.
 	if s.DefeatResults == nil {
 		s.DefeatResults = make(map[int]senju.DefeatResult)
 	}
@@ -97,11 +154,11 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 			beast.State = senju.Idle
 			beast.HP = max(dr.RevivalHP, 1)
 			delete(s.DefeatResults, beast.ID)
-			tickEvents = append(tickEvents, fmt.Sprintf("beast %d revived", beast.ID))
+			events = append(events, fmt.Sprintf("beast %d revived", beast.ID))
 		}
 	}
 
-	// 5. Evolution condition check and execution.
+	// Evolution condition check and execution.
 	if s.EvolutionRegistry != nil {
 		chiBalance := s.EconomyEngine.ChiPool.Balance()
 		for _, beast := range s.Beasts {
@@ -126,30 +183,31 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 				oldSpecies := beast.SpeciesID
 				if err := senju.Evolve(beast, path, s.SpeciesRegistry); err == nil {
 					s.EvolutionCount++
-					tickEvents = append(tickEvents, fmt.Sprintf("beast %d evolved: %s→%s", beast.ID, oldSpecies, beast.SpeciesID))
+					events = append(events, fmt.Sprintf("beast %d evolved: %s→%s", beast.ID, oldSpecies, beast.SpeciesID))
 				}
 			}
 		}
 	}
 
-	// 6. Beast behavior AI.
-	invaderPositions := buildInvaderPositions(s.Waves)
-	s.BehaviorEngine.Tick(s.Beasts, invaderPositions, s.ChiFlowEngine.RoomChi)
+	return events
+}
 
-	// 7. Invasion engine tick.
-	rooms := s.Cave.Rooms
+// advanceInvasion runs the invasion engine tick and processes invasion events.
+func (e *SimulationEngine) advanceInvasion(tick types.Tick) []string {
+	s := e.State
+	var events []string
+
 	invasionEvents := s.InvasionEngine.Tick(
 		tick,
 		s.Waves,
 		s.Beasts,
-		rooms,
+		s.Cave.Rooms,
 		s.RoomTypeRegistry,
 		s.ChiFlowEngine.RoomChi,
 	)
 
 	// Process invasion events: damage tracking, core damage, beast defeat.
 	for _, ie := range invasionEvents {
-		// Accumulate damage statistics from combat events.
 		if ie.Type == invasion.CombatOccurred && ie.Damage > 0 {
 			s.TotalDamageDealt += ie.Damage
 		}
@@ -167,7 +225,7 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 				if s.Progress.CoreHP < 0 {
 					s.Progress.CoreHP = 0
 				}
-				tickEvents = append(tickEvents, fmt.Sprintf("core damaged by invader %d: -%d HP", ie.InvaderID, coreDamage))
+				events = append(events, fmt.Sprintf("core damaged by invader %d: -%d HP", ie.InvaderID, coreDamage))
 			}
 		}
 		if ie.Type == invasion.BeastDefeated {
@@ -175,22 +233,29 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 				if beast.ID == ie.BeastID && beast.HP <= 0 {
 					dr := s.DefeatProcessor.ProcessDefeat(beast, tick)
 					s.DefeatResults[dr.BeastID] = dr
-					tickEvents = append(tickEvents, fmt.Sprintf("beast %d stunned", beast.ID))
+					events = append(events, fmt.Sprintf("beast %d stunned", beast.ID))
 				}
 			}
 		}
 	}
 
-	// 8. Invasion economy: rewards and losses.
+	// Invasion economy: rewards and losses.
 	invasionEconProc := economy.NewInvasionEconomyProcessor()
 	econSummary := invasionEconProc.ProcessInvasionEvents(invasionEvents, s.EconomyEngine.ChiPool, tick)
 	if econSummary.NetChi != 0 {
-		tickEvents = append(tickEvents, fmt.Sprintf("invasion economy: net chi %.1f", econSummary.NetChi))
+		events = append(events, fmt.Sprintf("invasion economy: net chi %.1f", econSummary.NetChi))
 	}
 
-	// 9. Economy tick: supply, maintenance, deficit processing.
+	return events
+}
+
+// advanceEconomy runs the economy engine tick and tracks deficit/peak chi.
+func (e *SimulationEngine) advanceEconomy(tick types.Tick) []string {
+	s := e.State
+	var events []string
+
 	veins := derefVeins(s.ChiFlowEngine.Veins)
-	roomValues := derefRooms(rooms)
+	roomValues := derefRooms(s.Cave.Rooms)
 	caveScore := 0.0
 	if s.ScoreParams != nil {
 		ev := fengshui.NewEvaluator(s.Cave, s.RoomTypeRegistry, s.ScoreParams)
@@ -208,7 +273,7 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 	if econResult.DeficitResult.Shortage > 0 {
 		s.ConsecutiveDeficitTicks++
 		s.TotalDeficitTicks++
-		tickEvents = append(tickEvents, fmt.Sprintf("deficit: shortage %.1f (consecutive: %d)", econResult.DeficitResult.Shortage, s.ConsecutiveDeficitTicks))
+		events = append(events, fmt.Sprintf("deficit: shortage %.1f (consecutive: %d)", econResult.DeficitResult.Shortage, s.ConsecutiveDeficitTicks))
 	} else {
 		s.ConsecutiveDeficitTicks = 0
 	}
@@ -218,39 +283,25 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 		s.PeakChi = chiBalance
 	}
 
-	// 10. Event engine tick → command executor.
+	return events
+}
+
+// advanceEvents runs the event engine and applies resulting commands.
+func (e *SimulationEngine) advanceEvents(tick types.Tick) ([]string, []scenario.EventCommand, error) {
+	s := e.State
 	snapshot := BuildSnapshot(s)
 	cmds, err := s.EventEngine.Tick(snapshot, s.Scenario.Events)
 	if err != nil {
-		return GameResult{}, fmt.Errorf("tick %d event engine: %w", tick, err)
+		return nil, nil, fmt.Errorf("tick %d event engine: %w", tick, err)
 	}
+	var events []string
 	if len(cmds) > 0 {
 		if err := e.Executor.Apply(s, cmds); err != nil {
-			return GameResult{}, fmt.Errorf("tick %d command executor: %w", tick, err)
+			return nil, nil, fmt.Errorf("tick %d command executor: %w", tick, err)
 		}
-		tickEvents = append(tickEvents, e.Executor.Messages...)
+		events = append(events, e.Executor.Messages...)
 	}
-
-	// 11. Record tick log.
-	e.TickLog = append(e.TickLog, TickRecord{
-		Tick:     tick,
-		Commands: cmds,
-		Events:   tickEvents,
-	})
-
-	// Advance tick counter before condition evaluation so that
-	// survive_until(N) succeeds after processing the Nth tick.
-	s.Progress.CurrentTick++
-
-	// 12. Victory/defeat condition evaluation.
-	result := evaluateEndConditions(s)
-
-	if result.Status != Running {
-		result.FinalTick = tick
-		return result, nil
-	}
-
-	return GameResult{Status: Running}, nil
+	return events, cmds, nil
 }
 
 // buildRoomMap creates a map from room ID to room pointer for GrowthEngine.
