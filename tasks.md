@@ -225,7 +225,7 @@ sim/adapter/human/ パッケージを作成する。
 - io.Reader からスクリプト化された入力を渡してメニュー遷移をテスト
 - 無効入力（範囲外の数字、非数値文字列）でエラー表示後に再入力になるテスト
 
-- [ ] **Task 2-C: Human Mode — サブメニュー（部屋掘削・通路）**
+- [x] **Task 2-C: Human Mode — サブメニュー（部屋掘削・通路）**
 
 1. adapter/human/submenu_build.go: 建設系サブメニュー
    - 部屋を掘る: 座標入力 → 属性選択（fire/water/wood/metal/earth） → PlayerAction生成
