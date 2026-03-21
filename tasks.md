@@ -250,7 +250,7 @@
 - [x] `invasion/invader_class.go`: InvaderClass 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, RewardChi float64, PreferredGoal GoalType, RetreatThreshold float64, Description string）。InvaderClassRegistry（map管理、JSONから一括ロード）
 - [x] `invasion/invader_class_data.json`: 初期侵入者クラス5種の定義。木: 木行の修行者（バランス型, 龍穴破壊を目指す, 撤退閾値0.3）、火: 火行の武闘家（攻撃型, 仙獣狩りを目指す, 撤退閾値0.15）、土: 土行の鎧武者（防御型, 龍穴破壊を目指す, 撤退閾値0.4）、金: 金行の盗賊（速度型, 宝物奪取を目指す, 撤退閾値0.5）、水: 水行の道士（回復型, 龍穴破壊を目指す, 撤退閾値0.25）
 - [x] `invasion/goal.go`: GoalType 型（DestroyCore/HuntBeasts/StealTreasure）。Goal インターフェース — TargetRoomID(cave, invader, memory) int で目標部屋IDを返す、IsAchieved(cave, invader) bool で目標達成判定
-- [ ] `invasion/goal_destroy_core.go`: DestroyCoreGoal — 龍穴（コア部屋）を目指す。TargetRoomID は龍穴の部屋IDを返す。到達して一定ティック滞在で達成
+- [x] `invasion/goal_destroy_core.go`: DestroyCoreGoal — 龍穴（コア部屋）を目指す。TargetRoomID は龍穴の部屋IDを返す。到達して一定ティック滞在で達成
 - [ ] `invasion/goal_hunt_beasts.go`: HuntBeastsGoal — 仙獣がいる部屋を目指す。最寄りの仙獣配置部屋をターゲット。仙獣を一定数撃破で達成
 - [ ] `invasion/goal_steal_treasure.go`: StealTreasureGoal — 倉庫部屋を目指す。到達で達成（気を奪って撤退）
 - [ ] `invasion/invader.go`: Invader 構造体（ID int, ClassID string, Name string, Element types.Element, Level int, HP int, MaxHP int, ATK int, DEF int, SPD int, CurrentRoomID int, Goal Goal, Memory *ExplorationMemory, State InvaderState, SlowTicks int, EntryTick types.Tick, StayTicks int）。InvaderState 型（Advancing/Fighting/Retreating/Defeated/GoalAchieved）。NewInvader(id, class, level, goal, entryRoomID, tick) *Invader
