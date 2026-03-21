@@ -558,7 +558,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 6-E: 勝利/敗北条件（scenario/）
 
-- [ ] `scenario/condition.go`: ConditionDef 構造体（Type string, Params map[string]any）。JSON で定義される条件のデータ形式
+- [x] `scenario/condition.go`: ConditionDef 構造体（Type string, Params map[string]any）。JSON で定義される条件のデータ形式
 - [ ] `scenario/condition.go`: ConditionEvaluator インターフェース（Evaluate(snapshot GameSnapshot) bool）。GameSnapshot 構造体（Tick, CoreHP, ChiPoolBalance, BeastCount, AliveBeasts, DefeatedWaves, TotalWaves, CaveFengShuiScore, ConsecutiveDeficitTicks）— 読み取り専用のスナップショット
 - [ ] `scenario/conditions.go`: 具体的な条件実装をファクトリパターンで生成。NewCondition(def ConditionDef) (ConditionEvaluator, error):
   - "survive_until": 指定ティックまで CoreHP > 0
