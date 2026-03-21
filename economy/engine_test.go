@@ -11,23 +11,55 @@ import (
 )
 
 // newTestEngine creates an EconomyEngine with default parameters and the given initial balance.
-func newTestEngine(initialBalance float64) *EconomyEngine {
+// It calls t.Fatal if any default parameter loading fails.
+func newTestEngine(t *testing.T, initialBalance float64) *EconomyEngine {
+	t.Helper()
 	pool := NewChiPool(1000)
 	if initialBalance > 0 {
 		_ = pool.Deposit(initialBalance, Supply, "initial", 0)
 	}
-	return NewEconomyEngine(
-		pool,
-		DefaultSupplyParams(),
-		DefaultCostParams(),
-		DefaultDeficitParams(),
-		DefaultConstructionCost(),
-		DefaultBeastCost(),
-	)
+	sp, cp, dp, cc, bc := mustLoadDefaults(t)
+	return NewEconomyEngine(pool, sp, cp, dp, cc, bc)
+}
+
+// mustLoadDefaults loads all default economy parameters, calling t.Fatal on error.
+func mustLoadDefaults(t *testing.T) (*SupplyParams, *CostParams, *DeficitParams, *ConstructionCost, *BeastCost) {
+	t.Helper()
+	sp, err := DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
+	}
+	cp, err := DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	dp, err := DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
+	cc, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
+	bc, err := DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
+	return sp, cp, dp, cc, bc
+}
+
+// mustLoadCostParams loads default CostParams, calling t.Fatal on error.
+func mustLoadCostParams(t *testing.T) *CostParams {
+	t.Helper()
+	cp, err := DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	return cp
 }
 
 func TestNewEconomyEngine(t *testing.T) {
-	e := newTestEngine(100)
+	e := newTestEngine(t,100)
 	if e.ChiPool == nil {
 		t.Fatal("ChiPool should not be nil")
 	}
@@ -52,7 +84,7 @@ func TestNewEconomyEngine(t *testing.T) {
 }
 
 func TestTick_SupplyAndMaintenance(t *testing.T) {
-	e := newTestEngine(50)
+	e := newTestEngine(t,50)
 
 	veins := []fengshui.DragonVein{{ID: 1}}
 	roomChis := map[int]*fengshui.RoomChi{
@@ -88,7 +120,7 @@ func TestTick_SupplyAndMaintenance(t *testing.T) {
 
 func TestTick_DeficitPenalty(t *testing.T) {
 	// Start with very low balance and no supply (no veins).
-	e := newTestEngine(0)
+	e := newTestEngine(t,0)
 
 	rooms := []world.Room{
 		{ID: 1, TypeID: "beast_room", Level: 1},
@@ -114,7 +146,7 @@ func TestTick_DeficitPenalty(t *testing.T) {
 }
 
 func TestTick_ChiPoolCapRecalculated(t *testing.T) {
-	e := newTestEngine(50)
+	e := newTestEngine(t,50)
 	params := e.CostParams
 
 	rooms := []world.Room{
@@ -133,7 +165,7 @@ func TestTick_ChiPoolCapRecalculated(t *testing.T) {
 }
 
 func TestTryBuildRoom_Success(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 	cc := e.Construction
 
 	cost, err := e.TryBuildRoom("beast_room", 1)
@@ -150,7 +182,7 @@ func TestTryBuildRoom_Success(t *testing.T) {
 }
 
 func TestTryBuildRoom_InsufficientChi(t *testing.T) {
-	e := newTestEngine(1) // Very low balance.
+	e := newTestEngine(t,1) // Very low balance.
 
 	_, err := e.TryBuildRoom("dragon_den", 1)
 	if !errors.Is(err, ErrInsufficientChi) {
@@ -163,7 +195,7 @@ func TestTryBuildRoom_InsufficientChi(t *testing.T) {
 }
 
 func TestTryBuildRoom_UnknownType(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 
 	_, err := e.TryBuildRoom("nonexistent_room", 1)
 	if err == nil {
@@ -172,7 +204,7 @@ func TestTryBuildRoom_UnknownType(t *testing.T) {
 }
 
 func TestTrySummonBeast_Success(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 	bc := e.Beast
 
 	cost, err := e.TrySummonBeast(types.Wood, 1)
@@ -189,7 +221,7 @@ func TestTrySummonBeast_Success(t *testing.T) {
 }
 
 func TestTrySummonBeast_InsufficientChi(t *testing.T) {
-	e := newTestEngine(1)
+	e := newTestEngine(t,1)
 
 	_, err := e.TrySummonBeast(types.Metal, 1)
 	if !errors.Is(err, ErrInsufficientChi) {
@@ -198,7 +230,7 @@ func TestTrySummonBeast_InsufficientChi(t *testing.T) {
 }
 
 func TestTryUpgradeRoom_Success(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 
 	cost, err := e.TryUpgradeRoom("beast_room", 2, 1)
 	if err != nil {
@@ -211,7 +243,7 @@ func TestTryUpgradeRoom_Success(t *testing.T) {
 }
 
 func TestTryUpgradeRoom_InsufficientChi(t *testing.T) {
-	e := newTestEngine(1)
+	e := newTestEngine(t,1)
 
 	_, err := e.TryUpgradeRoom("dragon_den", 3, 1)
 	if !errors.Is(err, ErrInsufficientChi) {
@@ -220,7 +252,7 @@ func TestTryUpgradeRoom_InsufficientChi(t *testing.T) {
 }
 
 func TestTryDigCorridor_Success(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 
 	cost, err := e.TryDigCorridor(5, 1)
 	if err != nil {
@@ -233,7 +265,7 @@ func TestTryDigCorridor_Success(t *testing.T) {
 }
 
 func TestTryDigCorridor_InsufficientChi(t *testing.T) {
-	e := newTestEngine(1)
+	e := newTestEngine(t,1)
 
 	_, err := e.TryDigCorridor(100, 1)
 	if !errors.Is(err, ErrInsufficientChi) {
@@ -242,7 +274,7 @@ func TestTryDigCorridor_InsufficientChi(t *testing.T) {
 }
 
 func TestTryDigCorridor_ZeroLength(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 
 	cost, err := e.TryDigCorridor(0, 1)
 	if err != nil {
@@ -254,7 +286,7 @@ func TestTryDigCorridor_ZeroLength(t *testing.T) {
 }
 
 func TestTryBuildRoom_TransactionRecorded(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 	histLen := len(e.ChiPool.History)
 
 	cost, err := e.TryBuildRoom("beast_room", 5)
@@ -278,7 +310,7 @@ func TestTryBuildRoom_TransactionRecorded(t *testing.T) {
 }
 
 func TestTrySummonBeast_TransactionRecorded(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 	histLen := len(e.ChiPool.History)
 
 	cost, err := e.TrySummonBeast(types.Fire, 3)
@@ -299,7 +331,7 @@ func TestTrySummonBeast_TransactionRecorded(t *testing.T) {
 }
 
 func TestTryUpgradeRoom_TransactionRecorded(t *testing.T) {
-	e := newTestEngine(200)
+	e := newTestEngine(t,200)
 	histLen := len(e.ChiPool.History)
 
 	cost, err := e.TryUpgradeRoom("chi_storage", 1, 7)

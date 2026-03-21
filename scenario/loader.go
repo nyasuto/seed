@@ -50,8 +50,8 @@ type jsonInitialState struct {
 
 // jsonConditionDef is the JSON representation of ConditionDef.
 type jsonConditionDef struct {
-	Type   string         `json:"type"`
-	Params map[string]any `json:"params,omitempty"`
+	Type   string          `json:"type"`
+	Params json.RawMessage `json:"params,omitempty"`
 }
 
 // jsonEventDef is the JSON representation of EventDef.
@@ -64,8 +64,8 @@ type jsonEventDef struct {
 
 // jsonCommandDef is the JSON representation of CommandDef.
 type jsonCommandDef struct {
-	Type   string         `json:"type"`
-	Params map[string]any `json:"params,omitempty"`
+	Type   string          `json:"type"`
+	Params json.RawMessage `json:"params,omitempty"`
 }
 
 // jsonGameConstraints is the JSON representation of GameConstraints.

@@ -7,7 +7,7 @@ import (
 )
 
 func TestCalcTickMaintenance_NoRooms(t *testing.T) {
-	mc := NewMaintenanceCalculator(DefaultCostParams())
+	mc := NewMaintenanceCalculator(mustLoadCostParams(t))
 	result := mc.CalcTickMaintenance(nil, 0, 0)
 	if result.Total != 0 {
 		t.Errorf("expected total 0, got %f", result.Total)
@@ -24,7 +24,7 @@ func TestCalcTickMaintenance_NoRooms(t *testing.T) {
 }
 
 func TestCalcTickMaintenance_RoomTypeCosts(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	mc := NewMaintenanceCalculator(params)
 
 	rooms := []world.Room{
@@ -47,7 +47,7 @@ func TestCalcTickMaintenance_RoomTypeCosts(t *testing.T) {
 }
 
 func TestCalcTickMaintenance_BeastsIncreaseCost(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	mc := NewMaintenanceCalculator(params)
 
 	rooms := []world.Room{{TypeID: "beast_room"}}
@@ -65,7 +65,7 @@ func TestCalcTickMaintenance_BeastsIncreaseCost(t *testing.T) {
 }
 
 func TestCalcTickMaintenance_Traps(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	mc := NewMaintenanceCalculator(params)
 
 	rooms := []world.Room{{TypeID: "trap_room"}}
@@ -78,7 +78,7 @@ func TestCalcTickMaintenance_Traps(t *testing.T) {
 }
 
 func TestCalcTickMaintenance_AllCategories(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	mc := NewMaintenanceCalculator(params)
 
 	rooms := []world.Room{
@@ -108,7 +108,7 @@ func TestCalcTickMaintenance_AllCategories(t *testing.T) {
 }
 
 func TestCalcChiPoolCap_NoStorageRooms(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	rooms := []world.Room{
 		{TypeID: "dragon_hole"},
 		{TypeID: "beast_room"},
@@ -120,7 +120,7 @@ func TestCalcChiPoolCap_NoStorageRooms(t *testing.T) {
 }
 
 func TestCalcChiPoolCap_WithStorageRooms(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	rooms := []world.Room{
 		{TypeID: "chi_storage", Level: 1},
 		{TypeID: "chi_storage", Level: 1},
@@ -134,7 +134,7 @@ func TestCalcChiPoolCap_WithStorageRooms(t *testing.T) {
 }
 
 func TestCalcChiPoolCap_StorageLevelUp(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	rooms := []world.Room{
 		{TypeID: "chi_storage", Level: 3},
 	}
@@ -149,7 +149,7 @@ func TestCalcChiPoolCap_StorageLevelUp(t *testing.T) {
 }
 
 func TestCalcChiPoolCap_EmptyRooms(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	cap := CalcChiPoolCap(nil, params)
 	if cap != params.ChiPoolBaseCap {
 		t.Errorf("expected base cap %f, got %f", params.ChiPoolBaseCap, cap)
@@ -157,7 +157,7 @@ func TestCalcChiPoolCap_EmptyRooms(t *testing.T) {
 }
 
 func TestLoadCostParams(t *testing.T) {
-	p := DefaultCostParams()
+	p := mustLoadCostParams(t)
 	if p == nil {
 		t.Fatal("DefaultCostParams returned nil")
 	}
@@ -180,7 +180,7 @@ func TestLoadCostParams_InvalidJSON(t *testing.T) {
 }
 
 func TestCalcTickMaintenance_UnknownRoomType(t *testing.T) {
-	params := DefaultCostParams()
+	params := mustLoadCostParams(t)
 	mc := NewMaintenanceCalculator(params)
 
 	rooms := []world.Room{{TypeID: "unknown_type"}}

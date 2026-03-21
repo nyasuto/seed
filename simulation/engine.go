@@ -154,6 +154,10 @@ func (e *SimulationEngine) advanceBeastSystems(tick types.Tick) []string {
 			beast.State = senju.Idle
 			beast.HP = max(dr.RevivalHP, 1)
 			delete(s.DefeatResults, beast.ID)
+			// Re-assign Guard behavior after revival.
+			if s.BehaviorEngine != nil {
+				s.BehaviorEngine.AssignBehavior(beast, senju.Guard)
+			}
 			events = append(events, fmt.Sprintf("beast %d revived", beast.ID))
 		}
 	}
@@ -233,6 +237,10 @@ func (e *SimulationEngine) advanceInvasion(tick types.Tick) []string {
 				if beast.ID == ie.BeastID && beast.HP <= 0 {
 					dr := s.DefeatProcessor.ProcessDefeat(beast, tick)
 					s.DefeatResults[dr.BeastID] = dr
+					// Clear behavior for stunned beast to prevent stale map entries.
+					if s.BehaviorEngine != nil {
+						s.BehaviorEngine.RemoveBehavior(beast.ID)
+					}
 					events = append(events, fmt.Sprintf("beast %d stunned", beast.ID))
 				}
 			}
@@ -549,13 +557,33 @@ func NewSimulationEngine(sc *scenario.Scenario, rng types.RNG) (*SimulationEngin
 	}
 
 	// Create economy engine.
+	supplyParams, err := economy.DefaultSupplyParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading supply params: %w", err)
+	}
+	costParams, err := economy.DefaultCostParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading cost params: %w", err)
+	}
+	deficitParams, err := economy.DefaultDeficitParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading deficit params: %w", err)
+	}
+	constructionCost, err := economy.DefaultConstructionCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading construction cost: %w", err)
+	}
+	beastCost, err := economy.DefaultBeastCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading beast cost: %w", err)
+	}
 	economyEngine := economy.NewEconomyEngine(
 		chiPool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
+		supplyParams,
+		costParams,
+		deficitParams,
+		constructionCost,
+		beastCost,
 	)
 
 	// Create invasion engine.

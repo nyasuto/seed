@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/fengshui"
@@ -112,10 +113,10 @@ func BenchmarkFullTick(b *testing.B) {
 			StartingChi: 500.0,
 		},
 		WinConditions: []scenario.ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": float64(200)}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 200}`)},
 		},
 		LoseConditions: []scenario.ConditionDef{
-			{Type: "core_destroyed", Params: map[string]any{}},
+			{Type: "core_destroyed"},
 		},
 	}
 

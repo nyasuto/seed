@@ -175,7 +175,7 @@ func TestRecordReplay_PlayReplay_SameResult(t *testing.T) {
 func TestRecordReplay_PlayReplay_WithWinCondition(t *testing.T) {
 	sc := minimalScenario()
 	sc.WinConditions = []scenario.ConditionDef{
-		{Type: "survive_until", Params: map[string]any{"ticks": float64(5)}},
+		{Type: "survive_until", Params: json.RawMessage(`{"ticks": 5}`)},
 	}
 	rng := types.NewCheckpointableRNG(99)
 

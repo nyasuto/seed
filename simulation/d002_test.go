@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -33,11 +34,11 @@ func d002StandardScenario(terrainSeed int64) *scenario.Scenario {
 			StartingChi: 300.0,
 		},
 		WinConditions: []scenario.ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 200.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 200}`)},
 		},
 		LoseConditions: []scenario.ConditionDef{
 			{Type: "core_destroyed"},
-			{Type: "bankrupt", Params: map[string]any{"ticks": 20.0}},
+			{Type: "bankrupt", Params: json.RawMessage(`{"ticks": 20}`)},
 		},
 		WaveSchedule: []scenario.WaveScheduleEntry{
 			{TriggerTick: 40, Difficulty: 1.0, MinInvaders: 2, MaxInvaders: 4},
@@ -187,16 +188,12 @@ func waveScheduleToEvents(entries []scenario.WaveScheduleEntry) []scenario.Event
 			ID: fmt.Sprintf("wave_%d", i),
 			Condition: scenario.ConditionDef{
 				Type:   "survive_until",
-				Params: map[string]any{"ticks": float64(e.TriggerTick)},
+				Params: json.RawMessage(fmt.Sprintf(`{"ticks": %d}`, e.TriggerTick)),
 			},
 			Commands: []scenario.CommandDef{
 				{
-					Type: "spawn_wave",
-					Params: map[string]any{
-						"difficulty":   e.Difficulty,
-						"min_invaders": float64(e.MinInvaders),
-						"max_invaders": float64(e.MaxInvaders),
-					},
+					Type:   "spawn_wave",
+					Params: json.RawMessage(fmt.Sprintf(`{"difficulty": %f, "min_invaders": %d, "max_invaders": %d}`, e.Difficulty, e.MinInvaders, e.MaxInvaders)),
 				},
 			},
 			OneShot: true,
@@ -510,7 +507,7 @@ func antipatternRichScenario() *scenario.Scenario {
 			},
 		},
 		WinConditions: []scenario.ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 800.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 800}`)},
 		},
 		LoseConditions: []scenario.ConditionDef{
 			{Type: "core_destroyed"},
@@ -547,11 +544,11 @@ func antipatternImpossibleScenario() *scenario.Scenario {
 			StartingChi: 10.0,
 		},
 		WinConditions: []scenario.ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 200.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 200}`)},
 		},
 		LoseConditions: []scenario.ConditionDef{
 			{Type: "core_destroyed"},
-			{Type: "bankrupt", Params: map[string]any{"ticks": 5.0}},
+			{Type: "bankrupt", Params: json.RawMessage(`{"ticks": 5}`)},
 		},
 		WaveSchedule: []scenario.WaveScheduleEntry{
 			{TriggerTick: 10, Difficulty: 0.9, MinInvaders: 3, MaxInvaders: 5},

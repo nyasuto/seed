@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -12,10 +13,10 @@ func TestEventEngine_OneShotFiresOnce(t *testing.T) {
 			ID: "bonus_chi",
 			Condition: ConditionDef{
 				Type:   "survive_until",
-				Params: map[string]any{"ticks": 10.0},
+				Params: json.RawMessage(`{"ticks": 10}`),
 			},
 			Commands: []CommandDef{
-				{Type: "modify_chi", Params: map[string]any{"amount": 100.0}},
+				{Type: "modify_chi", Params: json.RawMessage(`{"amount": 100}`)},
 			},
 			OneShot: true,
 		},
@@ -50,10 +51,10 @@ func TestEventEngine_ConditionNotMet(t *testing.T) {
 			ID: "early_warning",
 			Condition: ConditionDef{
 				Type:   "survive_until",
-				Params: map[string]any{"ticks": 100.0},
+				Params: json.RawMessage(`{"ticks": 100}`),
 			},
 			Commands: []CommandDef{
-				{Type: "message", Params: map[string]any{"text": "warning!"}},
+				{Type: "message", Params: json.RawMessage(`{"text": "warning!"}`)},
 			},
 			OneShot: false,
 		},
@@ -78,10 +79,10 @@ func TestEventEngine_MultipleEventsSimultaneous(t *testing.T) {
 			ID: "event_a",
 			Condition: ConditionDef{
 				Type:   "survive_until",
-				Params: map[string]any{"ticks": 10.0},
+				Params: json.RawMessage(`{"ticks": 10}`),
 			},
 			Commands: []CommandDef{
-				{Type: "message", Params: map[string]any{"text": "event A fired"}},
+				{Type: "message", Params: json.RawMessage(`{"text": "event A fired"}`)},
 			},
 			OneShot: false,
 		},
@@ -89,11 +90,11 @@ func TestEventEngine_MultipleEventsSimultaneous(t *testing.T) {
 			ID: "event_b",
 			Condition: ConditionDef{
 				Type:   "chi_pool",
-				Params: map[string]any{"threshold": 50.0},
+				Params: json.RawMessage(`{"threshold": 50}`),
 			},
 			Commands: []CommandDef{
-				{Type: "modify_chi", Params: map[string]any{"amount": -10.0}},
-				{Type: "message", Params: map[string]any{"text": "event B fired"}},
+				{Type: "modify_chi", Params: json.RawMessage(`{"amount": -10}`)},
+				{Type: "message", Params: json.RawMessage(`{"text": "event B fired"}`)},
 			},
 			OneShot: true,
 		},
@@ -118,10 +119,10 @@ func TestEventEngine_FiredEventsPersistence(t *testing.T) {
 		ID: "once_only",
 		Condition: ConditionDef{
 			Type:   "survive_until",
-			Params: map[string]any{"ticks": 5.0},
+			Params: json.RawMessage(`{"ticks": 5}`),
 		},
 		Commands: []CommandDef{
-			{Type: "message", Params: map[string]any{"text": "hello"}},
+			{Type: "message", Params: json.RawMessage(`{"text": "hello"}`)},
 		},
 		OneShot: true,
 	}
@@ -130,10 +131,10 @@ func TestEventEngine_FiredEventsPersistence(t *testing.T) {
 		ID: "repeating",
 		Condition: ConditionDef{
 			Type:   "survive_until",
-			Params: map[string]any{"ticks": 5.0},
+			Params: json.RawMessage(`{"ticks": 5}`),
 		},
 		Commands: []CommandDef{
-			{Type: "message", Params: map[string]any{"text": "again"}},
+			{Type: "message", Params: json.RawMessage(`{"text": "again"}`)},
 		},
 		OneShot: false,
 	}
@@ -177,10 +178,10 @@ func TestEventEngine_NonOneShotFiresRepeatedly(t *testing.T) {
 			ID: "repeater",
 			Condition: ConditionDef{
 				Type:   "survive_until",
-				Params: map[string]any{"ticks": 1.0},
+				Params: json.RawMessage(`{"ticks": 1}`),
 			},
 			Commands: []CommandDef{
-				{Type: "message", Params: map[string]any{"text": "tick"}},
+				{Type: "message", Params: json.RawMessage(`{"text": "tick"}`)},
 			},
 			OneShot: false,
 		},

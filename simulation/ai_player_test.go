@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/scenario"
@@ -28,7 +29,7 @@ func tutorialScenario() *scenario.Scenario {
 			StartingChi: 200.0,
 		},
 		WinConditions: []scenario.ConditionDef{
-			{Type: "survive_until", Params: map[string]any{"ticks": 10.0}},
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 10}`)},
 		},
 		LoseConditions: []scenario.ConditionDef{
 			{Type: "core_destroyed"},

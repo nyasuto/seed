@@ -182,11 +182,26 @@ func TestIntegration_FullEconomySimulation(t *testing.T) {
 	}
 	trapCount := 1
 
-	supplyParams := economy.DefaultSupplyParams()
-	costParams := economy.DefaultCostParams()
-	deficitParams := economy.DefaultDeficitParams()
-	constructionCost := economy.DefaultConstructionCost()
-	beastCostTable := economy.DefaultBeastCost()
+	supplyParams, err := economy.DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
+	}
+	costParams, err := economy.DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	deficitParams, err := economy.DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
+	constructionCost, err := economy.DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
+	beastCostTable, err := economy.DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
 
 	chiPool := economy.NewChiPool(200.0) // initial cap 200
 	econEngine := economy.NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCostTable)

@@ -116,9 +116,9 @@ func TestCalcTickSupply_LowChiFillRatio(t *testing.T) {
 }
 
 func TestDefaultSupplyParams(t *testing.T) {
-	p := DefaultSupplyParams()
-	if p == nil {
-		t.Fatal("DefaultSupplyParams returned nil")
+	p, err := DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
 	}
 	if p.BaseSupplyPerVein != 5.0 {
 		t.Errorf("BaseSupplyPerVein: expected 5.0, got %f", p.BaseSupplyPerVein)
