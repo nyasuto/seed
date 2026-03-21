@@ -5,7 +5,8 @@
     "element": "Earth",
     "base_chi_capacity": 100,
     "description": "洞窟の中心となる特別な部屋。龍脈からの気を集中的に受け取る",
-    "max_beasts": 1
+    "max_beasts": 1,
+    "base_core_hp": 100
   },
   {
     "id": "chi_chamber",
@@ -13,7 +14,8 @@
     "element": "Water",
     "base_chi_capacity": 80,
     "description": "気を蓄積するための部屋。龍脈の流れを安定させる",
-    "max_beasts": 0
+    "max_beasts": 0,
+    "base_core_hp": 0
   },
   {
     "id": "senju_room",
@@ -21,7 +23,8 @@
     "element": "Wood",
     "base_chi_capacity": 60,
     "description": "仙獣を配置して育成するための部屋",
-    "max_beasts": 3
+    "max_beasts": 3,
+    "base_core_hp": 0
   },
   {
     "id": "trap_room",
@@ -29,7 +32,8 @@
     "element": "Metal",
     "base_chi_capacity": 40,
     "description": "侵入者を妨害する罠を設置する部屋",
-    "max_beasts": 2
+    "max_beasts": 2,
+    "base_core_hp": 0
   },
   {
     "id": "recovery_room",
@@ -37,7 +41,8 @@
     "element": "Fire",
     "base_chi_capacity": 50,
     "description": "仙獣の体力を回復させるための部屋",
-    "max_beasts": 0
+    "max_beasts": 0,
+    "base_core_hp": 0
   },
   {
     "id": "storage",
@@ -45,6 +50,7 @@
     "element": "Earth",
     "base_chi_capacity": 30,
     "description": "アイテムや資源を保管するための部屋",
-    "max_beasts": 0
+    "max_beasts": 0,
+    "base_core_hp": 0
   }
 ]
