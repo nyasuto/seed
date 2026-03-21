@@ -97,9 +97,9 @@ func TestRoomIDChar(t *testing.T) {
 		{35, 'Z'},
 	}
 	for _, tt := range tests {
-		got := roomIDChar(tt.id)
+		got := RoomIDChar(tt.id)
 		if got != tt.want {
-			t.Errorf("roomIDChar(%d) = %c, want %c", tt.id, got, tt.want)
+			t.Errorf("RoomIDChar(%d) = %c, want %c", tt.id, got, tt.want)
 		}
 	}
 }

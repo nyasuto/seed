@@ -40,12 +40,23 @@ func RenderFullStatus(engine *SimulationEngine) string {
 	return sb.String()
 }
 
+// roomBeastInfo holds pre-computed per-room beast display info.
+type roomBeastInfo struct {
+	count   int
+	element types.Element
+}
+
+// roomInvaderInfo holds pre-computed per-room invader display info.
+type roomInvaderInfo struct {
+	count int
+	state invasion.InvaderState
+}
+
 // renderUnifiedMap produces the combined map overlay with all layers.
 func renderUnifiedMap(s *GameState) string {
 	if s.Cave == nil {
 		return ""
 	}
-	g := s.Cave.Grid
 
 	// Pre-compute per-room beast info.
 	roomBeasts := make(map[int]*roomBeastInfo)
@@ -87,35 +98,17 @@ func renderUnifiedMap(s *GameState) string {
 		}
 	}
 
-	var sb strings.Builder
-	for y := 0; y < g.Height; y++ {
-		for x := 0; x < g.Width; x++ {
-			pos := types.Pos{X: x, Y: y}
-			cell, _ := g.At(pos)
-			switch cell.Type {
-			case world.RoomFloor:
-				sb.WriteString(renderRoomCell(cell.RoomID, roomInvaders, roomBeasts, s.ChiFlowEngine))
-			case world.Entrance:
-				sb.WriteString("><")
-			case world.CorridorFloor:
-				if veinPaths[pos] {
-					sb.WriteString("~~")
-				} else {
-					sb.WriteString("..")
-				}
-			case world.Rock:
-				if veinPaths[pos] {
-					sb.WriteString("~~")
-				} else {
-					sb.WriteString("██")
-				}
-			default:
-				sb.WriteString("??")
+	return world.RenderGrid(s.Cave.Grid, func(pos types.Pos, cell world.Cell) string {
+		switch cell.Type {
+		case world.RoomFloor:
+			return renderRoomCell(cell.RoomID, roomInvaders, roomBeasts, s.ChiFlowEngine)
+		case world.CorridorFloor, world.Rock:
+			if veinPaths[pos] {
+				return "~~"
 			}
 		}
-		sb.WriteByte('\n')
-	}
-	return sb.String()
+		return ""
+	})
 }
 
 // renderRoomCell returns a 2-character tile for a room cell, applying
@@ -132,7 +125,7 @@ func renderRoomCell(roomID int, invaders map[int]*roomInvaderInfo, beasts map[in
 
 	// Priority 2: beasts
 	if info, ok := beasts[roomID]; ok {
-		return fullBeastTile(info)
+		return world.CountTile(info.count, info.element.Char())
 	}
 
 	// Priority 3: chi fill level
@@ -146,50 +139,8 @@ func renderRoomCell(roomID int, invaders map[int]*roomInvaderInfo, beasts map[in
 	}
 
 	// Default: room ID
-	ch := roomIDChar(roomID)
+	ch := world.RoomIDChar(roomID)
 	return string([]byte{ch, ch})
-}
-
-// roomBeastInfo holds pre-computed per-room beast display info.
-type roomBeastInfo struct {
-	count   int
-	element types.Element
-}
-
-// roomInvaderInfo holds pre-computed per-room invader display info.
-type roomInvaderInfo struct {
-	count int
-	state invasion.InvaderState
-}
-
-// fullBeastTile returns a 2-character tile for a room's beast display.
-func fullBeastTile(info *roomBeastInfo) string {
-	ch := elementChar(info.element)
-	if info.count == 1 {
-		return string([]byte{ch, ch})
-	}
-	if info.count <= 9 {
-		return fmt.Sprintf("%d%c", info.count, ch)
-	}
-	return "9+"
-}
-
-// elementChar returns a single character representing the element.
-func elementChar(e types.Element) byte {
-	switch e {
-	case types.Wood:
-		return 'W'
-	case types.Fire:
-		return 'F'
-	case types.Earth:
-		return 'E'
-	case types.Metal:
-		return 'M'
-	case types.Water:
-		return 'A'
-	default:
-		return '?'
-	}
 }
 
 // invaderTile returns a 2-character tile for a room's invader display.
@@ -198,10 +149,7 @@ func invaderTile(info *roomInvaderInfo) string {
 	if info.count == 1 {
 		return sym
 	}
-	if info.count <= 9 {
-		return fmt.Sprintf("%d%c", info.count, sym[1])
-	}
-	return "9+"
+	return world.CountTile(info.count, sym[1])
 }
 
 // invaderStateSymbol returns a 2-character symbol for an invader state.
@@ -232,15 +180,6 @@ func chiLevelTile(ratio float64) string {
 	default:
 		return "██"
 	}
-}
-
-// roomIDChar returns a display character for a room ID.
-// 1-9 → '1'-'9', 10-35 → 'A'-'Z'.
-func roomIDChar(id int) byte {
-	if id >= 1 && id <= 9 {
-		return byte('0' + id)
-	}
-	return byte('A' + id - 10)
 }
 
 // renderStatusPanel produces the text status panel below the map.

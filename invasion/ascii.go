@@ -1,9 +1,6 @@
 package invasion
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
@@ -41,10 +38,7 @@ func invaderTile(info *invaderOverlay) string {
 		return stateSymbol(info.state)
 	}
 	sym := stateSymbol(info.state)
-	if info.count <= 9 {
-		return fmt.Sprintf("%d%c", info.count, sym[1])
-	}
-	return "9+"
+	return world.CountTile(info.count, sym[1])
 }
 
 // RenderInvasionOverlay returns an ASCII representation of the cave with
@@ -66,10 +60,7 @@ func RenderInvasionOverlay(cave *world.Cave, waves []*InvasionWave) string {
 	roomInvaders := make(map[int]*invaderOverlay)
 	for _, w := range waves {
 		for _, inv := range w.Invaders {
-			if inv.State == Defeated {
-				continue
-			}
-			if inv.CurrentRoomID == 0 {
+			if inv.State == Defeated || inv.CurrentRoomID == 0 {
 				continue
 			}
 			info, ok := roomInvaders[inv.CurrentRoomID]
@@ -81,46 +72,12 @@ func RenderInvasionOverlay(cave *world.Cave, waves []*InvasionWave) string {
 		}
 	}
 
-	g := cave.Grid
-	var sb strings.Builder
-
-	for y := 0; y < g.Height; y++ {
-		for x := 0; x < g.Width; x++ {
-			cell, _ := g.At(types.Pos{X: x, Y: y})
-			switch cell.Type {
-			case world.RoomFloor:
-				if cell.RoomID > 0 {
-					if info, ok := roomInvaders[cell.RoomID]; ok {
-						sb.WriteString(invaderTile(info))
-					} else {
-						ch := roomIDChar(cell.RoomID)
-						sb.WriteByte(ch)
-						sb.WriteByte(ch)
-					}
-				} else {
-					sb.WriteString("[]")
-				}
-			case world.Entrance:
-				sb.WriteString("><")
-			case world.CorridorFloor:
-				sb.WriteString("..")
-			case world.Rock:
-				sb.WriteString("██")
-			default:
-				sb.WriteString("??")
+	return world.RenderGrid(cave.Grid, func(_ types.Pos, cell world.Cell) string {
+		if cell.Type == world.RoomFloor && cell.RoomID > 0 {
+			if info, ok := roomInvaders[cell.RoomID]; ok {
+				return invaderTile(info)
 			}
 		}
-		sb.WriteByte('\n')
-	}
-
-	return sb.String()
-}
-
-// roomIDChar returns a display character for a room ID.
-// 1-9 → '1'-'9', 10-35 → 'A'-'Z'.
-func roomIDChar(id int) byte {
-	if id >= 1 && id <= 9 {
-		return byte('0' + id)
-	}
-	return byte('A' + id - 10)
+		return ""
+	})
 }
