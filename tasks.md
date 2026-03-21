@@ -462,8 +462,8 @@
 
 ## Phase 5-I: シリアライズ（economy/）
 
-- [ ] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
-- [ ] `economy/serialization_test.go`: 保存→復元→等価検証テスト、トランザクション履歴込みの保存/復元テスト
+- [x] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
+- [x] `economy/serialization_test.go`: 保存→復元→等価検証テスト、トランザクション履歴込みの保存/復元テスト
 
 ## Phase 5-J: 経済バランス検証
 
