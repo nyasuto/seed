@@ -1,23 +1,26 @@
 package simulation
 
 import (
-	"os"
+	"embed"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/scenario"
 )
 
-func loadScenarioFile(t *testing.T, path string) []byte {
+//go:embed testdata
+var testdataFS embed.FS
+
+func loadScenarioFile(t *testing.T, name string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(path)
+	data, err := testdataFS.ReadFile("testdata/" + name)
 	if err != nil {
-		t.Fatalf("failed to read scenario file %s: %v", path, err)
+		t.Fatalf("failed to read scenario file %s: %v", name, err)
 	}
 	return data
 }
 
 func TestIntegration_TutorialSimpleAIWins(t *testing.T) {
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	scenJSON := loadScenarioFile(t, "tutorial.json")
 
 	runner := &SimulationRunner{}
 	result, err := runner.RunWithAI(scenJSON, 42, func(state *GameState) AIPlayer {
@@ -36,7 +39,7 @@ func TestIntegration_TutorialSimpleAIWins(t *testing.T) {
 }
 
 func TestIntegration_StandardSimpleAIDefendsAtLeast3Waves(t *testing.T) {
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/standard.json")
+	scenJSON := loadScenarioFile(t, "standard.json")
 
 	runner := &SimulationRunner{}
 	result, err := runner.RunWithAI(scenJSON, 42, func(state *GameState) AIPlayer {
@@ -87,7 +90,7 @@ func runWithSnapshots(t *testing.T, scenJSON []byte, seed int64) (RunResult, []s
 }
 
 func TestIntegration_CheckpointRestore(t *testing.T) {
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	scenJSON := loadScenarioFile(t, "tutorial.json")
 	const seed int64 = 99
 
 	runner := &SimulationRunner{}
@@ -187,7 +190,7 @@ func TestIntegration_CheckpointRestore(t *testing.T) {
 }
 
 func TestIntegration_ReplayProducesSameResult(t *testing.T) {
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	scenJSON := loadScenarioFile(t, "tutorial.json")
 	const seed int64 = 77
 
 	runner := &SimulationRunner{}
@@ -261,7 +264,7 @@ func TestIntegration_StressTest_LargeMap(t *testing.T) {
 		t.Skip("skipping stress test in short mode")
 	}
 
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/stress.json")
+	scenJSON := loadScenarioFile(t, "stress.json")
 
 	runner := &SimulationRunner{}
 	result, err := runner.RunWithAI(scenJSON, 42, func(state *GameState) AIPlayer {
@@ -295,7 +298,7 @@ func TestIntegration_StressTest_LargeMap(t *testing.T) {
 }
 
 func TestIntegration_Determinism_SameSeedIdenticalResults(t *testing.T) {
-	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	scenJSON := loadScenarioFile(t, "tutorial.json")
 	const seed int64 = 12345
 
 	result1, snapshots1 := runWithSnapshots(t, scenJSON, seed)
