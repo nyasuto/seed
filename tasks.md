@@ -691,7 +691,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 7-D: スナップショットと巻き戻し（simulation/）
 
 - [x] `simulation/checkpoint.go`: Checkpoint 構造体。CreateCheckpoint / RestoreCheckpoint
-- [ ] `simulation/checkpoint_test.go`: 保存→復元→同一seed続行で結果一致テスト
+- [x] `simulation/checkpoint_test.go`: 保存→復元→同一seed続行で結果一致テスト
 
 ## Phase 7-E: リプレイ（simulation/）
 
