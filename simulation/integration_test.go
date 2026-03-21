@@ -186,6 +186,76 @@ func TestIntegration_CheckpointRestore(t *testing.T) {
 		len(restoredSnapshots), restoredResult.Status)
 }
 
+func TestIntegration_ReplayProducesSameResult(t *testing.T) {
+	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
+	const seed int64 = 77
+
+	runner := &SimulationRunner{}
+
+	// --- Original run with recording ---
+	engine, sc, err := runner.createEngine(scenJSON, seed)
+	if err != nil {
+		t.Fatalf("createEngine: %v", err)
+	}
+	EnableRecording(engine)
+
+	ai := NewSimpleAIPlayer(engine.State)
+	maxTicks := runner.maxTicks(sc)
+
+	var origSnapshots []scenario.GameSnapshot
+	origResult, err := engine.Run(maxTicks, func(snap scenario.GameSnapshot) []PlayerAction {
+		origSnapshots = append(origSnapshots, snap)
+		return ai.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("original Run: %v", err)
+	}
+
+	// --- Record replay and round-trip through JSON ---
+	replay, err := RecordReplay(engine)
+	if err != nil {
+		t.Fatalf("RecordReplay: %v", err)
+	}
+
+	data, err := MarshalReplay(replay)
+	if err != nil {
+		t.Fatalf("MarshalReplay: %v", err)
+	}
+
+	restored, err := UnmarshalReplay(data)
+	if err != nil {
+		t.Fatalf("UnmarshalReplay: %v", err)
+	}
+
+	// --- Play back the replay ---
+	replayResult, err := PlayReplay(restored, sc)
+	if err != nil {
+		t.Fatalf("PlayReplay: %v", err)
+	}
+
+	// --- Compare results ---
+	if origResult.Status != replayResult.Status {
+		t.Errorf("status mismatch: original=%v replay=%v", origResult.Status, replayResult.Status)
+	}
+	if origResult.FinalTick != replayResult.FinalTick {
+		t.Errorf("final tick mismatch: original=%d replay=%d", origResult.FinalTick, replayResult.FinalTick)
+	}
+	if origResult.Reason != replayResult.Reason {
+		t.Errorf("reason mismatch: original=%q replay=%q", origResult.Reason, replayResult.Reason)
+	}
+
+	// Verify replay data integrity
+	if restored.Seed != seed {
+		t.Errorf("replay seed mismatch: expected %d got %d", seed, restored.Seed)
+	}
+	if len(restored.Actions) == 0 {
+		t.Error("replay has no recorded actions")
+	}
+
+	t.Logf("Replay verified: %d ticks, %d action ticks recorded, status=%v, JSON size=%d bytes",
+		origResult.FinalTick, len(restored.Actions), origResult.Status, len(data))
+}
+
 func TestIntegration_Determinism_SameSeedIdenticalResults(t *testing.T) {
 	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
 	const seed int64 = 12345
