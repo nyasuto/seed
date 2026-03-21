@@ -577,7 +577,7 @@ sim/balance/ パッケージを作成する。
 - スイープ結果の比較表が生成されるテスト
 - 新規アラート発生時に警告が表示されるテスト
 
-- [ ] **Task 5-C: ダッシュボード — パラメータ適用とCLI統合**
+- [x] **Task 5-C: ダッシュボード — パラメータ適用とCLI統合**
 
 1. balance/apply.go:
    - ApplyParameter(scenarioPath, key, value) — シナリオJSONの指定パラメータを書き換え

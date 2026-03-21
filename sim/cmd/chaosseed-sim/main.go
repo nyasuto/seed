@@ -12,6 +12,7 @@ import (
 	"github.com/nyasuto/seed/sim/adapter/ai"
 	"github.com/nyasuto/seed/sim/adapter/batch"
 	"github.com/nyasuto/seed/sim/adapter/human"
+	"github.com/nyasuto/seed/sim/balance"
 	"github.com/nyasuto/seed/sim/metrics"
 	"github.com/nyasuto/seed/sim/server"
 )
@@ -98,7 +99,11 @@ func run() int {
 		}
 		return 0
 	case *balanceMode:
-		fmt.Fprintln(os.Stderr, "balance mode: not implemented")
+		if err := runBalanceMode(*scenarioName, *games); err != nil {
+			fmt.Fprintf(os.Stderr, "balance mode error: %v\n", err)
+			return 1
+		}
+		return 0
 	}
 	return 1
 }
@@ -290,6 +295,77 @@ func writeBatchOutput(result *batch.BatchResult, scenarioName string, games int,
 		return fmt.Errorf("write output file: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "results written to %s\n", outputPath)
+	return nil
+}
+
+// runBalanceMode starts the Balance Dashboard.
+func runBalanceMode(scenarioName string, games int) error {
+	sc, err := server.LoadScenario(scenarioName)
+	if err != nil {
+		return fmt.Errorf("load scenario: %w", err)
+	}
+
+	config := balance.DashboardConfig{
+		Scenario:     sc,
+		ScenarioName: scenarioName,
+		Games:        games,
+		AI:           batch.AISimple,
+		BaseSeed:     42,
+		Output:       os.Stdout,
+		Input:        os.Stdin,
+	}
+
+	dash, err := balance.NewDashboard(config)
+	if err != nil {
+		return fmt.Errorf("create dashboard: %w", err)
+	}
+
+	baseline, err := dash.Run()
+	if err != nil {
+		return fmt.Errorf("run baseline: %w", err)
+	}
+
+	// If there are alerts, show sweep suggestions.
+	alerts := baseline.BatchResult.BreakageReport.Alerts
+	if len(alerts) == 0 {
+		return nil
+	}
+
+	// Generate and display suggestions for each alert.
+	fmt.Fprintln(os.Stdout)
+	fmt.Fprintln(os.Stdout, "--- Sweep Suggestions ---")
+	for _, alert := range alerts {
+		suggestions := balance.SuggestSweep(alert)
+		fmt.Fprint(os.Stdout, balance.FormatSuggestions(suggestions))
+
+		// Run sweep for each suggestion and compare.
+		scenarioJSON, jsonErr := loadScenarioJSON(scenarioName)
+		if jsonErr != nil {
+			fmt.Fprintf(os.Stderr, "warning: cannot load scenario JSON for sweep: %v\n", jsonErr)
+			continue
+		}
+
+		for _, s := range suggestions {
+			sweepParam := batch.SweepParam{
+				Key:    s.ParamKey,
+				Values: s.Values,
+			}
+			baseConfig := batch.BatchConfig{
+				Games:    games,
+				BaseSeed: 42,
+				AI:       batch.AISimple,
+			}
+			sweepResults, sweepErr := batch.RunSweep(scenarioJSON, sweepParam, baseConfig)
+			if sweepErr != nil {
+				fmt.Fprintf(os.Stderr, "warning: sweep failed for %s: %v\n", s.ParamKey, sweepErr)
+				continue
+			}
+
+			comparison := balance.CompareResults(baseline.BatchResult.BreakageReport, alert.MetricID, sweepResults)
+			fmt.Fprint(os.Stdout, balance.FormatComparison(comparison))
+		}
+	}
+
 	return nil
 }
 
