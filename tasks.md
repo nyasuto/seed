@@ -166,16 +166,16 @@
 
 ## Phase 3-D: 成長システム（senju/）
 
-- [ ] `senju/growth_params.go`: GrowthParams 構造体（BaseEXPPerTick int, LevelUpThreshold func(level int) int をJSON対応のため LevelUpBase int + LevelUpPerLevel int に分解、ChiConsumptionPerTick float64, MaxLevel int）。DefaultGrowthParams()。LoadGrowthParams(data []byte) (*GrowthParams, error)
-- [ ] `senju/growth_params_data.json`: デフォルト成長パラメータ（基本EXP/tick: 10, レベルアップ基礎値: 100, レベルアップ係数: 50, 気消費/tick: 2.0, 最大レベル: 50）。レベルアップ必要EXP = LevelUpBase + LevelUpPerLevel × currentLevel
-- [ ] `senju/growth.go`: GrowthEngine 構造体。NewGrowthEngine(params, speciesRegistry)。Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi, rooms map[int]*world.Room) []GrowthEvent — 1ティック分の成長処理:
+- [x] `senju/growth_params.go`: GrowthParams 構造体（BaseEXPPerTick int, LevelUpThreshold func(level int) int をJSON対応のため LevelUpBase int + LevelUpPerLevel int に分解、ChiConsumptionPerTick float64, MaxLevel int）。DefaultGrowthParams()。LoadGrowthParams(data []byte) (*GrowthParams, error)
+- [x] `senju/growth_params_data.json`: デフォルト成長パラメータ（基本EXP/tick: 10, レベルアップ基礎値: 100, レベルアップ係数: 50, 気消費/tick: 2.0, 最大レベル: 50）。レベルアップ必要EXP = LevelUpBase + LevelUpPerLevel × currentLevel
+- [x] `senju/growth.go`: GrowthEngine 構造体。NewGrowthEngine(params, speciesRegistry)。Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi, rooms map[int]*world.Room) []GrowthEvent — 1ティック分の成長処理:
   1. 各仙獣の部屋の RoomChi から ChiConsumptionPerTick 分の気を消費試行
   2. 気が足りなければ GrowthEvent{Type: ChiStarved} を返して成長スキップ
   3. BaseEXPPerTick × GrowthAffinity × Species.GrowthRate のEXPを獲得
   4. EXP が LevelUpThreshold に到達したらレベルアップ → GrowthEvent{Type: LevelUp}
   5. MaxLevel クランプ
-- [ ] `senju/growth.go`: GrowthEvent 構造体（BeastID int, Type GrowthEventType, OldLevel int, NewLevel int, EXPGained int）。GrowthEventType: EXPGained/LevelUp/ChiStarved
-- [ ] `senju/growth_test.go`: 基本成長（1ティックでEXP獲得）テスト、気不足で成長停止テスト、レベルアップテスト、属性相性による成長速度変化テスト、MaxLevelクランプテスト、気の実消費量がRoomChiに反映されるテスト、GrowthEvent生成テスト
+- [x] `senju/growth.go`: GrowthEvent 構造体（BeastID int, Type GrowthEventType, OldLevel int, NewLevel int, EXPGained int）。GrowthEventType: EXPGained/LevelUp/ChiStarved
+- [x] `senju/growth_test.go`: 基本成長（1ティックでEXP獲得）テスト、気不足で成長停止テスト、レベルアップテスト、属性相性による成長速度変化テスト、MaxLevelクランプテスト、気の実消費量がRoomChiに反映されるテスト、GrowthEvent生成テスト
 
 ## Phase 3-E: 仙獣シリアライズ（senju/）
 

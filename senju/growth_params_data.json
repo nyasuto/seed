@@ -1,0 +1,7 @@
+{
+  "base_exp_per_tick": 10,
+  "level_up_base": 100,
+  "level_up_per_level": 50,
+  "chi_consumption_per_tick": 2.0,
+  "max_level": 50
+}
