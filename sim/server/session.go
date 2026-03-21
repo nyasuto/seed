@@ -39,8 +39,8 @@ func LoadScenarioFromFile(path string) (*scenario.Scenario, error) {
 	return sc, nil
 }
 
-// LoadBuiltinScenario loads a built-in scenario by name (e.g. "tutorial", "standard").
-func LoadBuiltinScenario(name string) (*scenario.Scenario, error) {
+// LoadBuiltinScenarioJSON returns the raw JSON bytes for a built-in scenario.
+func LoadBuiltinScenarioJSON(name string) ([]byte, error) {
 	path, ok := builtinNames[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown builtin scenario: %q", name)
@@ -48,6 +48,15 @@ func LoadBuiltinScenario(name string) (*scenario.Scenario, error) {
 	data, err := builtinScenarios.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("read embedded scenario %s: %w", name, err)
+	}
+	return data, nil
+}
+
+// LoadBuiltinScenario loads a built-in scenario by name (e.g. "tutorial", "standard").
+func LoadBuiltinScenario(name string) (*scenario.Scenario, error) {
+	data, err := LoadBuiltinScenarioJSON(name)
+	if err != nil {
+		return nil, err
 	}
 	sc, err := scenario.LoadScenario(data)
 	if err != nil {

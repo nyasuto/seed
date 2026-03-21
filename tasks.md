@@ -500,7 +500,7 @@ sim/adapter/batch/ パッケージを作成する。
 - 並列実行でも決定論性が保たれるテスト（同一ベースシード → 同一結果）
 - GameSummary が全ゲーム分集約されるテスト
 
-- [ ] **Task 4-F: Batch Mode — レポート生成とパラメータスイープ**
+- [x] **Task 4-F: Batch Mode — レポート生成とパラメータスイープ**
 
 1. metrics/report.go:
    - GenerateJSON(summaries, breakageReport) → JSON文字列
