@@ -121,7 +121,7 @@ sim/server/ パッケージを作成する。
 - GameServer が NewGameServer → RunGame の流れでゲームを1ゲーム完走するテスト（core の SimpleAIPlayer をラップした ActionProvider で）
 - ActionProvider の各メソッドが適切なタイミングで呼ばれることを検証するモックテスト
 
-- [ ] **Task 1-F: Game Server — セッション管理とシナリオ読み込み**
+- [x] **Task 1-F: Game Server — セッション管理とシナリオ読み込み**
 
 1. server/session.go: セッションライフサイクル管理
    - LoadScenario(path string) でシナリオJSON読み込み

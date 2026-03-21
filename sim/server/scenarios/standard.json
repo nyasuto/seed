@@ -1,0 +1,153 @@
+{
+  "id": "standard",
+  "name": "標準シナリオ",
+  "description": "中規模マップでの本格的な洞窟経営シナリオ",
+  "difficulty": "normal",
+  "initial_state": {
+    "cave_width": 32,
+    "cave_height": 32,
+    "terrain_seed": 42,
+    "terrain_density": 0.15,
+    "prebuilt_rooms": [
+      {
+        "type_id": "dragon_hole",
+        "pos": {"x": 15, "y": 15},
+        "level": 1
+      }
+    ],
+    "dragon_veins": [
+      {
+        "source_pos": {"x": 15, "y": 15},
+        "element": "Wood",
+        "flow_rate": 1.0
+      },
+      {
+        "source_pos": {"x": 15, "y": 15},
+        "element": "Fire",
+        "flow_rate": 0.8
+      }
+    ],
+    "starting_chi": 300.0,
+    "starting_beasts": [
+      {
+        "species_id": "suiryu",
+        "room_index": 0
+      }
+    ]
+  },
+  "win_conditions": [
+    {"type": "defeat_all_waves"},
+    {"type": "fengshui_score", "params": {"threshold": 80.0}}
+  ],
+  "lose_conditions": [
+    {"type": "core_destroyed"},
+    {"type": "all_beasts_defeated"}
+  ],
+  "wave_schedule": [
+    {
+      "trigger_tick": 100,
+      "difficulty": 0.5,
+      "min_invaders": 1,
+      "max_invaders": 3,
+      "preferred_classes": ["wood_ascetic"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 250,
+      "difficulty": 0.8,
+      "min_invaders": 2,
+      "max_invaders": 4,
+      "preferred_classes": ["fire_warrior"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 400,
+      "difficulty": 1.0,
+      "min_invaders": 2,
+      "max_invaders": 5,
+      "preferred_classes": ["metal_knight"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 600,
+      "difficulty": 1.3,
+      "min_invaders": 3,
+      "max_invaders": 6,
+      "preferred_classes": [],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 800,
+      "difficulty": 1.8,
+      "min_invaders": 4,
+      "max_invaders": 8,
+      "preferred_classes": [],
+      "preferred_goals": []
+    }
+  ],
+  "events": [
+    {
+      "id": "wave_0",
+      "condition": {"type": "survive_until", "params": {"ticks": 100}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.5, "min_invaders": 1, "max_invaders": 3}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_1",
+      "condition": {"type": "survive_until", "params": {"ticks": 250}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.8, "min_invaders": 2, "max_invaders": 4}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_2",
+      "condition": {"type": "survive_until", "params": {"ticks": 400}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.0, "min_invaders": 2, "max_invaders": 5}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_3",
+      "condition": {"type": "survive_until", "params": {"ticks": 600}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.3, "min_invaders": 3, "max_invaders": 6}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_4",
+      "condition": {"type": "survive_until", "params": {"ticks": 800}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.8, "min_invaders": 4, "max_invaders": 8}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "mid_chi_bonus",
+      "condition": {"type": "survive_until", "params": {"ticks": 400}},
+      "commands": [
+        {"type": "modify_chi", "params": {"amount": 100.0}},
+        {"type": "message", "params": {"text": "龍穴の力が高まり、気が湧き出した！"}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "final_warning",
+      "condition": {"type": "survive_until", "params": {"ticks": 750}},
+      "commands": [
+        {"type": "message", "params": {"text": "強大な侵入者の気配が近づいている…"}}
+      ],
+      "one_shot": true
+    }
+  ],
+  "constraints": {
+    "max_rooms": 15,
+    "max_beasts": 8,
+    "max_ticks": 1000,
+    "forbidden_room_types": []
+  }
+}
