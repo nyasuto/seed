@@ -599,7 +599,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-I: シナリオローダーとバリデーション（scenario/）
 
 - [x] `scenario/loader.go`: LoadScenario(data []byte) (\*Scenario, error) — JSONからシナリオ全体をロード
-- [ ] `scenario/loader.go`: ValidateScenario(s \*Scenario) []error — シナリオ整合性チェック:
+- [x] `scenario/loader.go`: ValidateScenario(s \*Scenario) []error — シナリオ整合性チェック:
   - 勝利条件が少なくとも1つ存在
   - 敗北条件が少なくとも1つ存在
   - InitialState の部屋配置が Cave サイズ内
