@@ -158,17 +158,17 @@
 
 ## Phase 3-C: 仙獣インスタンスと配置（senju/）
 
-- [x] `senju/beast.go`: Beast 構造体（ID int, SpeciesID string, Name string, Element types.Element, RoomID int, Level int, EXP int, HP int, MaxHP int, ATK int, DEF int, SPD int, BornTick types.Tick, State BeastState）。BeastState 型（Idle/Patrolling/Chasing/Fighting/Recovering）。NewBeast(id, species, tick) *Beast で基本ステータスをSpeciesから初期化
-- [x] `senju/combat_stats.go`: CombatStats 構造体（HP int, ATK int, DEF int, SPD int）。Beast.CalcCombatStats(roomChi *fengshui.RoomChi) CombatStats — 基本ステータスに属性相性バフを適用した実効戦闘ステータスを返す。相生部屋: ATK/DEF/SPD ×1.3、同属性: ×1.1、中立: ×1.0、相克: ×0.7
+- [x] `senju/beast.go`: Beast 構造体（ID int, SpeciesID string, Name string, Element types.Element, RoomID int, Level int, EXP int, HP int, MaxHP int, ATK int, DEF int, SPD int, BornTick types.Tick, State BeastState）。BeastState 型（Idle/Patrolling/Chasing/Fighting/Recovering）。NewBeast(id, species, tick) \*Beast で基本ステータスをSpeciesから初期化
+- [x] `senju/combat_stats.go`: CombatStats 構造体（HP int, ATK int, DEF int, SPD int）。Beast.CalcCombatStats(roomChi \*fengshui.RoomChi) CombatStats — 基本ステータスに属性相性バフを適用した実効戦闘ステータスを返す。相生部屋: ATK/DEF/SPD ×1.3、同属性: ×1.1、中立: ×1.0、相克: ×0.7
 - [x] `senju/affinity.go`: RoomAffinity(beastElement, roomElement types.Element) float64 — 仙獣と部屋の属性相性倍率を返す。GrowthAffinity(beastElement, roomElement types.Element) float64 — 成長速度への倍率（RoomAffinityと同じ値だが将来独立調整できるよう分離）
 - [x] `senju/placement.go`: PlaceBeast(beast, room, roomType) error — 配置可能判定（部屋存在、MaxBeasts未達、仙獣配置可能な部屋タイプ）→配置実行（beast.RoomID設定、room.BeastIDs追加）。RemoveBeast(beast, room) error — 除去。MoveBeast(beast, fromRoom, toRoom, toRoomType) error — 部屋間移動
 - [x] `senju/placement_test.go`: 正常配置テスト、容量超過拒否テスト、配置不可部屋タイプ拒否テスト、移動テスト、CalcCombatStatsの相性倍率テスト
 
 ## Phase 3-D: 成長システム（senju/）
 
-- [x] `senju/growth_params.go`: GrowthParams 構造体（BaseEXPPerTick int, LevelUpThreshold func(level int) int をJSON対応のため LevelUpBase int + LevelUpPerLevel int に分解、ChiConsumptionPerTick float64, MaxLevel int）。DefaultGrowthParams()。LoadGrowthParams(data []byte) (*GrowthParams, error)
+- [x] `senju/growth_params.go`: GrowthParams 構造体（BaseEXPPerTick int, LevelUpThreshold func(level int) int をJSON対応のため LevelUpBase int + LevelUpPerLevel int に分解、ChiConsumptionPerTick float64, MaxLevel int）。DefaultGrowthParams()。LoadGrowthParams(data []byte) (\*GrowthParams, error)
 - [x] `senju/growth_params_data.json`: デフォルト成長パラメータ（基本EXP/tick: 10, レベルアップ基礎値: 100, レベルアップ係数: 50, 気消費/tick: 2.0, 最大レベル: 50）。レベルアップ必要EXP = LevelUpBase + LevelUpPerLevel × currentLevel
-- [x] `senju/growth.go`: GrowthEngine 構造体。NewGrowthEngine(params, speciesRegistry)。Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi, rooms map[int]*world.Room) []GrowthEvent — 1ティック分の成長処理:
+- [x] `senju/growth.go`: GrowthEngine 構造体。NewGrowthEngine(params, speciesRegistry)。Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi, rooms map[int]\*world.Room) []GrowthEvent — 1ティック分の成長処理:
   1. 各仙獣の部屋の RoomChi から ChiConsumptionPerTick 分の気を消費試行
   2. 気が足りなければ GrowthEvent{Type: ChiStarved} を返して成長スキップ
   3. BaseEXPPerTick × GrowthAffinity × Species.GrowthRate のEXPを獲得
@@ -238,7 +238,6 @@
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 3.5 完了。DECISIONS.md 更新、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase4_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
 
-
 # Phase 4 改訂版 — 侵入システム（invasion/）
 
 > PRD Phase 4: 侵入者の生成、目標指向の経路探索、戦闘解決。
@@ -271,7 +270,7 @@
 
 - [x] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
 - [x] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
-- [x] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi *fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
+- [x] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi \*fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
   1. 仙獣の実効ステータス = beast.CalcCombatStats(roomChi)
   2. 素早さ比較で先攻/後攻決定（同値はRNG）
   3. 先攻側のダメージ計算: ATK × ATKMultiplier - 相手DEF × DEFReduction（MinDamage保証）
@@ -280,7 +279,7 @@
   6. 先攻ダメージ適用 → 後攻が生存していれば後攻の攻撃 → ダメージ適用
   7. 結果を返す
 - [x] `invasion/combat.go`: CombatRoundResult 構造体（BeastDamageTaken int, InvaderDamageTaken int, BeastHP int, InvaderHP int, IsBeastDefeated bool, IsInvaderDefeated bool, WasBeastCritical bool, WasInvaderCritical bool, FirstAttacker string）
-- [x] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi *fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
+- [x] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi \*fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
 - [x] `invasion/combat_test.go`: 基本ダメージ計算テスト、先攻/後攻テスト、属性有利/不利テスト、クリティカルテスト（FixedRNG）、MinDamage保証テスト、複数対複数のマッチングテスト
 
 ## Phase 4-D: 撤退ロジック（invasion/）
@@ -302,7 +301,7 @@
 
 ## Phase 4-F: 侵入波管理（invasion/）
 
-- [x] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
+- [x] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []\*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
 - [x] `invasion/wave_generator.go`: WaveGenerator 構造体。NewWaveGenerator(classRegistry, rng)。GenerateWave(config WaveConfig, cave *world.Cave, tick types.Tick) *InvasionWave — 設定に基づいて侵入者グループを生成。洞窟の部屋構成から適切な Goal を割り当て（龍穴があれば DestroyCore が主、倉庫があれば盗賊を混ぜる）
 - [x] `invasion/wave_schedule.go`: WaveSchedule 構造体（Waves []WaveConfig）。WaveConfig（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int）。LoadWaveSchedule(data []byte)。**注意: このスケジュールはPhase 6のシナリオシステムで上書きされる前提。Phase 4ではテスト用の固定スケジュールのみ**
 - [x] `invasion/wave_schedule_data.json`: テスト用スケジュール（3波: tick 50/難易度1.0/2-3体, tick 150/難易度1.5/3-5体, tick 300/難易度2.0/5-7体）。D002の時間圧力を意識し、tick 50は「まだ構築が十分でない」タイミングを想定
@@ -372,6 +371,7 @@
 ## 設計方針メモ（DECISIONS.md D009 として記録すること）
 
 **ChiPool と ChiFlowEngine の関係:**
+
 - ChiFlowEngine（Phase 2）= 各部屋の気のシミュレーション層。龍脈→部屋→隣接伝播→減衰。部屋レベルの物理的な気の流れ
 - ChiPool（Phase 5）= プレイヤーの経済リソースとしての気。建設・召喚・強化に使う「通貨」
 - SupplyCalculator が毎ティック、ChiFlowEngine の状態（全部屋の気の充填率と風水スコア）を読み取り、ChiPool への供給量に変換する
@@ -391,7 +391,7 @@
 
 - [x] `economy/supply_params.go`: SupplyParams 構造体（BaseSupplyPerVein float64, FengShuiMinMultiplier float64, FengShuiMaxMultiplier float64, ChiRatioSupplyWeight float64）。DefaultSupplyParams()。LoadSupplyParams(data []byte)
 - [x] `economy/supply_params_data.json`: デフォルト供給パラメータ（龍脈基本供給: 5.0, 風水最低倍率: 0.8, 風水最高倍率: 1.3, 気充填率ウェイト: 0.5）
-- [x] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
+- [x] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]\*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
   1. 基本供給 = 龍脈本数 × BaseSupplyPerVein
   2. 充填率ボーナス = 全部屋の平均気充填率 × ChiRatioSupplyWeight
   3. 風水倍率 = caveScore を FengShuiMinMultiplier〜FengShuiMaxMultiplier に線形マッピング
@@ -436,7 +436,7 @@
 
 ## Phase 5-G: 侵入報酬と損失（economy/）
 
-- [x] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool *ChiPool, tick types.Tick) InvasionEconomySummary:
+- [x] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool \*ChiPool, tick types.Tick) InvasionEconomySummary:
   1. InvaderDefeated イベントから RewardChi を集計 → ChiPool に Deposit（TransactionType: Reward）
   2. InvaderEscaped イベントから StolenChi を集計 → ChiPool から Withdraw（TransactionType: Theft）
   3. BeastDefeated イベントを記録（復活コストは将来拡張）
@@ -462,7 +462,7 @@
 
 ## Phase 5-I: シリアライズ（economy/）
 
-- [x] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
+- [x] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (\*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
 - [x] `economy/serialization_test.go`: 保存→復元→等価検証テスト、トランザクション履歴込みの保存/復元テスト
 
 ## Phase 5-J: 経済バランス検証
@@ -507,6 +507,7 @@
 
 **D011: イベントはコマンドパターン**
 EventAction は MutableGameState を直接操作しない。代わりに EventCommand（SpawnWaveCommand, ModifyChiCommand 等）を返し、simulation層が適用する。これにより：
+
 - イベント実行の順序が明確
 - リプレイ時にイベントコマンドを再適用するだけで再現可能
 - イベントの副作用がログに残る
@@ -517,7 +518,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [x] `senju/evolution.go`: EvolutionCondition 構造体（MinLevel int, RequiredRoomElement types.Element（ゼロ値は条件なし）, MinChiRatio float64（部屋の気充填率条件））
 - [x] `senju/evolution.go`: EvolutionPath 構造体（FromSpeciesID string, ToSpeciesID string, Condition EvolutionCondition, ChiCost float64（経済層からの進化コスト））
-- [x] `senju/evolution_registry.go`: EvolutionRegistry（EvolutionPath のリスト管理、JSONロード）。GetPaths(speciesID string) []EvolutionPath。CheckEvolution(beast, roomChi, chiPoolBalance) *EvolutionPath — 条件を満たす進化先を返す（nil=条件未達）
+- [x] `senju/evolution_registry.go`: EvolutionRegistry（EvolutionPath のリスト管理、JSONロード）。GetPaths(speciesID string) []EvolutionPath。CheckEvolution(beast, roomChi, chiPoolBalance) \*EvolutionPath — 条件を満たす進化先を返す（nil=条件未達）
 - [x] `senju/evolution.go`: Evolve(beast, path, speciesRegistry) error — 進化実行（SpeciesID変更、ステータス再計算、レベル維持）
 - [x] `senju/evolution_data.json`: 初期進化経路（各基本種族に1段階の進化先。翠龍Lv15→蒼龍、炎鳳Lv15→朱雀、岩亀Lv20→玄武、金狼Lv15→白虎、水蛇Lv15→青龍）
 - [x] `senju/species_data.json` 更新: 進化後の5種族のステータスを追加
@@ -534,7 +535,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
 - [x] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
 - [x] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
-- [ ] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
+- [x] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
+- [ ] `make check` で品質を確認、必要に応じて修正
 
 ## Phase 6-C: world/ 拡張 — 地形バリエーション
 
@@ -590,14 +592,14 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-H: 地形テンプレート生成（scenario/）
 
 - [ ] `scenario/terrain.go`: TerrainGenerator 構造体。GenerateTerrain(width, height int, density float64, rng types.RNG) []TerrainZone — ランダムに掘削不可ゾーンを生成。TerrainZone 構造体（Pos types.Pos, Width int, Height int, Type world.CellType）
-- [ ] `scenario/terrain.go`: ApplyTerrain(cave *world.Cave, zones []TerrainZone) error — CaveにHardRock/Waterゾーンを配置。配置後にPrebuiltRooms との重複チェック
-- [ ] `scenario/terrain.go`: ValidateTerrain(cave *world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
+- [ ] `scenario/terrain.go`: ApplyTerrain(cave \*world.Cave, zones []TerrainZone) error — CaveにHardRock/Waterゾーンを配置。配置後にPrebuiltRooms との重複チェック
+- [ ] `scenario/terrain.go`: ValidateTerrain(cave \*world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
 - [ ] `scenario/terrain_test.go`: テンプレート適用テスト、掘削不可ゾーンに部屋配置が拒否されるテスト、決定論テスト（同一seed→同一地形）、ValidateTerrain が詰み地形を検出するテスト
 
 ## Phase 6-I: シナリオローダーとバリデーション（scenario/）
 
-- [ ] `scenario/loader.go`: LoadScenario(data []byte) (*Scenario, error) — JSONからシナリオ全体をロード
-- [ ] `scenario/loader.go`: ValidateScenario(s *Scenario) []error — シナリオ整合性チェック:
+- [ ] `scenario/loader.go`: LoadScenario(data []byte) (\*Scenario, error) — JSONからシナリオ全体をロード
+- [ ] `scenario/loader.go`: ValidateScenario(s \*Scenario) []error — シナリオ整合性チェック:
   - 勝利条件が少なくとも1つ存在
   - 敗北条件が少なくとも1つ存在
   - InitialState の部屋配置が Cave サイズ内
