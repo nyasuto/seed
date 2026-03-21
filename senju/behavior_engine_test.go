@@ -353,7 +353,7 @@ func TestBehaviorEngine_ChaseTimeout_RevertsToGuard(t *testing.T) {
 	invaders := map[int][]int{} // No invaders visible.
 
 	// Tick through timeout (timeout=2, so 3 ticks to exceed, then 4th detects it).
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		engine.Tick(beasts, invaders, nil)
 	}
 

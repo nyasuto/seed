@@ -1,6 +1,8 @@
 package invasion
 
 import (
+	"slices"
+
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
@@ -85,10 +87,5 @@ func (m *ExplorationMemory) RecordTreasureRoom(roomID int) {
 
 // hasTreasureRoom checks if a room ID is already in KnownTreasureRooms.
 func (m *ExplorationMemory) hasTreasureRoom(roomID int) bool {
-	for _, id := range m.KnownTreasureRooms {
-		if id == roomID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(m.KnownTreasureRooms, roomID)
 }

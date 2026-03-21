@@ -74,7 +74,7 @@ func TestD002_Principle1_ImperfectionForced(t *testing.T) {
 
 	results := make([]runResult, numSeeds)
 
-	for i := 0; i < numSeeds; i++ {
+	for i := range numSeeds {
 		terrainSeed := int64(i*1000 + 1)
 		sc := d002StandardScenario(terrainSeed)
 		rng := types.NewSeededRNG(42) // same engine RNG for all runs
@@ -317,7 +317,7 @@ func TestD002_Principle3_ContinuousTradeoffs(t *testing.T) {
 	wins := 0
 	perfectMaxWins := 0
 
-	for i := 0; i < numRuns; i++ {
+	for i := range numRuns {
 		seed := int64(i*97 + 1)
 		sc := d002StandardScenario(seed)
 		sc.Events = waveScheduleToEvents(sc.WaveSchedule)

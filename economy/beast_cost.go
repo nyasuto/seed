@@ -59,7 +59,7 @@ func (bc *BeastCost) CalcSummonCost(element types.Element) float64 {
 
 // parseElement converts an element name string to a types.Element.
 func parseElement(name string) (types.Element, error) {
-	for e := types.Element(0); e < types.Element(types.ElementCount); e++ {
+	for e := range types.Element(types.ElementCount) {
 		if e.String() == name {
 			return e, nil
 		}

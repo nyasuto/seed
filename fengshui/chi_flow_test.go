@@ -189,7 +189,7 @@ func TestChiFlowEngine_AdjacencyElementMultiplier(t *testing.T) {
 	cave1, _ := buildTwoRoomCave(t, "wood_room", "fire_room")
 	vein1, _ := BuildDragonVein(cave1, types.Pos{X: 1, Y: 1}, types.Wood, 10.0)
 	engine1 := NewChiFlowEngine(cave1, []*DragonVein{vein1}, reg, params)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		engine1.Tick()
 	}
 	chiFireFromWood := engine1.RoomChi[2].Current
@@ -201,7 +201,7 @@ func TestChiFlowEngine_AdjacencyElementMultiplier(t *testing.T) {
 	cave2, _ := buildTwoRoomCave(t, "wood_room", "metal_room")
 	vein2, _ := BuildDragonVein(cave2, types.Pos{X: 1, Y: 1}, types.Wood, 10.0)
 	engine2 := NewChiFlowEngine(cave2, []*DragonVein{vein2}, reg, params)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		engine2.Tick()
 	}
 	chiMetalFromWood := engine2.RoomChi[2].Current
@@ -224,7 +224,7 @@ func TestChiFlowEngine_BaseDecay(t *testing.T) {
 	engine := NewChiFlowEngine(cave, []*DragonVein{vein}, reg, params)
 
 	// Supply chi for 5 ticks.
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		engine.Tick()
 	}
 	chiBeforeDecay := engine.RoomChi[1].Current
@@ -253,7 +253,7 @@ func TestChiFlowEngine_CapacityClamp(t *testing.T) {
 	engine := NewChiFlowEngine(cave, []*DragonVein{vein}, reg, params)
 
 	// Run many ticks.
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		engine.Tick()
 	}
 
@@ -341,7 +341,7 @@ func TestChiFlowEngine_SteadyState(t *testing.T) {
 
 	// Run many ticks to approach steady state.
 	var prev1, prev2 float64
-	for i := 0; i < 200; i++ {
+	for range 200 {
 		engine.Tick()
 		prev1 = engine.RoomChi[1].Current
 		prev2 = engine.RoomChi[2].Current

@@ -1,6 +1,7 @@
 package invasion
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/testutil"
@@ -177,13 +178,7 @@ func TestFindNextRoom_UnknownTarget_ExploresUnvisited(t *testing.T) {
 	next := pf.FindNextRoom(invader, rng)
 	// Should pick an unvisited neighbor. All 3 neighbors are unvisited.
 	neighbors := graph.Neighbors(rooms[1].ID)
-	found := false
-	for _, n := range neighbors {
-		if n == next {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(neighbors, next)
 	if !found {
 		t.Errorf("FindNextRoom = %d, not a neighbor of room %d", next, rooms[1].ID)
 	}
@@ -242,13 +237,7 @@ func TestFindNextRoom_FullyExplored_RandomMove(t *testing.T) {
 	next := pf.FindNextRoom(invader, rng)
 	// Should pick a random neighbor.
 	neighbors := graph.Neighbors(rooms[1].ID)
-	found := false
-	for _, n := range neighbors {
-		if n == next {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(neighbors, next)
 	if !found {
 		t.Errorf("FindNextRoom random = %d, not a neighbor of room %d", next, rooms[1].ID)
 	}

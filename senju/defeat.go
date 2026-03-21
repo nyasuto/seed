@@ -51,10 +51,7 @@ func (dp *DefeatProcessor) ProcessDefeat(beast *Beast, tick types.Tick) DefeatRe
 		levelPenalty = beast.Level - 1
 	}
 
-	revivalHP := int(float64(beast.MaxHP) * dp.params.RevivalHPRatio)
-	if revivalHP < 1 {
-		revivalHP = 1
-	}
+	revivalHP := max(int(float64(beast.MaxHP)*dp.params.RevivalHPRatio), 1)
 
 	return DefeatResult{
 		BeastID:      beast.ID,

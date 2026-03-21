@@ -18,7 +18,7 @@ import (
 // The loop ends early if a win or loss condition is met. If maxTicks is reached
 // without a terminal condition, the game is considered lost due to timeout.
 func (e *SimulationEngine) Run(maxTicks int, actionProvider func(scenario.GameSnapshot) []PlayerAction) (GameResult, error) {
-	for i := 0; i < maxTicks; i++ {
+	for range maxTicks {
 		var actions []PlayerAction
 		if actionProvider != nil {
 			snapshot := BuildSnapshot(e.State)
@@ -95,10 +95,7 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 		}
 		if tick >= dr.RevivalTick {
 			beast.State = senju.Idle
-			beast.HP = dr.RevivalHP
-			if beast.HP < 1 {
-				beast.HP = 1
-			}
+			beast.HP = max(dr.RevivalHP, 1)
 			delete(s.DefeatResults, beast.ID)
 			tickEvents = append(tickEvents, fmt.Sprintf("beast %d revived", beast.ID))
 		}
@@ -547,28 +544,28 @@ func NewSimulationEngine(sc *scenario.Scenario, rng types.RNG) (*SimulationEngin
 	}
 
 	state := &GameState{
-		Cave:                   cave,
-		RoomTypeRegistry:       roomReg,
-		ChiFlowEngine:          chiFlowEngine,
-		Beasts:                 beasts,
-		GrowthEngine:           growthEngine,
-		BehaviorEngine:         behaviorEngine,
-		DefeatProcessor:        defeatProcessor,
-		SpeciesRegistry:        speciesReg,
-		EvolutionRegistry:      evoReg,
-		InvasionEngine:         invasionEngine,
-		Waves:                  nil,
-		InvaderClassRegistry:   invaderClassReg,
-		EconomyEngine:          economyEngine,
-		Scenario:               sc,
-		Progress:               progress,
-		EventEngine:            eventEngine,
-		RNG:                    rng,
-		NextBeastID:            nextBeastID,
-		NextWaveID:             1,
-		ScoreParams:            fengshui.DefaultScoreParams(),
+		Cave:                    cave,
+		RoomTypeRegistry:        roomReg,
+		ChiFlowEngine:           chiFlowEngine,
+		Beasts:                  beasts,
+		GrowthEngine:            growthEngine,
+		BehaviorEngine:          behaviorEngine,
+		DefeatProcessor:         defeatProcessor,
+		SpeciesRegistry:         speciesReg,
+		EvolutionRegistry:       evoReg,
+		InvasionEngine:          invasionEngine,
+		Waves:                   nil,
+		InvaderClassRegistry:    invaderClassReg,
+		EconomyEngine:           economyEngine,
+		Scenario:                sc,
+		Progress:                progress,
+		EventEngine:             eventEngine,
+		RNG:                     rng,
+		NextBeastID:             nextBeastID,
+		NextWaveID:              1,
+		ScoreParams:             fengshui.DefaultScoreParams(),
 		ConsecutiveDeficitTicks: 0,
-		ScheduledWaves:         scheduledWaves,
+		ScheduledWaves:          scheduledWaves,
 	}
 
 	return &SimulationEngine{

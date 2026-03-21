@@ -59,16 +59,16 @@ func setupRegistries() (*world.RoomTypeRegistry, *senju.SpeciesRegistry, *invasi
 
 	invReg := invasion.NewInvaderClassRegistry()
 	_ = invReg.Register(invasion.InvaderClass{
-		ID:                "wood_ascetic",
-		Name:              "木行修験者",
-		Element:           types.Wood,
-		BaseHP:            15,
-		BaseATK:           6,
-		BaseDEF:           4,
-		BaseSPD:           5,
-		RewardChi:         10.0,
-		PreferredGoal:     invasion.DestroyCore,
-		RetreatThreshold:  0.2,
+		ID:               "wood_ascetic",
+		Name:             "木行修験者",
+		Element:          types.Wood,
+		BaseHP:           15,
+		BaseATK:          6,
+		BaseDEF:          4,
+		BaseSPD:          5,
+		RewardChi:        10.0,
+		PreferredGoal:    invasion.DestroyCore,
+		RetreatThreshold: 0.2,
 	})
 
 	return roomReg, specReg, invReg
@@ -387,10 +387,7 @@ func TestIntegration_TutorialScenario(t *testing.T) {
 		}
 
 		// Revival HP should be 30% of MaxHP (default ratio).
-		expectedHP := int(float64(beast.MaxHP) * 0.3)
-		if expectedHP < 1 {
-			expectedHP = 1
-		}
+		expectedHP := max(int(float64(beast.MaxHP)*0.3), 1)
 		if result.RevivalHP != expectedHP {
 			t.Errorf("RevivalHP: got %d, want %d", result.RevivalHP, expectedHP)
 		}

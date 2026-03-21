@@ -216,7 +216,7 @@ func TestChaseBehavior_Timeout(t *testing.T) {
 	}
 
 	// Tick through the timeout.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		action := chase.DecideAction(ctx)
 		if action.Type != Stay {
 			t.Errorf("tick %d: expected Stay, got %s", i+1, action.Type)

@@ -21,7 +21,7 @@ func TestChiFlowEngineSerialization_SaveRestore(t *testing.T) {
 	engine := NewChiFlowEngine(cave, []*DragonVein{vein}, reg, params)
 
 	// Run a few ticks to get non-zero chi values.
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		engine.Tick()
 	}
 

@@ -91,10 +91,7 @@ func CalcFirstWaveTiming(initialState InitialState, costs economy.ConstructionCo
 	ticksNeeded := remaining / chiPerTick
 
 	// Return a tick partway through (midpoint) to impose time pressure.
-	midpoint := types.Tick(ticksNeeded / 2)
-	if midpoint < 10 {
-		midpoint = 10
-	}
+	midpoint := max(types.Tick(ticksNeeded/2), 10)
 
 	return midpoint
 }

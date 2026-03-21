@@ -67,10 +67,7 @@ func (ce *CombatEngine) calcDamage(attackerATK int, defenderDEF int, attackerEle
 		raw *= ce.params.CriticalMultiplier
 	}
 
-	dmg := int(math.Round(raw))
-	if dmg < ce.params.MinDamage {
-		dmg = ce.params.MinDamage
-	}
+	dmg := max(int(math.Round(raw)), ce.params.MinDamage)
 	return dmg, isCrit
 }
 
@@ -175,10 +172,7 @@ func (ce *CombatEngine) ResolveRoomCombat(beasts []*senju.Beast, invaders []*Inv
 	})
 
 	// Pair up by index; min(len, len) pairs
-	pairs := len(beastsSorted)
-	if len(invadersSorted) < pairs {
-		pairs = len(invadersSorted)
-	}
+	pairs := min(len(invadersSorted), len(beastsSorted))
 
 	results := make([]CombatRoundResult, 0, pairs)
 	for i := 0; i < pairs; i++ {

@@ -142,7 +142,7 @@ func TestEventEngine_FiredEventsPersistence(t *testing.T) {
 	snapshot := GameSnapshot{Tick: 10, CoreHP: 10}
 
 	// Tick 3 times.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		cmds, err := engine.Tick(snapshot, events)
 		if err != nil {
 			t.Fatalf("tick %d: unexpected error: %v", i, err)
@@ -188,7 +188,7 @@ func TestEventEngine_NonOneShotFiresRepeatedly(t *testing.T) {
 
 	snapshot := GameSnapshot{Tick: 5, CoreHP: 10}
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		cmds, err := engine.Tick(snapshot, events)
 		if err != nil {
 			t.Fatalf("tick %d: unexpected error: %v", i, err)

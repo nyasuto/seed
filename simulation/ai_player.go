@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/ponpoko/chaosseed-core/scenario"
@@ -331,7 +332,7 @@ func (ai *RandomAIPlayer) randomSummon() PlayerAction {
 	if len(elements) == 0 {
 		return nil
 	}
-	sort.Slice(elements, func(i, j int) bool { return elements[i] < elements[j] })
+	slices.Sort(elements)
 	return SummonBeastAction{Element: elements[ai.rng.Intn(len(elements))]}
 }
 
