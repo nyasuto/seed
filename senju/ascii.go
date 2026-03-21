@@ -1,32 +1,9 @@
 package senju
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
-
-// elementChar returns a single character representing the element.
-//
-//	Wood: W, Fire: F, Earth: E, Metal: M, Water: A
-func elementChar(e types.Element) byte {
-	switch e {
-	case types.Wood:
-		return 'W'
-	case types.Fire:
-		return 'F'
-	case types.Earth:
-		return 'E'
-	case types.Metal:
-		return 'M'
-	case types.Water:
-		return 'A'
-	default:
-		return '?'
-	}
-}
 
 // beastOverlay holds pre-computed per-room beast display info.
 type beastOverlay struct {
@@ -57,52 +34,14 @@ func RenderBeastOverlay(cave *world.Cave, beasts []*Beast) string {
 		}
 	}
 
-	g := cave.Grid
-	var sb strings.Builder
-
-	for y := 0; y < g.Height; y++ {
-		for x := 0; x < g.Width; x++ {
-			cell, _ := g.At(types.Pos{X: x, Y: y})
-			switch cell.Type {
-			case world.RoomFloor:
-				if cell.RoomID > 0 {
-					if info, ok := roomBeasts[cell.RoomID]; ok {
-						sb.WriteString(beastTile(info))
-					} else {
-						ch := roomIDChar(cell.RoomID)
-						sb.WriteByte(ch)
-						sb.WriteByte(ch)
-					}
-				} else {
-					sb.WriteString("[]")
-				}
-			case world.Entrance:
-				sb.WriteString("><")
-			case world.CorridorFloor:
-				sb.WriteString("..")
-			case world.Rock:
-				sb.WriteString("██")
-			default:
-				sb.WriteString("??")
+	return world.RenderGrid(cave.Grid, func(_ types.Pos, cell world.Cell) string {
+		if cell.Type == world.RoomFloor && cell.RoomID > 0 {
+			if info, ok := roomBeasts[cell.RoomID]; ok {
+				return world.CountTile(info.count, info.element.Char())
 			}
 		}
-		sb.WriteByte('\n')
-	}
-
-	return sb.String()
-}
-
-// beastTile returns a 2-character tile for a room's beast overlay.
-func beastTile(info *beastOverlay) string {
-	ch := elementChar(info.element)
-	if info.count == 1 {
-		return string([]byte{ch, ch})
-	}
-	if info.count <= 9 {
-		return fmt.Sprintf("%d%c", info.count, ch)
-	}
-	// 10+ beasts: show "9+" as a cap
-	return "9+"
+		return ""
+	})
 }
 
 // stateTag returns a short display string representing the beast's behavior state.
@@ -129,9 +68,8 @@ func stateTag(state BeastState) string {
 
 // behaviorOverlay holds pre-computed per-room beast behavior display info.
 type behaviorOverlay struct {
-	count   int
-	element types.Element
-	state   BeastState
+	count int
+	state BeastState
 }
 
 // RenderBehaviorOverlay returns an ASCII representation of the cave with beast
@@ -147,7 +85,7 @@ func RenderBehaviorOverlay(cave *world.Cave, beasts []*Beast, invaderPositions m
 		}
 		info, ok := roomInfo[b.RoomID]
 		if !ok {
-			roomInfo[b.RoomID] = &behaviorOverlay{count: 1, element: b.Element, state: b.State}
+			roomInfo[b.RoomID] = &behaviorOverlay{count: 1, state: b.State}
 		} else {
 			info.count++
 		}
@@ -161,55 +99,17 @@ func RenderBehaviorOverlay(cave *world.Cave, beasts []*Beast, invaderPositions m
 		}
 	}
 
-	g := cave.Grid
-	var sb strings.Builder
-
-	for y := 0; y < g.Height; y++ {
-		for x := 0; x < g.Width; x++ {
-			cell, _ := g.At(types.Pos{X: x, Y: y})
-			switch cell.Type {
-			case world.RoomFloor:
-				if cell.RoomID > 0 {
-					if invaderRooms[cell.RoomID] {
-						sb.WriteString("??")
-					} else if info, ok := roomInfo[cell.RoomID]; ok {
-						sb.WriteString(behaviorTile(info))
-					} else {
-						ch := roomIDChar(cell.RoomID)
-						sb.WriteByte(ch)
-						sb.WriteByte(ch)
-					}
-				} else {
-					sb.WriteString("[]")
-				}
-			case world.Entrance:
-				sb.WriteString("><")
-			case world.CorridorFloor:
-				sb.WriteString("..")
-			case world.Rock:
-				sb.WriteString("██")
-			default:
-				sb.WriteString("??")
+	return world.RenderGrid(cave.Grid, func(_ types.Pos, cell world.Cell) string {
+		if cell.Type == world.RoomFloor && cell.RoomID > 0 {
+			if invaderRooms[cell.RoomID] {
+				return "??"
+			}
+			if info, ok := roomInfo[cell.RoomID]; ok {
+				return world.CountTile(info.count, stateChar(info.state))
 			}
 		}
-		sb.WriteByte('\n')
-	}
-
-	return sb.String()
-}
-
-// behaviorTile returns a 2-character tile based on the beast's state.
-// For single beasts the state tag's inner character is doubled (e.g. "GG").
-// For multiple beasts the count + state char (e.g. "2G").
-func behaviorTile(info *behaviorOverlay) string {
-	ch := stateChar(info.state)
-	if info.count == 1 {
-		return string([]byte{ch, ch})
-	}
-	if info.count <= 9 {
-		return fmt.Sprintf("%d%c", info.count, ch)
-	}
-	return "9+"
+		return ""
+	})
 }
 
 // stateChar returns a single character for a beast state display in tiles.
@@ -228,13 +128,4 @@ func stateChar(state BeastState) byte {
 	default:
 		return '?'
 	}
-}
-
-// roomIDChar returns a display character for a room ID.
-// 1-9 → '1'-'9', 10-35 → 'A'-'Z'.
-func roomIDChar(id int) byte {
-	if id >= 1 && id <= 9 {
-		return byte('0' + id)
-	}
-	return byte('A' + id - 10)
 }

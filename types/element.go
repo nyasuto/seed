@@ -19,6 +19,26 @@ const (
 // ElementCount is the total number of elements.
 const ElementCount = 5
 
+// Char returns a single display character for the element.
+//
+//	Wood: 'W', Fire: 'F', Earth: 'E', Metal: 'M', Water: 'A'
+func (e Element) Char() byte {
+	switch e {
+	case Wood:
+		return 'W'
+	case Fire:
+		return 'F'
+	case Earth:
+		return 'E'
+	case Metal:
+		return 'M'
+	case Water:
+		return 'A'
+	default:
+		return '?'
+	}
+}
+
 // String returns the English name of the element.
 func (e Element) String() string {
 	switch e {
