@@ -637,3 +637,119 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - CoreHP が侵入者攻撃で減少するテスト
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 6 完了。DECISIONS.md に D010（CoreHP）, D011（EventCommand パターン）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase7_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+
+# Phase 7 改訂版 — 統合シミュレーション（simulation/）
+
+> PRD Phase 7: 全システム統合、ゲームループ、プレイヤーアクション、リプレイ。
+> D001: プロファイリングと差分更新の判断。
+> D002: 3原則の定量検証。
+> D011: EventCommand の適用。
+
+## Phase 7-A: 基本型定義（simulation/）
+
+- [ ] `simulation/doc.go`: パッケージドキュメント
+- [ ] `simulation/state.go`: GameState 構造体（全サブシステムのエンジン + Scenario + Progress + RNG を統合保持）
+- [ ] `simulation/state.go`: GameStatus（Running/Won/Lost）、GameResult（Status, FinalTick, Reason）
+- [ ] `simulation/action.go`: PlayerAction インターフェース。具体的なアクション:
+  - DigRoomAction（roomTypeID, pos, width, height）
+  - DigCorridorAction（fromRoomID, toRoomID）
+  - PlaceBeastAction（speciesID, roomID）
+  - UpgradeRoomAction（roomID）
+  - SummonBeastAction（element）
+  - EvolveBeastAction（beastID）
+  - NoAction（何もしない）
+- [ ] `simulation/action.go`: ValidateAction(action, state) error — アクションの事前バリデーション（コスト足りるか、配置可能か等）
+- [ ] `simulation/action.go`: ApplyAction(action, state) (ActionResult, error) — アクション実行。EconomyEngine.TryXxx を内部で呼ぶ。ActionResult（Success bool, Cost float64, Description string）
+- [ ] `simulation/action_test.go`: 各アクション型のバリデーション・実行テスト、残高不足テスト、不正配置テスト
+
+## Phase 7-B: コマンド実行器（simulation/）
+
+- [ ] `simulation/executor.go`: CommandExecutor。Apply(state, []EventCommand) error。各コマンド型を判別し状態変更を実行（SpawnWave/ModifyChi/ModifyConstraint/Message）
+- [ ] `simulation/executor_test.go`: 各コマンド型の適用テスト
+
+## Phase 7-C: メインループ（simulation/）
+
+- [ ] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
+- [ ] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
+- [ ] `simulation/engine.go`: NewSimulationEngine(scenario, rng) — InitialStateからGameState構築（地形適用、初期部屋配置、初期仙獣配置、龍脈生成、ChiPool初期化）
+- [ ] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
+  1. PlayerAction のバリデーション → 実行
+  2. ChiFlowEngine.Tick（気の供給・伝播・減衰）
+  3. GrowthEngine.Tick（仙獣成長、赤字ペナルティ適用）
+  4. DefeatProcessor（Stunned仙獣の復活チェック）
+  5. EvolutionEngine（進化条件チェック → 実行）
+  6. BehaviorEngine.Tick（仙獣行動AI）
+  7. InvasionEngine.Tick（侵入者移動・戦闘・CoreHPダメージ）
+  8. InvasionEconomyProcessor（報酬・損失のChiPool反映）
+  9. EconomyEngine.Tick（供給・維持・赤字処理）
+  10. EventEngine.Tick → CommandExecutor.Apply
+  11. 勝利/敗北条件評価
+  12. TickLog記録
+- [ ] `simulation/engine.go`: Run(maxTicks, actionProvider func(GameSnapshot) []PlayerAction) GameResult — actionProviderで毎ティックのアクションを外部から注入。nil なら NoAction
+- [ ] `simulation/engine_test.go`: 1ティック実行テスト、勝利到達テスト、敗北到達テスト、PlayerAction実行テスト、maxTicks制限テスト
+
+## Phase 7-D: スナップショットと巻き戻し（simulation/）
+
+- [ ] `simulation/checkpoint.go`: Checkpoint 構造体。CreateCheckpoint / RestoreCheckpoint
+- [ ] `simulation/checkpoint_test.go`: 保存→復元→同一seed続行で結果一致テスト
+
+## Phase 7-E: リプレイ（simulation/）
+
+- [ ] `simulation/replay.go`: Replay 構造体（Seed int64, ScenarioID string, Actions map[types.Tick][]PlayerAction）。RecordReplay(engine) *Replay — 実行中のアクション記録。PlayReplay(replay, scenario) GameResult — 記録されたアクションを再生
+- [ ] `simulation/replay.go`: MarshalReplay / UnmarshalReplay — JSON保存/復元
+- [ ] `simulation/replay_test.go`: 記録→再生で同一GameResult テスト、リプレイのJSON往復テスト
+
+## Phase 7-F: AIプレイヤー（simulation/）
+
+- [ ] `simulation/ai_player.go`: AIPlayer インターフェース（DecideActions(snapshot GameSnapshot) []PlayerAction）
+- [ ] `simulation/ai_player.go`: SimpleAIPlayer — 最低限の自動プレイヤー:
+  1. ChiPool に余裕があれば最安の部屋を建設
+  2. 仙獣部屋に空きがあれば召喚
+  3. 侵入波が来る前に龍穴前にGuard仙獣を配置
+  4. それ以外はNoAction
+- [ ] `simulation/ai_player.go`: RandomAIPlayer — ランダムにアクションを選択（RNG経由）。バランステストで「何をしても破綻しないか」の検証用
+- [ ] `simulation/ai_player_test.go`: SimpleAIがチュートリアルシナリオをクリアできるテスト、RandomAIが即座にクラッシュしないテスト
+
+## Phase 7-G: D001 プロファイリング
+
+- [ ] `simulation/benchmark_test.go`: OnCaveChanged のベンチマーク。部屋数 5/10/20/50 でのティック実行時間を計測
+- [ ] `simulation/benchmark_test.go`: 全体ティックのベンチマーク。標準シナリオ100ティックの実行時間を計測
+- [ ] DECISIONS.md D001 を更新: ベンチマーク結果を記録し、差分更新が必要かどうかを判断
+
+## Phase 7-H: D002 定量検証
+
+- [ ] `simulation/d002_test.go`: D002原則1（不完全性の強制）検証:
+  - 標準シナリオを異なる地形seed×10パターンで実行
+  - SimpleAIの最終風水スコアがseedごとに異なることを確認（最適配置が毎回変わる）
+- [ ] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
+  - 標準シナリオで侵入波到達時のSimpleAIの構築進捗を記録
+  - 侵入波の50%以上が「部屋数 < MaxRooms/2」の状態で到達すること
+- [ ] `simulation/d002_test.go`: D002原則3（トレードオフの連続）検証:
+  - SimpleAIで標準シナリオを100回実行
+  - ゲームクリア時に「全部屋MAX + 全仙獣MAX」到達率が0%であること
+- [ ] `simulation/d002_test.go`: アンチパターン検証:
+  - antipattern_rich シナリオでSimpleAIを実行し「常に黒字」になることを確認（これは面白くないシナリオであることの証拠）
+  - antipattern_impossible シナリオでSimpleAIを実行し即座に敗北することを確認
+
+## Phase 7-I: CLIシミュレーター向けインターフェース（simulation/）
+
+- [ ] `simulation/runner.go`: SimulationRunner。RunWithAI(scenarioJSON, seed, aiPlayer) RunResult。RunInteractive(scenarioJSON, seed, actionCh chan []PlayerAction, snapshotCh chan GameSnapshot) — チャネルベースの対話型実行
+- [ ] `simulation/runner.go`: RunResult（GameResult, TickCount, Statistics）。RunStatistics（PeakChi, WavesDefeated, FinalFengShui, Evolutions, DamageDealt, DamageReceived, DeficitTicks）
+- [ ] `simulation/runner.go`: BatchRun(scenarioJSON, seeds []int64, aiPlayer) []RunResult — 複数seedで一括実行。バランス調整用
+- [ ] `simulation/runner_test.go`: RunWithAI テスト、BatchRun の決定論性テスト、RunStatistics の集計テスト
+
+## Phase 7-J: ASCII統合表示
+
+- [ ] `simulation/ascii.go`: RenderFullStatus(engine) string — 全レイヤー統合のステータス表示（地形+気+仙獣+侵入者+経済+シナリオ進行を1画面に）
+- [ ] `cmd/caveviz/main.go` 更新: `--simulate <scenario.json> --seed <N>` でシナリオ自動実行＋毎ティック表示
+
+## Phase 7-K: 統合検証
+
+- [ ] `simulation/integration_test.go`: チュートリアルシナリオでSimpleAIが勝利するエンドツーエンドテスト
+- [ ] `simulation/integration_test.go`: 標準シナリオでSimpleAIが少なくとも3波は撃退できるテスト
+- [ ] `simulation/integration_test.go`: 同一seed×2回実行で完全一致テスト（決定論性）
+- [ ] `simulation/integration_test.go`: チェックポイント復元テスト（100tick→保存→復元→続行が元実行と一致）
+- [ ] `simulation/integration_test.go`: リプレイ再生テスト（記録→再生で同一結果）
+- [ ] `simulation/integration_test.go`: 大規模ストレステスト（64x64、部屋10、仙獣8、波10、1000tick以内完了）
+- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [ ] Phase 7 完了。DECISIONS.md 最終更新。CHANGELOG.md に全フェーズの記録。v1.0.0 タグ準備。PHASE_COMPLETE 作成。**chaosseed-core v1.0.0 リリース**

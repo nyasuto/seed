@@ -4,7 +4,6 @@
 > - **OPEN**: 未解決。将来のフェーズで対応が必要
 > - **ACTIVE**: 現在有効な設計原則。変更予定なし
 > - **RESOLVED**: 後続フェーズで対応済み
-> - **SUPERSEDED**: 後続の判断で上書きされた（参照元を明記）
 
 ---
 
@@ -22,7 +21,7 @@
 
 **影響範囲**: `fengshui/chi_flow.go` の `OnCaveChanged` メソッド
 
-**対応予定**: Phase 7（統合シミュレーション）でプロファイリングを行い、必要に応じて差分更新に切り替える
+**対応予定**: Phase 7-G でベンチマークを実施し、部屋数別の実行時間を計測した上で差分更新の要否を判断する
 
 ---
 
@@ -38,9 +37,9 @@
 
 | 原則 | 内容 | 実装状況 |
 |---|---|---|
-| 原則1: 不完全性の強制 | 地形のランダム制約で理想配置が不可能 | **OPEN** — Phase 1のGridは均一岩盤のまま。地形バリエーションはPhase 6以降で追加 |
-| 原則2: 時間圧力 | 侵入波がプレイヤーの準備完了を待たない | **PARTIAL** — Phase 4でWaveSchedule実装済み（D007）。シナリオレベルの調整はPhase 6で |
-| 原則3: トレードオフの連続 | リソースが常に不足 | **PARTIAL** — Phase 5で経済システム設計済み。バランス検証はPhase 5-Jとphase 7で |
+| 原則1: 不完全性の強制 | 地形のランダム制約で理想配置が不可能 | **IMPLEMENTED** — Phase 6-C/6-H で HardRock/Water セル、TerrainGenerator、ValidateTerrain（詰み防止）を実装 |
+| 原則2: 時間圧力 | 侵入波がプレイヤーの準備完了を待たない | **IMPLEMENTED** — Phase 4 で WaveSchedule 基盤、Phase 6-G で DynamicWaveScheduler + CalcFirstWaveTiming を実装 |
+| 原則3: トレードオフの連続 | リソースが常に不足 | **IMPLEMENTED** — Phase 5 で経済構造実装。定量検証は Phase 7-H で実施予定 |
 
 ### アンチパターン（避けるべき設計）
 - 十分な時間があれば完璧なダンジョンが完成する → ゲームの死
@@ -48,7 +47,7 @@
 - 侵入者が弱すぎて構築の邪魔にならない → 判断の必要性が消滅
 - リソースが潤沢で全部に投資できる → トレードオフの消滅
 
-### 検証方法（Phase 7で実施）
+### 検証方法（Phase 7-H で実施）
 1. AIプレイヤーによる数千ゲームの自動実行で、「全部屋MAX」到達率がゲームクリア前に0%に近いこと
 2. 同じシナリオでも地形RNGの違いで最適配置が変わること
 3. 侵入波の50%以上が「構築中」に到達すること
@@ -111,7 +110,7 @@
 - 戦闘ステータスの計算は乗算数回で非常に軽量
 - 戦闘解決時にのみ呼ばれるため、頻度も低い
 
-**解決確認**: Phase 4のResolveRoomCombatで実際に使用され、パフォーマンス問題なし。設計として定着。変更の必要なし。
+**解決確認**: Phase 4のResolveRoomCombatで実際に使用され、パフォーマンス問題なし。設計として定着。
 
 **影響範囲**: `senju/combat_stats.go`
 
@@ -148,7 +147,7 @@
 - senju パッケージが invasion パッケージに依存しない（循環依存防止）
 - 侵入者の「どの部屋にいるか」だけが行動判定に必要
 
-**解決確認**: Phase 4で `InvasionEngine.BuildInvaderPositions()` が実装され、このmap[int][]intを生成してBehaviorEngineに渡すフローが確立。設計意図通りに機能。
+**解決確認**: Phase 4で `InvasionEngine.BuildInvaderPositions()` が実装され、設計意図通りに機能。
 
 **影響範囲**: `senju/behavior_engine.go`, `invasion/engine.go`
 
@@ -156,21 +155,23 @@
 
 ## D007: D002時間圧力のPhase 4段階の実装
 
-**ステータス**: ACTIVE（Phase 6でシナリオレベルの調整が必要）
+**ステータス**: RESOLVED（Phase 6で残作業消化）
 **日付**: 2026-03-21
-**フェーズ**: Phase 4
+**フェーズ**: Phase 4, Phase 6
 
-**判断**: D002の「時間圧力」原則をPhase 4で以下の形で具体化:
+**判断**: D002の「時間圧力」原則をPhase 4で基盤実装し、Phase 6でシナリオレベルの調整を完了。
+
+**Phase 4での実装**:
 1. WaveSchedule による固定タイミングの侵入波
 2. テスト用スケジュールの早期侵入（tick 50）
 3. 難易度のエスカレーション
 
-**残作業**: Phase 6のシナリオシステムで以下を実装:
-- シナリオごとの波間隔チューニング
-- 「構築中に防衛が割り込む」体験のシナリオレベル設計
-- D002「面白さ3: 中断される面白さ」の実現
+**Phase 6での解決**:
+- DynamicWaveScheduler: シナリオごとの波間隔チューニング
+- CalcFirstWaveTiming: 初期リソースと建設コストから「構築が十分でないタイミング」を自動算出
+- D002「面白さ3: 中断される面白さ」のシナリオレベル設計基盤が確立
 
-**影響範囲**: `invasion/wave_schedule.go`
+**影響範囲**: `invasion/wave_schedule.go`, `scenario/wave_schedule.go`
 
 ---
 
@@ -196,7 +197,7 @@
 
 ## D009: ChiPool（経済層）と ChiFlowEngine（物理層）の二層構造
 
-**ステータス**: ACTIVE（Phase 5で新規追加）
+**ステータス**: ACTIVE
 **日付**: 2026-03-21
 **フェーズ**: Phase 5
 
@@ -216,7 +217,7 @@
 - 物理層はシミュレーションの正確性が重要（気の流れ、属性相性）
 - 経済層はゲームバランスの調整容易性が重要（JSON外出しのパラメータで調整）
 - 二層に分離することで、物理層のパラメータ変更が直接経済を破壊せず、SupplyCalculatorの変換式で吸収できる
-- D002原則3「トレードオフの連続」は経済層で保証する。物理層がいくら豊かでも、経済層のコスト構造がトレードオフを強制する
+- D002原則3「トレードオフの連続」は経済層で保証する
 
 **影響範囲**: `fengshui/` (物理層), `economy/` (経済層), `economy/supply.go` (接続点)
 
@@ -228,21 +229,19 @@
 **日付**: 2026-03-21
 **フェーズ**: Phase 6
 
-**判断**: 龍穴（dragon_hole）のコア部屋にHP（CoreHP）を持たせ、侵入者がコア部屋に到達・攻撃すると減少する。CoreHP が 0 以下になるとゲーム敗北。
+**判断**: 龍穴（コア部屋）にHP概念を追加する。侵入者がコア部屋に到達して攻撃するとCoreHPが減少し、0以下でゲーム敗北。
 
 **設計**:
-1. `RoomType.BaseCoreHP` にベース値を定義。dragon_hole のみ非ゼロ
-2. `RoomType.CoreHPAtLevel(level)` で `BaseCoreHP * level` を計算（レベルに応じたスケーリング）
-3. `Room.CoreHP` に現在値を保持。非コア部屋は 0
-4. `ScenarioProgress.CoreHP` で可変状態として追跡。`MarshalProgress`/`UnmarshalProgress` でシリアライズ可能
-5. `GameSnapshot.CoreHP` で条件評価器に読み取り専用で提供
+1. `RoomType.BaseCoreHP` にベース値を定義（龍穴のみ非ゼロ: 100）
+2. `RoomType.CoreHPAtLevel(level)` で `BaseCoreHP * level` を計算
+3. `Room.CoreHP` に現在値を保持
+4. `GameSnapshot.CoreHP` で条件評価器に読み取り専用で提供
 
 **理由**:
-- コアHPは Room に帰属させることで、部屋のレベルアップと自然に連動する
-- 条件評価は GameSnapshot（読み取り専用）経由とし、決定論性を保証する
-- 勝利条件（SurviveUntil: CoreHP > 0）と敗北条件（CoreDestroyed: CoreHP ≤ 0）の両方で参照される
+- 一定ティック滞在ではなく攻撃ベースにすることで、仙獣による防衛の意味が増す（侵入者を殴って追い返せばCoreHPは減らない）
+- 部屋のレベルアップとCoreHPが自然に連動する
 
-**影響範囲**: `world/room_type.go`, `world/room.go`, `scenario/progress.go`, `scenario/condition.go`, `scenario/conditions.go`
+**影響範囲**: `world/room_type.go`, `world/room.go`, `scenario/progress.go`, `scenario/conditions.go`
 
 ---
 
@@ -252,32 +251,86 @@
 **日付**: 2026-03-21
 **フェーズ**: Phase 6
 
-**判断**: イベントシステムは直接ゲーム状態を変更せず、`EventCommand` インターフェースを返す。実際の状態変更は Phase 7 の simulation 層が担当する。
+**判断**: イベントシステムは直接ゲーム状態を変更せず、`EventCommand` インターフェースを返す。実際の状態変更は Phase 7 の simulation 層の CommandExecutor が担当する。
 
 **設計**:
 1. `EventCommand` インターフェース: `Execute() string` で人間可読な説明を返す
-2. 4つのコマンド型: `SpawnWaveCommand`, `ModifyChiCommand`, `ModifyConstraintCommand`, `MessageCommand`
-3. `NewCommand(def CommandDef)` ファクトリで JSON 定義からコマンドを生成
+2. 4つのコマンド型: SpawnWaveCommand, ModifyChiCommand, ModifyConstraintCommand, MessageCommand
+3. `NewCommand(def CommandDef)` ファクトリでJSON定義からコマンドを生成
 4. `EventEngine.Tick()` は `GameSnapshot`（読み取り専用）を受け取り、条件を評価して `[]EventCommand` を返す
-5. OneShot イベントは `FiredEvents` マップで発火済みを追跡
 
 **理由**:
 - 関心の分離: イベントは「何をすべきか」を宣言し、「どう実行するか」は simulation 層に委ねる
 - 決定論性: 条件評価は純粋関数（GameSnapshot → bool）で副作用なし
-- 監査性: `Execute()` が全コマンドの人間可読ログを提供
+- 監査性: 全コマンドの人間可読ログを提供
 - 拡張性: ファクトリにコマンド型を追加するだけで新しいイベントアクションを追加可能
-- データ駆動: イベント定義は JSON から読み込み、コード変更なしにシナリオを追加可能
+- データ駆動: イベント定義はJSONから読み込み、コード変更なしにシナリオを追加可能
 
-**影響範囲**: `scenario/command.go`, `scenario/event_engine.go`, `scenario/event.go`, `scenario/condition.go`
+**影響範囲**: `scenario/command.go`, `scenario/event_engine.go`, `simulation/executor.go`
+
+---
+
+## D012: ティック更新順序の厳密な定義
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-21
+**フェーズ**: Phase 7-C
+
+**判断**: SimulationEngine.Step() の1ティック内の更新順序を以下の12ステップで固定する。
+
+```
+1.  PlayerAction 実行     — プレイヤーの操作（部屋掘削、仙獣配置等）
+2.  ChiFlowEngine.Tick    — 気の供給・伝播・減衰
+3.  GrowthEngine.Tick     — 仙獣成長（気を消費）
+4.  DefeatProcessor       — Stunned仙獣の復活チェック
+5.  EvolutionEngine       — 進化条件チェック → 実行
+6.  BehaviorEngine.Tick   — 仙獣行動AI
+7.  InvasionEngine.Tick   — 侵入者移動・戦闘・CoreHPダメージ
+8.  InvasionEconomyProcessor — 報酬・損失のChiPool反映
+9.  EconomyEngine.Tick    — 供給・維持・赤字処理
+10. EventEngine.Tick      — 条件評価 → EventCommand生成
+11. CommandExecutor.Apply  — EventCommandの状態反映
+12. 勝利/敗北条件評価     — ゲーム終了判定
+```
+
+**理由**:
+- PlayerAction が最初: プレイヤーの操作結果がそのティックの全サブシステムに即座に反映される（「部屋を掘った直後に龍脈が変わる」体験）
+- 気→成長→行動→侵入の順: 因果連鎖の自然な流れ
+- 経済が侵入の後: 侵入の報酬/損失が同ティックの経済計算に含まれる
+- イベント→条件評価が最後: そのティックの全結果を反映した上で判定
+- **順序を変更すると決定論的再現が壊れるため、この順序は不変とする**
+
+**影響範囲**: `simulation/engine.go` の Step メソッド
+
+---
+
+## D013: PlayerAction は Step() の引数として毎ティック注入
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-21
+**フェーズ**: Phase 7-A
+
+**判断**: プレイヤー操作は SimulationEngine 内部に状態として持たず、Step(actions []PlayerAction) の引数として毎ティック外部から注入する。
+
+**理由**:
+- AIプレイヤーと人間入力が同じインターフェースで動く
+- リプレイ時はアクション列をファイルから読んでStep()に渡すだけで再現可能
+- SimulationEngine 自体はプレイヤーの意思決定を一切持たない（純粋なシミュレーター）
+- Run() メソッドは actionProvider 関数を受け取り、毎ティック GameSnapshot を渡してアクションを得る
+
+**代替案の棄却**:
+- ActionQueue方式（事前にアクションを積む）: ティックごとの状態を見てから判断できない
+- Observer方式（イベントでアクションをフック）: 更新順序との整合性が取りにくい
+
+**影響範囲**: `simulation/engine.go`, `simulation/action.go`, `simulation/runner.go`
 
 ---
 
 ## 未解決課題サマリー
 
-| ID | 内容 | 対応予定フェーズ |
+| ID | 内容 | 対応予定 |
 |---|---|---|
-| D001 | OnCaveChangedの差分更新 | Phase 7（プロファイリング後） |
-| D002原則1 | 地形バリエーション（不完全性の強制） | Phase 7以降 |
-| D002原則3 | 経済バランスの検証 | Phase 7 |
+| D001 | OnCaveChanged差分更新 | Phase 7-G でベンチマーク → 判断 |
+| D002原則3 | 経済バランスの定量検証 | Phase 7-H |
 | 罠の盗賊回避率 | 盗賊のSPDによる罠回避 | 将来拡張 |
 | 侵入者AI高度化 | 複数ステップ先読み、仙獣回避 | 将来拡張 |
