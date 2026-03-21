@@ -28,6 +28,9 @@ type Room struct {
 	Entrances []RoomEntrance
 	// BeastIDs is the list of beast IDs currently placed in this room.
 	BeastIDs []int
+	// CoreHP is the current hit points of the core (dragon hole only).
+	// For non-core rooms this is always 0.
+	CoreHP int
 }
 
 // BeastCount returns the number of beasts currently in this room.
