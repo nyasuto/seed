@@ -3,6 +3,7 @@
 // Use --beasts to display beast placements.
 // Use --invasion to display invader overlay.
 // Use --battle to display all layers (terrain + chi + beasts + invaders).
+// Use --economy to display economy status overlay.
 // Use --all to display all layers (standard + chi + beasts + ai).
 package main
 
@@ -10,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/ponpoko/chaosseed-core/economy"
 	"github.com/ponpoko/chaosseed-core/fengshui"
 	"github.com/ponpoko/chaosseed-core/invasion"
 	"github.com/ponpoko/chaosseed-core/senju"
@@ -22,8 +24,9 @@ func main() {
 	beastMode := flag.Bool("beasts", false, "display beast placement overlay")
 	aiMode := flag.Bool("ai", false, "display beast behavior state overlay")
 	invasionMode := flag.Bool("invasion", false, "display invasion overlay")
+	economyMode := flag.Bool("economy", false, "display economy status overlay")
 	battleMode := flag.Bool("battle", false, "display all layers (terrain + chi + beasts + invaders)")
-	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts + ai)")
+	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts + ai + economy)")
 	flag.Parse()
 
 	cave, err := buildDemoCave()
@@ -36,6 +39,7 @@ func main() {
 	showBeasts := *beastMode || *allMode || *battleMode
 	showAI := *aiMode || *allMode
 	showInvasion := *invasionMode || *battleMode
+	showEconomy := *economyMode || *allMode
 
 	if showChi {
 		engine, err := buildDemoEngine(cave)
@@ -89,7 +93,36 @@ func main() {
 		fmt.Println("       <<=Retreating  $$=GoalAchieved  3>>=count+state  11=RoomID(no invaders)")
 	}
 
-	if !showChi && !showBeasts && !showAI && !showInvasion {
+	if showEconomy {
+		chiEngine, err := buildDemoEngine(cave)
+		if err != nil {
+			fmt.Printf("error building chi engine: %v\n", err)
+			return
+		}
+		ecoEngine := buildDemoEconomyEngine()
+		// Run 10 ticks of chi flow to populate RoomChi.
+		for i := 0; i < 10; i++ {
+			chiEngine.Tick()
+		}
+		// Prepare economy tick inputs.
+		veins := make([]fengshui.DragonVein, len(chiEngine.Veins))
+		for i, v := range chiEngine.Veins {
+			veins[i] = *v
+		}
+		rooms := make([]world.Room, len(cave.Rooms))
+		for i, r := range cave.Rooms {
+			rooms[i] = *r
+		}
+		beasts := buildDemoBeasts()
+		// Run one economy tick to get a result.
+		result := ecoEngine.Tick(1, veins, chiEngine.RoomChi, 0.5, rooms, len(beasts), 0)
+		if showChi || showBeasts || showAI || showInvasion {
+			fmt.Println()
+		}
+		fmt.Println(economy.RenderEconomyStatus(ecoEngine, &result))
+	}
+
+	if !showChi && !showBeasts && !showAI && !showInvasion && !showEconomy {
 		fmt.Print(cave.RenderASCII())
 		fmt.Println()
 		fmt.Println("Legend: ██=Rock  ..=Corridor  []=RoomFloor  ><=Entrance  1-9,A-Z=RoomID")
@@ -182,6 +215,21 @@ func buildDemoEngine(cave *world.Cave) (*fengshui.ChiFlowEngine, error) {
 	engine := fengshui.NewChiFlowEngine(cave, []*fengshui.DragonVein{vein1, vein2}, registry, params)
 
 	return engine, nil
+}
+
+// buildDemoEconomyEngine creates an EconomyEngine with default parameters and
+// a chi pool seeded with an initial balance for demo purposes.
+func buildDemoEconomyEngine() *economy.EconomyEngine {
+	pool := economy.NewChiPool(150.0)
+	_ = pool.Deposit(50.0, economy.Supply, "initial", 0)
+	return economy.NewEconomyEngine(
+		pool,
+		economy.DefaultSupplyParams(),
+		economy.DefaultCostParams(),
+		economy.DefaultDeficitParams(),
+		economy.DefaultConstructionCost(),
+		economy.DefaultBeastCost(),
+	)
 }
 
 // buildDemoWaves creates demo invasion waves with invaders in various states.
