@@ -751,6 +751,6 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `simulation/integration_test.go`: 同一seed×2回実行で完全一致テスト（決定論性）
 - [x] `simulation/integration_test.go`: チェックポイント復元テスト（100tick→保存→復元→続行が元実行と一致）
 - [x] `simulation/integration_test.go`: リプレイ再生テスト（記録→再生で同一結果）
-- [ ] `simulation/integration_test.go`: 大規模ストレステスト（64x64、部屋10、仙獣8、波10、1000tick以内完了）
+- [x] `simulation/integration_test.go`: 大規模ストレステスト（64x64、部屋10、仙獣8、波10、1000tick以内完了）
 - [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [ ] Phase 7 完了。DECISIONS.md 最終更新。CHANGELOG.md に全フェーズの記録。v1.0.0 タグ準備。PHASE_COMPLETE 作成。**chaosseed-core v1.0.0 リリース**

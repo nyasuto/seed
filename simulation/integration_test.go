@@ -256,6 +256,44 @@ func TestIntegration_ReplayProducesSameResult(t *testing.T) {
 		origResult.FinalTick, len(restored.Actions), origResult.Status, len(data))
 }
 
+func TestIntegration_StressTest_LargeMap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping stress test in short mode")
+	}
+
+	scenJSON := loadScenarioFile(t, "../scenario/testdata/stress.json")
+
+	runner := &SimulationRunner{}
+	result, err := runner.RunWithAI(scenJSON, 42, func(state *GameState) AIPlayer {
+		return NewSimpleAIPlayer(state)
+	})
+	if err != nil {
+		t.Fatalf("RunWithAI: %v", err)
+	}
+
+	// Verify the simulation completed within 1000 ticks
+	const maxTicks = 1000
+	if result.TickCount > maxTicks {
+		t.Errorf("stress test exceeded %d ticks: got %d", maxTicks, result.TickCount)
+	}
+
+	// Verify the simulation actually ran a meaningful number of ticks
+	const minTicks = 50
+	if result.TickCount < minTicks {
+		t.Errorf("stress test ended too quickly (%d ticks), expected at least %d", result.TickCount, minTicks)
+	}
+
+	// Verify game reached a terminal state (not still running)
+	if result.Result.Status == Running {
+		t.Errorf("stress test did not reach a terminal state after %d ticks", result.TickCount)
+	}
+
+	// Log detailed results for analysis
+	t.Logf("Stress test completed: status=%v reason=%q tick=%d/%d waves_defeated=%d peak_chi=%.0f fengshui=%.1f",
+		result.Result.Status, result.Result.Reason, result.TickCount, maxTicks,
+		result.Statistics.WavesDefeated, result.Statistics.PeakChi, result.Statistics.FinalFengShui)
+}
+
 func TestIntegration_Determinism_SameSeedIdenticalResults(t *testing.T) {
 	scenJSON := loadScenarioFile(t, "../scenario/testdata/tutorial.json")
 	const seed int64 = 12345

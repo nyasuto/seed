@@ -1,0 +1,244 @@
+{
+  "id": "stress",
+  "name": "大規模ストレステスト",
+  "description": "64x64マップ、部屋10、仙獣8、波10の大規模シナリオ",
+  "difficulty": "hard",
+  "initial_state": {
+    "cave_width": 64,
+    "cave_height": 64,
+    "terrain_seed": 42,
+    "terrain_density": 0.10,
+    "prebuilt_rooms": [
+      {
+        "type_id": "dragon_hole",
+        "pos": {"x": 31, "y": 31},
+        "level": 1
+      }
+    ],
+    "dragon_veins": [
+      {
+        "source_pos": {"x": 31, "y": 31},
+        "element": "Wood",
+        "flow_rate": 1.5
+      },
+      {
+        "source_pos": {"x": 31, "y": 31},
+        "element": "Fire",
+        "flow_rate": 1.2
+      },
+      {
+        "source_pos": {"x": 31, "y": 31},
+        "element": "Water",
+        "flow_rate": 1.0
+      }
+    ],
+    "starting_chi": 500.0,
+    "starting_beasts": [
+      {"species_id": "suiryu", "room_index": 0}
+    ]
+  },
+  "win_conditions": [
+    {"type": "defeat_all_waves"}
+  ],
+  "lose_conditions": [
+    {"type": "core_destroyed"},
+    {"type": "all_beasts_defeated"}
+  ],
+  "wave_schedule": [
+    {
+      "trigger_tick": 50,
+      "difficulty": 0.3,
+      "min_invaders": 1,
+      "max_invaders": 2,
+      "preferred_classes": ["wood_ascetic"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 120,
+      "difficulty": 0.5,
+      "min_invaders": 2,
+      "max_invaders": 3,
+      "preferred_classes": ["fire_warrior"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 200,
+      "difficulty": 0.7,
+      "min_invaders": 2,
+      "max_invaders": 4,
+      "preferred_classes": ["water_sage"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 300,
+      "difficulty": 0.9,
+      "min_invaders": 3,
+      "max_invaders": 5,
+      "preferred_classes": ["metal_knight"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 400,
+      "difficulty": 1.0,
+      "min_invaders": 3,
+      "max_invaders": 5,
+      "preferred_classes": ["earth_monk"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 500,
+      "difficulty": 1.2,
+      "min_invaders": 3,
+      "max_invaders": 6,
+      "preferred_classes": [],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 600,
+      "difficulty": 1.4,
+      "min_invaders": 4,
+      "max_invaders": 6,
+      "preferred_classes": [],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 700,
+      "difficulty": 1.6,
+      "min_invaders": 4,
+      "max_invaders": 7,
+      "preferred_classes": [],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 800,
+      "difficulty": 1.8,
+      "min_invaders": 5,
+      "max_invaders": 8,
+      "preferred_classes": [],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 900,
+      "difficulty": 2.0,
+      "min_invaders": 5,
+      "max_invaders": 10,
+      "preferred_classes": [],
+      "preferred_goals": []
+    }
+  ],
+  "events": [
+    {
+      "id": "wave_0",
+      "condition": {"type": "survive_until", "params": {"ticks": 50}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.3, "min_invaders": 1, "max_invaders": 2}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_1",
+      "condition": {"type": "survive_until", "params": {"ticks": 120}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.5, "min_invaders": 2, "max_invaders": 3}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_2",
+      "condition": {"type": "survive_until", "params": {"ticks": 200}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.7, "min_invaders": 2, "max_invaders": 4}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_3",
+      "condition": {"type": "survive_until", "params": {"ticks": 300}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 0.9, "min_invaders": 3, "max_invaders": 5}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_4",
+      "condition": {"type": "survive_until", "params": {"ticks": 400}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.0, "min_invaders": 3, "max_invaders": 5}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_5",
+      "condition": {"type": "survive_until", "params": {"ticks": 500}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.2, "min_invaders": 3, "max_invaders": 6}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_6",
+      "condition": {"type": "survive_until", "params": {"ticks": 600}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.4, "min_invaders": 4, "max_invaders": 6}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_7",
+      "condition": {"type": "survive_until", "params": {"ticks": 700}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.6, "min_invaders": 4, "max_invaders": 7}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_8",
+      "condition": {"type": "survive_until", "params": {"ticks": 800}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 1.8, "min_invaders": 5, "max_invaders": 8}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "wave_9",
+      "condition": {"type": "survive_until", "params": {"ticks": 900}},
+      "commands": [
+        {"type": "spawn_wave", "params": {"difficulty": 2.0, "min_invaders": 5, "max_invaders": 10}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "early_chi_bonus",
+      "condition": {"type": "survive_until", "params": {"ticks": 150}},
+      "commands": [
+        {"type": "modify_chi", "params": {"amount": 150.0}},
+        {"type": "message", "params": {"text": "龍脈の力が増幅された！"}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "mid_chi_bonus",
+      "condition": {"type": "survive_until", "params": {"ticks": 450}},
+      "commands": [
+        {"type": "modify_chi", "params": {"amount": 200.0}},
+        {"type": "message", "params": {"text": "大地の気が溢れ出す！"}}
+      ],
+      "one_shot": true
+    },
+    {
+      "id": "late_chi_bonus",
+      "condition": {"type": "survive_until", "params": {"ticks": 750}},
+      "commands": [
+        {"type": "modify_chi", "params": {"amount": 250.0}},
+        {"type": "message", "params": {"text": "龍穴が最大出力に達した！"}}
+      ],
+      "one_shot": true
+    }
+  ],
+  "constraints": {
+    "max_rooms": 10,
+    "max_beasts": 8,
+    "max_ticks": 1000,
+    "forbidden_room_types": []
+  }
+}
