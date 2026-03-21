@@ -1,0 +1,9 @@
+{
+  "summon_cost_by_element": {
+    "Wood": 30.0,
+    "Fire": 35.0,
+    "Earth": 25.0,
+    "Metal": 40.0,
+    "Water": 30.0
+  }
+}

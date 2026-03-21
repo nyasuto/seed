@@ -429,10 +429,10 @@
 
 ## Phase 5-F: 仙獣コストモデル（economy/）
 
-- [ ] `economy/beast_cost.go`: BeastCost 構造体（SummonCostByElement map[types.Element]float64）。DefaultBeastCost()。LoadBeastCost(data []byte)
-- [ ] `economy/beast_cost_data.json`: デフォルト仙獣コスト。召喚（木: 30.0, 火: 35.0, 土: 25.0, 金: 40.0, 水: 30.0）。進化コストはPhase 5では未実装（進化システム自体が延期中）
-- [ ] `economy/beast_cost.go`: CalcSummonCost(element) float64
-- [ ] `economy/beast_cost_test.go`: 属性別召喚コストテスト
+- [x] `economy/beast_cost.go`: BeastCost 構造体（SummonCostByElement map[types.Element]float64）。DefaultBeastCost()。LoadBeastCost(data []byte)
+- [x] `economy/beast_cost_data.json`: デフォルト仙獣コスト。召喚（木: 30.0, 火: 35.0, 土: 25.0, 金: 40.0, 水: 30.0）。進化コストはPhase 5では未実装（進化システム自体が延期中）
+- [x] `economy/beast_cost.go`: CalcSummonCost(element) float64
+- [x] `economy/beast_cost_test.go`: 属性別召喚コストテスト
 
 ## Phase 5-G: 侵入報酬と損失（economy/）
 
