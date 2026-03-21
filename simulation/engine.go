@@ -128,6 +128,7 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 			if path != nil {
 				oldSpecies := beast.SpeciesID
 				if err := senju.Evolve(beast, path, s.SpeciesRegistry); err == nil {
+					s.EvolutionCount++
 					tickEvents = append(tickEvents, fmt.Sprintf("beast %d evolved: %s→%s", beast.ID, oldSpecies, beast.SpeciesID))
 				}
 			}
@@ -149,11 +150,22 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 		s.ChiFlowEngine.RoomChi,
 	)
 
-	// Process core HP damage from GoalAchievedEvent.
+	// Process invasion events: damage tracking, core damage, beast defeat.
 	for _, ie := range invasionEvents {
+		// Accumulate damage statistics from combat events.
+		if ie.Type == invasion.CombatOccurred && ie.Damage > 0 {
+			s.TotalDamageDealt += ie.Damage
+		}
+		if ie.Type == invasion.InvaderDefeated && ie.Damage > 0 {
+			s.TotalDamageDealt += ie.Damage
+		}
+		if ie.Type == invasion.BeastDefeated && ie.Damage > 0 {
+			s.TotalDamageReceived += ie.Damage
+		}
 		if ie.Type == invasion.GoalAchievedEvent {
 			coreDamage := findInvaderATK(s.Waves, ie.InvaderID)
 			if coreDamage > 0 {
+				s.TotalDamageReceived += coreDamage
 				s.Progress.CoreHP -= coreDamage
 				if s.Progress.CoreHP < 0 {
 					s.Progress.CoreHP = 0
@@ -198,9 +210,15 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 	)
 	if econResult.DeficitResult.Shortage > 0 {
 		s.ConsecutiveDeficitTicks++
+		s.TotalDeficitTicks++
 		tickEvents = append(tickEvents, fmt.Sprintf("deficit: shortage %.1f (consecutive: %d)", econResult.DeficitResult.Shortage, s.ConsecutiveDeficitTicks))
 	} else {
 		s.ConsecutiveDeficitTicks = 0
+	}
+
+	// Track peak chi pool balance.
+	if chiBalance := s.EconomyEngine.ChiPool.Balance(); chiBalance > s.PeakChi {
+		s.PeakChi = chiBalance
 	}
 
 	// 10. Event engine tick → command executor.

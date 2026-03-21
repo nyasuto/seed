@@ -118,4 +118,21 @@ type GameState struct {
 	// DefeatResults stores pending beast defeat results keyed by beast ID.
 	// Used to track revival tick and HP for stunned beasts.
 	DefeatResults map[int]senju.DefeatResult
+
+	// --- Accumulated statistics (updated each tick by Step) ---
+
+	// PeakChi is the highest chi pool balance observed during the simulation.
+	PeakChi float64
+
+	// TotalDamageDealt is the cumulative damage dealt to invaders.
+	TotalDamageDealt int
+
+	// TotalDamageReceived is the cumulative damage dealt to beasts and the core.
+	TotalDamageReceived int
+
+	// EvolutionCount is the number of beast evolutions that occurred.
+	EvolutionCount int
+
+	// TotalDeficitTicks is the total number of ticks where the economy was in deficit.
+	TotalDeficitTicks int
 }

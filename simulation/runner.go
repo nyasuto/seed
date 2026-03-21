@@ -15,13 +15,32 @@ const defaultMaxTicks = 10000
 // the state to the AI player factory.
 type AIPlayerFactory func(state *GameState) AIPlayer
 
+// RunStatistics captures aggregate metrics from a completed simulation run.
+type RunStatistics struct {
+	// PeakChi is the highest chi pool balance observed during the run.
+	PeakChi float64
+	// WavesDefeated is the number of invasion waves successfully repelled.
+	WavesDefeated int
+	// FinalFengShui is the cave's feng shui score at the end of the run.
+	FinalFengShui float64
+	// Evolutions is the total number of beast evolutions that occurred.
+	Evolutions int
+	// DamageDealt is the total damage dealt to invaders.
+	DamageDealt int
+	// DamageReceived is the total damage received by beasts and the core.
+	DamageReceived int
+	// DeficitTicks is the total number of ticks where the economy was in deficit.
+	DeficitTicks int
+}
+
 // RunResult captures the outcome of a completed simulation run.
-// The Statistics field will be populated in a future task.
 type RunResult struct {
 	// Result is the game outcome (Won/Lost and reason).
 	Result GameResult
 	// TickCount is the number of ticks actually executed.
 	TickCount int
+	// Statistics holds aggregate metrics from the run.
+	Statistics RunStatistics
 }
 
 // SimulationRunner provides high-level APIs for running simulations
@@ -50,8 +69,9 @@ func (r *SimulationRunner) RunWithAI(scenarioJSON []byte, seed int64, factory AI
 	}
 
 	return RunResult{
-		Result:    result,
-		TickCount: int(result.FinalTick),
+		Result:     result,
+		TickCount:  int(result.FinalTick),
+		Statistics: collectStatistics(engine),
 	}, nil
 }
 
@@ -84,7 +104,8 @@ func (r *SimulationRunner) RunInteractive(scenarioJSON []byte, seed int64, actio
 					FinalTick: engine.State.Progress.CurrentTick,
 					Reason:    "player disconnected",
 				},
-				TickCount: i,
+				TickCount:  i,
+				Statistics: collectStatistics(engine),
 			}, nil
 		}
 		if actions == nil {
@@ -97,8 +118,9 @@ func (r *SimulationRunner) RunInteractive(scenarioJSON []byte, seed int64, actio
 		}
 		if result.Status != Running {
 			return RunResult{
-				Result:    result,
-				TickCount: int(result.FinalTick),
+				Result:     result,
+				TickCount:  int(result.FinalTick),
+				Statistics: collectStatistics(engine),
 			}, nil
 		}
 	}
@@ -109,7 +131,8 @@ func (r *SimulationRunner) RunInteractive(scenarioJSON []byte, seed int64, actio
 			FinalTick: engine.State.Progress.CurrentTick,
 			Reason:    "max ticks reached",
 		},
-		TickCount: maxTicks,
+		TickCount:  maxTicks,
+		Statistics: collectStatistics(engine),
 	}, nil
 }
 
@@ -136,4 +159,21 @@ func (r *SimulationRunner) maxTicks(sc *scenario.Scenario) int {
 		return int(sc.Constraints.MaxTicks)
 	}
 	return defaultMaxTicks
+}
+
+// collectStatistics builds RunStatistics from the engine's accumulated
+// state after a simulation run completes.
+func collectStatistics(engine *SimulationEngine) RunStatistics {
+	s := engine.State
+	snapshot := BuildSnapshot(s)
+
+	return RunStatistics{
+		PeakChi:        s.PeakChi,
+		WavesDefeated:  snapshot.DefeatedWaves,
+		FinalFengShui:  snapshot.CaveFengShuiScore,
+		Evolutions:     s.EvolutionCount,
+		DamageDealt:    s.TotalDamageDealt,
+		DamageReceived: s.TotalDamageReceived,
+		DeficitTicks:   s.TotalDeficitTicks,
+	}
 }
