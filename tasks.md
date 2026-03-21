@@ -670,7 +670,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 7-C: メインループ（simulation/）
 
 - [x] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
-- [ ] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
+- [x] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
 - [ ] `simulation/engine.go`: NewSimulationEngine(scenario, rng) — InitialStateからGameState構築（地形適用、初期部屋配置、初期仙獣配置、龍脈生成、ChiPool初期化）
 - [ ] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
   1. PlayerAction のバリデーション → 実行
