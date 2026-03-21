@@ -616,8 +616,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-J: シリアライズ（scenario/）
 
 - [x] `scenario/progress.go`: ScenarioProgress 構造体（ScenarioID string, CurrentTick types.Tick, FiredEventIDs []string, WaveResults []WaveResult, CoreHP int）。WaveResult 構造体（WaveID int, Result string, CompletedTick types.Tick）
-- [ ] `scenario/serialization.go`: MarshalProgress / UnmarshalProgress — 進行状況の保存/復元
-- [ ] `scenario/serialization_test.go`: 保存→復元→等価検証テスト
+- [x] `scenario/serialization.go`: MarshalProgress / UnmarshalProgress — 進行状況の保存/復元
+- [x] `scenario/serialization_test.go`: 保存→復元→等価検証テスト
 
 ## Phase 6-K: ASCII可視化
 
