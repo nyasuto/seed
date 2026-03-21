@@ -672,7 +672,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
 - [x] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
 - [x] `simulation/engine.go`: NewSimulationEngine(scenario, rng) — InitialStateからGameState構築（地形適用、初期部屋配置、初期仙獣配置、龍脈生成、ChiPool初期化）
-- [ ] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
+- [x] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
   1. PlayerAction のバリデーション → 実行
   2. ChiFlowEngine.Tick（気の供給・伝播・減衰）
   3. GrowthEngine.Tick（仙獣成長、赤字ペナルティ適用）

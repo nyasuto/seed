@@ -12,6 +12,287 @@ import (
 	"github.com/ponpoko/chaosseed-core/world"
 )
 
+// Step executes one tick of the simulation. It processes player actions, then
+// runs all subsystem engines in a fixed order, evaluates win/loss conditions,
+// and records the tick log. The returned GameResult indicates whether the game
+// is still running, won, or lost.
+func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
+	s := e.State
+	tick := s.Progress.CurrentTick
+	var tickEvents []string
+
+	// 1. Validate and execute player actions.
+	for _, action := range actions {
+		result, err := ApplyAction(action, s)
+		if err != nil {
+			return GameResult{}, fmt.Errorf("tick %d action %s: %w", tick, action.ActionType(), err)
+		}
+		if result.Success && result.Description != "" {
+			tickEvents = append(tickEvents, result.Description)
+		}
+	}
+
+	// 2. Chi flow: supply, propagation, decay.
+	s.ChiFlowEngine.Tick()
+
+	// 3. Beast growth from chi absorption.
+	roomMap := buildRoomMap(s.Cave.Rooms)
+	growthEvents := s.GrowthEngine.Tick(s.Beasts, s.ChiFlowEngine.RoomChi, roomMap)
+	for _, ge := range growthEvents {
+		if ge.Type == senju.LevelUp {
+			tickEvents = append(tickEvents, fmt.Sprintf("beast %d leveled up: %d→%d", ge.BeastID, ge.OldLevel, ge.NewLevel))
+		}
+	}
+
+	// 4. Stunned beast revival check.
+	if s.DefeatResults == nil {
+		s.DefeatResults = make(map[int]senju.DefeatResult)
+	}
+	for _, beast := range s.Beasts {
+		if beast.State != senju.Stunned {
+			continue
+		}
+		dr, ok := s.DefeatResults[beast.ID]
+		if !ok {
+			continue
+		}
+		if tick >= dr.RevivalTick {
+			beast.State = senju.Idle
+			beast.HP = dr.RevivalHP
+			if beast.HP < 1 {
+				beast.HP = 1
+			}
+			delete(s.DefeatResults, beast.ID)
+			tickEvents = append(tickEvents, fmt.Sprintf("beast %d revived", beast.ID))
+		}
+	}
+
+	// 5. Evolution condition check and execution.
+	if s.EvolutionRegistry != nil {
+		chiBalance := s.EconomyEngine.ChiPool.Balance()
+		for _, beast := range s.Beasts {
+			if beast.State == senju.Stunned || beast.RoomID == 0 {
+				continue
+			}
+			room := s.Cave.RoomByID(beast.RoomID)
+			if room == nil {
+				continue
+			}
+			rt, err := s.RoomTypeRegistry.Get(room.TypeID)
+			if err != nil {
+				continue
+			}
+			rc := s.ChiFlowEngine.RoomChi[beast.RoomID]
+			var roomChiRatio float64
+			if rc != nil && rc.Capacity > 0 {
+				roomChiRatio = rc.Current / rc.Capacity
+			}
+			path := s.EvolutionRegistry.CheckEvolution(beast, rt.Element, roomChiRatio, chiBalance)
+			if path != nil {
+				oldSpecies := beast.SpeciesID
+				if err := senju.Evolve(beast, path, s.SpeciesRegistry); err == nil {
+					tickEvents = append(tickEvents, fmt.Sprintf("beast %d evolved: %s→%s", beast.ID, oldSpecies, beast.SpeciesID))
+				}
+			}
+		}
+	}
+
+	// 6. Beast behavior AI.
+	invaderPositions := buildInvaderPositions(s.Waves)
+	s.BehaviorEngine.Tick(s.Beasts, invaderPositions, s.ChiFlowEngine.RoomChi)
+
+	// 7. Invasion engine tick.
+	rooms := s.Cave.Rooms
+	invasionEvents := s.InvasionEngine.Tick(
+		tick,
+		s.Waves,
+		s.Beasts,
+		rooms,
+		s.RoomTypeRegistry,
+		s.ChiFlowEngine.RoomChi,
+	)
+
+	// Process core HP damage from GoalAchievedEvent.
+	for _, ie := range invasionEvents {
+		if ie.Type == invasion.GoalAchievedEvent {
+			coreDamage := findInvaderATK(s.Waves, ie.InvaderID)
+			if coreDamage > 0 {
+				s.Progress.CoreHP -= coreDamage
+				if s.Progress.CoreHP < 0 {
+					s.Progress.CoreHP = 0
+				}
+				tickEvents = append(tickEvents, fmt.Sprintf("core damaged by invader %d: -%d HP", ie.InvaderID, coreDamage))
+			}
+		}
+		if ie.Type == invasion.BeastDefeated {
+			for _, beast := range s.Beasts {
+				if beast.ID == ie.BeastID && beast.HP <= 0 {
+					dr := s.DefeatProcessor.ProcessDefeat(beast, tick)
+					s.DefeatResults[dr.BeastID] = dr
+					tickEvents = append(tickEvents, fmt.Sprintf("beast %d stunned", beast.ID))
+				}
+			}
+		}
+	}
+
+	// 8. Invasion economy: rewards and losses.
+	invasionEconProc := economy.NewInvasionEconomyProcessor()
+	econSummary := invasionEconProc.ProcessInvasionEvents(invasionEvents, s.EconomyEngine.ChiPool, tick)
+	if econSummary.NetChi != 0 {
+		tickEvents = append(tickEvents, fmt.Sprintf("invasion economy: net chi %.1f", econSummary.NetChi))
+	}
+
+	// 9. Economy tick: supply, maintenance, deficit processing.
+	veins := derefVeins(s.ChiFlowEngine.Veins)
+	roomValues := derefRooms(rooms)
+	caveScore := 0.0
+	if s.ScoreParams != nil {
+		ev := fengshui.NewEvaluator(s.Cave, s.RoomTypeRegistry, s.ScoreParams)
+		caveScore = ev.CaveTotal(s.ChiFlowEngine)
+	}
+	econResult := s.EconomyEngine.Tick(
+		tick,
+		veins,
+		s.ChiFlowEngine.RoomChi,
+		caveScore,
+		roomValues,
+		len(s.Beasts),
+		0, // trapCount — not yet tracked
+	)
+	if econResult.DeficitResult.Shortage > 0 {
+		s.ConsecutiveDeficitTicks++
+		tickEvents = append(tickEvents, fmt.Sprintf("deficit: shortage %.1f (consecutive: %d)", econResult.DeficitResult.Shortage, s.ConsecutiveDeficitTicks))
+	} else {
+		s.ConsecutiveDeficitTicks = 0
+	}
+
+	// 10. Event engine tick → command executor.
+	snapshot := BuildSnapshot(s)
+	cmds, err := s.EventEngine.Tick(snapshot, s.Scenario.Events)
+	if err != nil {
+		return GameResult{}, fmt.Errorf("tick %d event engine: %w", tick, err)
+	}
+	if len(cmds) > 0 {
+		if err := e.Executor.Apply(s, cmds); err != nil {
+			return GameResult{}, fmt.Errorf("tick %d command executor: %w", tick, err)
+		}
+		for _, msg := range e.Executor.Messages {
+			tickEvents = append(tickEvents, msg)
+		}
+	}
+
+	// 11. Victory/defeat condition evaluation.
+	result := evaluateEndConditions(s)
+
+	// 12. Record tick log.
+	e.TickLog = append(e.TickLog, TickRecord{
+		Tick:     tick,
+		Commands: cmds,
+		Events:   tickEvents,
+	})
+
+	// Advance tick counter.
+	s.Progress.CurrentTick++
+
+	if result.Status != Running {
+		result.FinalTick = tick
+		return result, nil
+	}
+
+	return GameResult{Status: Running}, nil
+}
+
+// buildRoomMap creates a map from room ID to room pointer for GrowthEngine.
+func buildRoomMap(rooms []*world.Room) map[int]*world.Room {
+	m := make(map[int]*world.Room, len(rooms))
+	for _, r := range rooms {
+		m[r.ID] = r
+	}
+	return m
+}
+
+// buildInvaderPositions creates a map from room ID to invader IDs for BehaviorEngine.
+func buildInvaderPositions(waves []*invasion.InvasionWave) map[int][]int {
+	m := make(map[int][]int)
+	for _, w := range waves {
+		if w.State != invasion.Active {
+			continue
+		}
+		for _, inv := range w.Invaders {
+			if inv.State == invasion.Defeated {
+				continue
+			}
+			m[inv.CurrentRoomID] = append(m[inv.CurrentRoomID], inv.ID)
+		}
+	}
+	return m
+}
+
+// findInvaderATK looks up an invader's ATK value from active waves.
+func findInvaderATK(waves []*invasion.InvasionWave, invaderID int) int {
+	for _, w := range waves {
+		for _, inv := range w.Invaders {
+			if inv.ID == invaderID {
+				return inv.ATK
+			}
+		}
+	}
+	return 0
+}
+
+// derefVeins converts a slice of DragonVein pointers to values for EconomyEngine.
+func derefVeins(veins []*fengshui.DragonVein) []fengshui.DragonVein {
+	result := make([]fengshui.DragonVein, len(veins))
+	for i, v := range veins {
+		result[i] = *v
+	}
+	return result
+}
+
+// derefRooms converts a slice of Room pointers to values for EconomyEngine.
+func derefRooms(rooms []*world.Room) []world.Room {
+	result := make([]world.Room, len(rooms))
+	for i, r := range rooms {
+		result[i] = *r
+	}
+	return result
+}
+
+// evaluateEndConditions checks win and lose conditions against the current state.
+func evaluateEndConditions(s *GameState) GameResult {
+	snapshot := BuildSnapshot(s)
+
+	// Check lose conditions first (they take priority).
+	for _, condDef := range s.Scenario.LoseConditions {
+		cond, err := scenario.NewCondition(condDef)
+		if err != nil {
+			continue
+		}
+		if cond.Evaluate(snapshot) {
+			return GameResult{
+				Status: Lost,
+				Reason: fmt.Sprintf("lose condition met: %s", condDef.Type),
+			}
+		}
+	}
+
+	// Check win conditions.
+	for _, condDef := range s.Scenario.WinConditions {
+		cond, err := scenario.NewCondition(condDef)
+		if err != nil {
+			continue
+		}
+		if cond.Evaluate(snapshot) {
+			return GameResult{
+				Status: Won,
+				Reason: fmt.Sprintf("win condition met: %s", condDef.Type),
+			}
+		}
+	}
+
+	return GameResult{Status: Running}
+}
+
 // TickRecord holds the log of a single tick's execution.
 type TickRecord struct {
 	// Tick is the tick number when this record was produced.

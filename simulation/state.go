@@ -114,4 +114,8 @@ type GameState struct {
 	// ConsecutiveDeficitTicks tracks how many consecutive ticks the economy
 	// has been in deficit. Reset to 0 when the tick has no deficit.
 	ConsecutiveDeficitTicks int
+
+	// DefeatResults stores pending beast defeat results keyed by beast ID.
+	// Used to track revival tick and HP for stunned beasts.
+	DefeatResults map[int]senju.DefeatResult
 }
