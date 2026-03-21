@@ -223,9 +223,11 @@ func TestSimulationRunner_RunInteractive_ChannelBased(t *testing.T) {
 
 	var result RunResult
 	var runErr error
+	done := make(chan struct{})
 
 	go func() {
 		result, runErr = runner.RunInteractive(scenJSON, 42, actionCh, snapshotCh)
+		close(done)
 	}()
 
 	// Play: send NoAction each tick until the game ends.
@@ -235,6 +237,7 @@ func TestSimulationRunner_RunInteractive_ChannelBased(t *testing.T) {
 		tickCount++
 		actionCh <- []PlayerAction{NoAction{}}
 	}
+	<-done
 
 	if runErr != nil {
 		t.Fatalf("RunInteractive: %v", runErr)
@@ -256,9 +259,11 @@ func TestSimulationRunner_RunInteractive_PlayerDisconnect(t *testing.T) {
 
 	var result RunResult
 	var runErr error
+	done := make(chan struct{})
 
 	go func() {
 		result, runErr = runner.RunInteractive(scenJSON, 42, actionCh, snapshotCh)
+		close(done)
 	}()
 
 	// Receive first snapshot, then close actionCh to simulate disconnect.
@@ -268,6 +273,7 @@ func TestSimulationRunner_RunInteractive_PlayerDisconnect(t *testing.T) {
 	// Drain remaining snapshots (snapshotCh will be closed by runner).
 	for range snapshotCh {
 	}
+	<-done
 
 	if runErr != nil {
 		t.Fatalf("RunInteractive: %v", runErr)
@@ -319,14 +325,17 @@ func TestSimulationRunner_RunInteractive_MaxTicks(t *testing.T) {
 
 	var result RunResult
 	var runErr error
+	done := make(chan struct{})
 
 	go func() {
 		result, runErr = runner.RunInteractive(data, 42, actionCh, snapshotCh)
+		close(done)
 	}()
 
 	for range snapshotCh {
 		actionCh <- []PlayerAction{NoAction{}}
 	}
+	<-done
 
 	if runErr != nil {
 		t.Fatalf("RunInteractive: %v", runErr)

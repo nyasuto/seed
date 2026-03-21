@@ -231,9 +231,7 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 		if err := e.Executor.Apply(s, cmds); err != nil {
 			return GameResult{}, fmt.Errorf("tick %d command executor: %w", tick, err)
 		}
-		for _, msg := range e.Executor.Messages {
-			tickEvents = append(tickEvents, msg)
-		}
+		tickEvents = append(tickEvents, e.Executor.Messages...)
 	}
 
 	// 11. Victory/defeat condition evaluation.

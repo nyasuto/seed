@@ -118,16 +118,10 @@ func LoadScenario(data []byte) (*Scenario, error) {
 	}
 
 	for _, c := range raw.WinConditions {
-		s.WinConditions = append(s.WinConditions, ConditionDef{
-			Type:   c.Type,
-			Params: c.Params,
-		})
+		s.WinConditions = append(s.WinConditions, ConditionDef(c))
 	}
 	for _, c := range raw.LoseConditions {
-		s.LoseConditions = append(s.LoseConditions, ConditionDef{
-			Type:   c.Type,
-			Params: c.Params,
-		})
+		s.LoseConditions = append(s.LoseConditions, ConditionDef(c))
 	}
 
 	for _, e := range raw.Events {
@@ -140,10 +134,7 @@ func LoadScenario(data []byte) (*Scenario, error) {
 			OneShot: e.OneShot,
 		}
 		for _, cmd := range e.Commands {
-			ed.Commands = append(ed.Commands, CommandDef{
-				Type:   cmd.Type,
-				Params: cmd.Params,
-			})
+			ed.Commands = append(ed.Commands, CommandDef(cmd))
 		}
 		s.Events = append(s.Events, ed)
 	}
@@ -186,10 +177,7 @@ func convertInitialState(raw jsonInitialState) (InitialState, error) {
 	}
 
 	for _, b := range raw.StartingBeasts {
-		is.StartingBeasts = append(is.StartingBeasts, BeastPlacement{
-			SpeciesID: b.SpeciesID,
-			RoomIndex: b.RoomIndex,
-		})
+		is.StartingBeasts = append(is.StartingBeasts, BeastPlacement(b))
 	}
 
 	return is, nil

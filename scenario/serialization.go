@@ -38,11 +38,7 @@ func MarshalProgress(p *ScenarioProgress) ([]byte, error) {
 	}
 
 	for i, wr := range p.WaveResults {
-		jp.WaveResults[i] = jsonWaveResult{
-			WaveID:        wr.WaveID,
-			Result:        wr.Result,
-			CompletedTick: wr.CompletedTick,
-		}
+		jp.WaveResults[i] = jsonWaveResult(wr)
 	}
 
 	data, err := json.Marshal(jp)
@@ -68,11 +64,7 @@ func UnmarshalProgress(data []byte) (*ScenarioProgress, error) {
 	}
 
 	for i, jwr := range jp.WaveResults {
-		p.WaveResults[i] = WaveResult{
-			WaveID:        jwr.WaveID,
-			Result:        jwr.Result,
-			CompletedTick: jwr.CompletedTick,
-		}
+		p.WaveResults[i] = WaveResult(jwr)
 	}
 
 	return p, nil
