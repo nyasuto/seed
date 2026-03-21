@@ -295,10 +295,10 @@
 
 ## Phase 4-E: 罠効果システム（invasion/）
 
-- [ ] `invasion/trap.go`: TrapEffect 構造体（RoomID int, Element types.Element, DamagePerTrigger int, SlowTicks int）。BuildTrapEffects(cave, rooms, roomTypes) []TrapEffect — 罠部屋からTrapEffectリストを構築。罠部屋のElementを罠のElementとする
-- [ ] `invasion/trap.go`: ApplyTrap(invader, trap, params) TrapResult — 罠効果を侵入者に適用。ダメージ = TrapDamageBase × 属性相性倍率（罠Element vs 侵入者Element）。SlowTicks 中は移動を1ティック遅延
-- [ ] `invasion/trap.go`: TrapResult 構造体（InvaderID int, Damage int, IsSlowed bool, SlowTicksApplied int）
-- [ ] `invasion/trap_test.go`: 罠ダメージ計算テスト、属性相性倍率テスト、スロー効果テスト、罠部屋でない部屋は効果なしテスト、盗賊の罠回避率（将来拡張用のスタブ、現時点では全員同一処理）
+- [x] `invasion/trap.go`: TrapEffect 構造体（RoomID int, Element types.Element, DamagePerTrigger int, SlowTicks int）。BuildTrapEffects(cave, rooms, roomTypes) []TrapEffect — 罠部屋からTrapEffectリストを構築。罠部屋のElementを罠のElementとする
+- [x] `invasion/trap.go`: ApplyTrap(invader, trap, params) TrapResult — 罠効果を侵入者に適用。ダメージ = TrapDamageBase × 属性相性倍率（罠Element vs 侵入者Element）。SlowTicks 中は移動を1ティック遅延
+- [x] `invasion/trap.go`: TrapResult 構造体（InvaderID int, Damage int, IsSlowed bool, SlowTicksApplied int）
+- [x] `invasion/trap_test.go`: 罠ダメージ計算テスト、属性相性倍率テスト、スロー効果テスト、罠部屋でない部屋は効果なしテスト、盗賊の罠回避率（将来拡張用のスタブ、現時点では全員同一処理）
 
 ## Phase 4-F: 侵入波管理（invasion/）
 
