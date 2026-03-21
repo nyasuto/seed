@@ -445,20 +445,20 @@
 
 ## Phase 5-H: 経済ティックエンジン（economy/）
 
-- [ ] `economy/engine.go`: EconomyEngine 構造体（ChiPool, SupplyCalculator, MaintenanceCalculator, DeficitProcessor, ConstructionCost, BeastCost, CostParams）。NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
-- [ ] `economy/engine.go`: EconomyEngine.Tick(tick, veins, roomChis, caveScore, rooms, roomTypes, beasts, traps) EconomyTickResult — 1ティック分の経済処理:
+- [x] `economy/engine.go`: EconomyEngine 構造体（ChiPool, SupplyCalculator, MaintenanceCalculator, DeficitProcessor, ConstructionCost, BeastCost, CostParams）。NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
+- [x] `economy/engine.go`: EconomyEngine.Tick(tick, veins, roomChis, caveScore, rooms, roomTypes, beasts, traps) EconomyTickResult — 1ティック分の経済処理:
   1. ChiPoolCapを再計算（蓄気室の状態変化に対応）
   2. 気供給を計算して ChiPool に Deposit
   3. 維持コストを計算
   4. 赤字処理（DeficitProcessor）
   5. 赤字でなければ維持コストをChiPoolから Withdraw
   6. 収支バランスを記録
-- [ ] `economy/engine.go`: EconomyTickResult 構造体（Tick types.Tick, Supply float64, Maintenance MaintenanceBreakdown, DeficitResult DeficitResult, Balance float64, ChiPoolCap float64）
-- [ ] `economy/engine.go`: EconomyEngine.TryBuildRoom(roomTypeID, tick) (float64, error) — 建設可否判定 → コスト引き落とし → トランザクション記録。返り値はコスト額。CanAfford チェック含む
-- [ ] `economy/engine.go`: EconomyEngine.TrySummonBeast(element, tick) (float64, error) — 召喚可否判定 → コスト引き落とし
-- [ ] `economy/engine.go`: EconomyEngine.TryUpgradeRoom(roomTypeID, currentLevel, tick) (float64, error) — 強化可否判定 → コスト引き落とし
-- [ ] `economy/engine.go`: EconomyEngine.TryDigCorridor(pathLength, tick) (float64, error) — 通路掘削コスト引き落とし
-- [ ] `economy/engine_test.go`: 供給→維持の収支テスト、赤字でペナルティ発生テスト、建設成功テスト、残高不足で建設失敗テスト、召喚成功テスト、強化成功テスト、通路掘削コストテスト、TryXxx の返り値がトランザクションと整合するテスト
+- [x] `economy/engine.go`: EconomyTickResult 構造体（Tick types.Tick, Supply float64, Maintenance MaintenanceBreakdown, DeficitResult DeficitResult, Balance float64, ChiPoolCap float64）
+- [x] `economy/engine.go`: EconomyEngine.TryBuildRoom(roomTypeID, tick) (float64, error) — 建設可否判定 → コスト引き落とし → トランザクション記録。返り値はコスト額。CanAfford チェック含む
+- [x] `economy/engine.go`: EconomyEngine.TrySummonBeast(element, tick) (float64, error) — 召喚可否判定 → コスト引き落とし
+- [x] `economy/engine.go`: EconomyEngine.TryUpgradeRoom(roomTypeID, currentLevel, tick) (float64, error) — 強化可否判定 → コスト引き落とし
+- [x] `economy/engine.go`: EconomyEngine.TryDigCorridor(pathLength, tick) (float64, error) — 通路掘削コスト引き落とし
+- [x] `economy/engine_test.go`: 供給→維持の収支テスト、赤字でペナルティ発生テスト、建設成功テスト、残高不足で建設失敗テスト、召喚成功テスト、強化成功テスト、通路掘削コストテスト、TryXxx の返り値がトランザクションと整合するテスト
 
 ## Phase 5-I: シリアライズ（economy/）
 
