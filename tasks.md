@@ -436,12 +436,12 @@
 
 ## Phase 5-G: 侵入報酬と損失（economy/）
 
-- [ ] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool *ChiPool, tick types.Tick) InvasionEconomySummary:
+- [x] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool *ChiPool, tick types.Tick) InvasionEconomySummary:
   1. InvaderDefeated イベントから RewardChi を集計 → ChiPool に Deposit（TransactionType: Reward）
   2. InvaderEscaped イベントから StolenChi を集計 → ChiPool から Withdraw（TransactionType: Theft）
   3. BeastDefeated イベントを記録（復活コストは将来拡張）
-- [ ] `economy/invasion_economy.go`: InvasionEconomySummary 構造体（RewardChi float64, StolenChi float64, NetChi float64, BeastsLost int）
-- [ ] `economy/invasion_economy_test.go`: 侵入者撃破で報酬獲得テスト、盗賊逃走で気損失テスト、報酬と損失の差し引きテスト、複数イベントの集計テスト
+- [x] `economy/invasion_economy.go`: InvasionEconomySummary 構造体（RewardChi float64, StolenChi float64, NetChi float64, BeastsLost int）
+- [x] `economy/invasion_economy_test.go`: 侵入者撃破で報酬獲得テスト、盗賊逃走で気損失テスト、報酬と損失の差し引きテスト、複数イベントの集計テスト
 
 ## Phase 5-H: 経済ティックエンジン（economy/）
 
