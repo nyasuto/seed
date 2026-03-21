@@ -363,3 +363,133 @@
     - 全過程がInvasionEventログとして記録されること
 - [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [x] Phase 4 完了。DECISIONS.md 更新（D002時間圧力のPhase 4段階の実装メモ、戦闘マッチングルールの判断記録）、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+
+# Phase 5 改訂版 — 経済システム（economy/）
+
+> PRD Phase 5: リソースの収支管理、建設コスト。
+> D002準拠: 原則3「トレードオフの連続」をこのフェーズで構造的に実装する。気の総量は常に不足する設計。
+
+## 設計方針メモ（DECISIONS.md D009 として記録すること）
+
+**ChiPool と ChiFlowEngine の関係:**
+- ChiFlowEngine（Phase 2）= 各部屋の気のシミュレーション層。龍脈→部屋→隣接伝播→減衰。部屋レベルの物理的な気の流れ
+- ChiPool（Phase 5）= プレイヤーの経済リソースとしての気。建設・召喚・強化に使う「通貨」
+- SupplyCalculator が毎ティック、ChiFlowEngine の状態（全部屋の気の充填率と風水スコア）を読み取り、ChiPool への供給量に変換する
+- 仙獣の成長消費（D003: RoomChi.Current を直接減算）は部屋レベルの物理消費。ChiPool からの引き落としではない
+- MaintenanceCalculator の BeastMaintenancePerTick は ChiPool からの経済的維持コスト。D003 の物理消費とは別レイヤー
+- つまり仙獣は「部屋の気を食べて成長する（物理層）」と同時に「存在するだけでChiPoolから維持費がかかる（経済層）」の二重構造
+
+## Phase 5-A: 経済基本型定義（economy/）
+
+- [ ] `economy/doc.go`: パッケージドキュメント。気の経済リソース管理を扱うパッケージ。ChiFlowEngine（部屋レベルの物理的な気）とChiPool（プレイヤーの経済リソース）は別レイヤーであることを明記
+- [ ] `economy/chi_pool.go`: ChiPool 構造体（Current float64, Cap float64, History []ChiTransaction）。Deposit(amount, txType, reason, tick) / Withdraw(amount, txType, reason, tick) error。Balance() float64。CanAfford(amount) bool。Cap はChiPoolの上限（蓄気室の数とレベルで決まる、Phase 5-C で計算）
+- [ ] `economy/chi_pool.go`: ChiTransaction 構造体（Tick types.Tick, Amount float64, Type TransactionType, Reason string, BalanceAfter float64）。TransactionType 型（Supply/RoomMaintenance/BeastMaintenance/TrapMaintenance/Reward/Theft/Construction/BeastSummon/RoomUpgrade/Deficit）
+- [ ] `economy/chi_pool.go`: ChiPool.Withdraw で残高不足の場合は引き落とせる分だけ引き落とし、不足分を error で返す（残高はゼロ止まり、マイナスにはしない）
+- [ ] `economy/chi_pool_test.go`: Deposit/Withdraw テスト、残高不足時の部分引き落としテスト、Cap超過時のクランプテスト、トランザクション履歴テスト、BalanceAfter の正確性テスト
+
+## Phase 5-B: 気の供給計算（economy/）
+
+- [ ] `economy/supply_params.go`: SupplyParams 構造体（BaseSupplyPerVein float64, FengShuiMinMultiplier float64, FengShuiMaxMultiplier float64, ChiRatioSupplyWeight float64）。DefaultSupplyParams()。LoadSupplyParams(data []byte)
+- [ ] `economy/supply_params_data.json`: デフォルト供給パラメータ（龍脈基本供給: 5.0, 風水最低倍率: 0.8, 風水最高倍率: 1.3, 気充填率ウェイト: 0.5）
+- [ ] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
+  1. 基本供給 = 龍脈本数 × BaseSupplyPerVein
+  2. 充填率ボーナス = 全部屋の平均気充填率 × ChiRatioSupplyWeight
+  3. 風水倍率 = caveScore を FengShuiMinMultiplier〜FengShuiMaxMultiplier に線形マッピング
+  4. 最終供給 = (基本供給 + 充填率ボーナス) × 風水倍率
+- [ ] `economy/supply_test.go`: 龍脈なしで供給0テスト、龍脈複数の合算テスト、風水スコアによるボーナス/ペナルティテスト、気充填率が低いと供給も下がるテスト
+
+## Phase 5-C: 維持コストモデル（economy/）
+
+- [ ] `economy/cost_params.go`: CostParams 構造体（RoomMaintenancePerTick map[string]float64, BeastMaintenancePerTick float64, TrapMaintenancePerTick float64, ChiPoolCapPerStorageRoom float64, ChiPoolCapPerStorageLevel float64, ChiPoolBaseCap float64）。DefaultCostParams()。LoadCostParams(data []byte)
+- [ ] `economy/cost_params_data.json`: デフォルトコストパラメータ。部屋維持（龍穴: 0.5, 蓄気室: 0.1, 仙獣部屋: 0.2, 罠部屋: 0.4, 回復室: 0.3, 倉庫: 0.1）、仙獣経済維持: 0.3/tick、罠維持: 0.2/tick、ChiPool上限（基礎: 100.0, 蓄気室1つあたり: +50.0, 蓄気室レベルあたり: +20.0）
+- [ ] `economy/maintenance.go`: MaintenanceCalculator 構造体。CalcTickMaintenance(rooms, beasts, traps, params) MaintenanceBreakdown — 1ティック分の維持コスト。MaintenanceBreakdown 構造体（RoomCost float64, BeastCost float64, TrapCost float64, Total float64）で内訳を返す
+- [ ] `economy/maintenance.go`: CalcChiPoolCap(rooms, roomTypes, params) float64 — 蓄気室の数とレベルからChiPoolの上限を算出。蓄気室がなければ基礎値のみ
+- [ ] `economy/maintenance_test.go`: 部屋0で維持コスト0テスト、部屋タイプ別コストテスト、仙獣追加で維持コスト増加テスト、ChiPoolCap計算テスト（蓄気室あり/なし/レベルアップ）
+
+## Phase 5-D: 赤字処理（economy/）
+
+- [ ] `economy/deficit.go`: DeficitProcessor 構造体。ProcessDeficit(chiPool, maintenance MaintenanceBreakdown, tick) DeficitResult — 維持コストがChiPool残高を超える場合の処理:
+  1. 引き落とせる分は引き落とす（ChiPool残高ゼロまで）
+  2. 不足額を DeficitResult.Shortage に記録
+  3. 不足額に応じたペナルティを決定:
+     - 軽度赤字（不足 < 維持コストの30%）: 仙獣の成長速度が半減（GrowthPenalty: 0.5）
+     - 中度赤字（不足 30-70%）: 仙獣成長停止 + 部屋の気容量が一時的に減少（CapacityPenalty: 0.8）
+     - 重度赤字（不足 > 70%）: 仙獣が衰弱（HP減少）+ 罠が機能停止（TrapDisabled: true）
+- [ ] `economy/deficit.go`: DeficitResult 構造体（Shortage float64, Severity DeficitSeverity, GrowthPenalty float64, CapacityPenalty float64, TrapDisabled bool, BeastHPDrain int）。DeficitSeverity 型（None/Mild/Moderate/Severe）
+- [ ] `economy/deficit_params.go`: DeficitParams 構造体（MildThreshold float64, ModerateThreshold float64, MildGrowthPenalty float64, ModerateCapacityPenalty float64, SevereHPDrain int, SevereTrapDisable bool）。DefaultDeficitParams()。LoadDeficitParams(data []byte)
+- [ ] `economy/deficit_params_data.json`: デフォルト赤字パラメータ（軽度閾値: 0.3, 中度閾値: 0.7, 軽度成長ペナルティ: 0.5, 中度容量ペナルティ: 0.8, 重度HP減少: 5, 重度罠停止: true）
+- [ ] `economy/deficit_test.go`: 赤字なしテスト、軽度赤字ペナルティテスト、中度赤字ペナルティテスト、重度赤字ペナルティテスト、赤字からの回復テスト（次ティックで供給が維持を上回ればペナルティ解除）
+
+## Phase 5-E: 建設コストモデル（economy/）
+
+- [ ] `economy/construction.go`: ConstructionCost 構造体（RoomCost map[string]float64, CorridorCostPerCell float64, RoomUpgradeCostBase map[string]float64, RoomUpgradeCostPerLevel float64）。DefaultConstructionCost()。LoadConstructionCost(data []byte)
+- [ ] `economy/construction_data.json`: デフォルト建設コスト。部屋建設（龍穴: 50.0, 蓄気室: 20.0, 仙獣部屋: 15.0, 罠部屋: 25.0, 回復室: 20.0, 倉庫: 10.0）、通路: 2.0/セル、部屋強化基本コスト（タイプ別）、レベルごとの追加コスト: 10.0
+- [ ] `economy/construction.go`: CalcRoomCost(roomTypeID) float64。CalcCorridorCost(pathLength) float64。CalcUpgradeCost(roomTypeID, currentLevel) float64。すべて ConstructionCost から読み取り
+- [ ] `economy/construction_test.go`: 部屋建設コストテスト、通路コストテスト、部屋強化コストのレベルスケーリングテスト
+
+## Phase 5-F: 仙獣コストモデル（economy/）
+
+- [ ] `economy/beast_cost.go`: BeastCost 構造体（SummonCostByElement map[types.Element]float64）。DefaultBeastCost()。LoadBeastCost(data []byte)
+- [ ] `economy/beast_cost_data.json`: デフォルト仙獣コスト。召喚（木: 30.0, 火: 35.0, 土: 25.0, 金: 40.0, 水: 30.0）。進化コストはPhase 5では未実装（進化システム自体が延期中）
+- [ ] `economy/beast_cost.go`: CalcSummonCost(element) float64
+- [ ] `economy/beast_cost_test.go`: 属性別召喚コストテスト
+
+## Phase 5-G: 侵入報酬と損失（economy/）
+
+- [ ] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool *ChiPool, tick types.Tick) InvasionEconomySummary:
+  1. InvaderDefeated イベントから RewardChi を集計 → ChiPool に Deposit（TransactionType: Reward）
+  2. InvaderEscaped イベントから StolenChi を集計 → ChiPool から Withdraw（TransactionType: Theft）
+  3. BeastDefeated イベントを記録（復活コストは将来拡張）
+- [ ] `economy/invasion_economy.go`: InvasionEconomySummary 構造体（RewardChi float64, StolenChi float64, NetChi float64, BeastsLost int）
+- [ ] `economy/invasion_economy_test.go`: 侵入者撃破で報酬獲得テスト、盗賊逃走で気損失テスト、報酬と損失の差し引きテスト、複数イベントの集計テスト
+
+## Phase 5-H: 経済ティックエンジン（economy/）
+
+- [ ] `economy/engine.go`: EconomyEngine 構造体（ChiPool, SupplyCalculator, MaintenanceCalculator, DeficitProcessor, ConstructionCost, BeastCost, CostParams）。NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
+- [ ] `economy/engine.go`: EconomyEngine.Tick(tick, veins, roomChis, caveScore, rooms, roomTypes, beasts, traps) EconomyTickResult — 1ティック分の経済処理:
+  1. ChiPoolCapを再計算（蓄気室の状態変化に対応）
+  2. 気供給を計算して ChiPool に Deposit
+  3. 維持コストを計算
+  4. 赤字処理（DeficitProcessor）
+  5. 赤字でなければ維持コストをChiPoolから Withdraw
+  6. 収支バランスを記録
+- [ ] `economy/engine.go`: EconomyTickResult 構造体（Tick types.Tick, Supply float64, Maintenance MaintenanceBreakdown, DeficitResult DeficitResult, Balance float64, ChiPoolCap float64）
+- [ ] `economy/engine.go`: EconomyEngine.TryBuildRoom(roomTypeID, tick) (float64, error) — 建設可否判定 → コスト引き落とし → トランザクション記録。返り値はコスト額。CanAfford チェック含む
+- [ ] `economy/engine.go`: EconomyEngine.TrySummonBeast(element, tick) (float64, error) — 召喚可否判定 → コスト引き落とし
+- [ ] `economy/engine.go`: EconomyEngine.TryUpgradeRoom(roomTypeID, currentLevel, tick) (float64, error) — 強化可否判定 → コスト引き落とし
+- [ ] `economy/engine.go`: EconomyEngine.TryDigCorridor(pathLength, tick) (float64, error) — 通路掘削コスト引き落とし
+- [ ] `economy/engine_test.go`: 供給→維持の収支テスト、赤字でペナルティ発生テスト、建設成功テスト、残高不足で建設失敗テスト、召喚成功テスト、強化成功テスト、通路掘削コストテスト、TryXxx の返り値がトランザクションと整合するテスト
+
+## Phase 5-I: シリアライズ（economy/）
+
+- [ ] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
+- [ ] `economy/serialization_test.go`: 保存→復元→等価検証テスト、トランザクション履歴込みの保存/復元テスト
+
+## Phase 5-J: 経済バランス検証
+
+- [ ] `economy/balance_test.go`: D002原則3「リソースが常に不足」の構造的検証。標準構成（部屋6つ、仙獣3体、罠1つ、龍脈1本）で200ティックの経済シミュレーション:
+  - 供給に対する維持コスト比率が高いこと（具体的閾値はパラメータ依存なので固定値アサーションはしない。代わりに「毎ティック黒字」にはならないことを検証）
+  - 部屋1つ建設すると一時的に残高が大きく減ること
+  - 建設後に残高回復に要するティック数が「次の侵入波までの間隔」より長いこと（＝建設直後は脆弱）
+  - 200ティック時点で全部屋レベルMAX + 全仙獣レベルMAXに到達しないこと
+  - 赤字→ペナルティ→供給回復のサイクルが発生すること
+- [ ] `economy/balance_test.go`: パラメータ感度テスト。供給量を2倍にしたとき「常に黒字」にならないか、維持コストを半分にしたとき「トレードオフが消滅しないか」を検証。D002のアンチパターン検出用
+
+## Phase 5-K: ASCII可視化への経済レイヤー追加
+
+- [ ] `economy/ascii.go`: RenderEconomyStatus(engine) string — ChiPool残高、毎ティック収支、赤字状態をテキスト表示。`[Chi: 45.2/150.0 | +5.0 -3.8 = +1.2/tick | OK]` のようなワンライン形式
+- [ ] `cmd/caveviz/main.go` 更新: `--economy` フラグで経済ステータス表示。画面上部にオーバーレイ
+
+## Phase 5-L: 統合検証
+
+- [ ] `economy/integration_test.go`: Cave + ChiFlowEngine + 仙獣 + 侵入波 + 経済エンジンの80ティックフルシミュレーション:
+  - 気供給が毎ティック ChiPool に入ること
+  - 維持コストが毎ティック引き落とされること
+  - 侵入波の撃退報酬が ChiPool に加算されること
+  - 盗賊逃走の損失が ChiPool から減算されること
+  - 赤字時にDeficitResultのペナルティが正しく設定されること
+  - 建設実行でChiPool残高が減り、トランザクションが記録されること
+  - ChiPoolCapが蓄気室レベルに連動すること
+  - 全トランザクション履歴がシリアライズ/デシリアライズで保持されること
+- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [ ] Phase 5 完了。DECISIONS.md にD009（ChiPool/ChiFlowEngine二層構造）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase6_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
