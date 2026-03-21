@@ -7,9 +7,6 @@
 - [x] ディレクトリ構造を作成: `types/`, `world/`, `testutil/`, `docs/`
 - [x] PRD を `docs/PRD.md` に配置（参照用コピー）
 
-# tasks.md 追加差分
-# 既存の Phase 0 の最後（`docs/PRD.md` 配置タスクの後）に以下を挿入
-
 ## Phase 0-B: エコシステム整備
 
 - [ ] `.gitignore` 作成: バイナリ(`*.exe`,`*.out`), カバレッジ(`coverage.out`,`coverage.html`), ログ(`logs/`), IDE設定(`.idea/`,`.vscode/`), OS生成ファイル(`.DS_Store`)
