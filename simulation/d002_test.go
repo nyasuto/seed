@@ -6,6 +6,7 @@ import (
 
 	"github.com/ponpoko/chaosseed-core/fengshui"
 	"github.com/ponpoko/chaosseed-core/scenario"
+	"github.com/ponpoko/chaosseed-core/senju"
 	"github.com/ponpoko/chaosseed-core/types"
 )
 
@@ -295,6 +296,94 @@ func TestD002_Principle2_TimePressure(t *testing.T) {
 		t.Errorf("only %.0f%% of waves arrived under time pressure (rooms < %d); "+
 			"expected >50%% to demonstrate that invasions outpace construction",
 			ratio*100, halfMaxRooms)
+	}
+}
+
+// TestD002_Principle3_ContinuousTradeoffs verifies D002 principle 3:
+// the game's resource constraints ensure that no run ever reaches the
+// "all rooms MAX + all beasts MAX" state upon victory.
+//
+// Verification:
+//   - Run SimpleAI on the standard scenario 100 times with different seeds.
+//   - For each run that results in a win, check whether ALL rooms have reached
+//     the maximum upgrade level (5) AND all beasts have reached MaxLevel (50).
+//   - Assert that the rate of achieving this "perfect max" state is 0%.
+func TestD002_Principle3_ContinuousTradeoffs(t *testing.T) {
+	const numRuns = 100
+	const roomMaxLevel = 5 // practical max level for room upgrades
+
+	beastMaxLevel := senju.DefaultGrowthParams().MaxLevel
+
+	wins := 0
+	perfectMaxWins := 0
+
+	for i := 0; i < numRuns; i++ {
+		seed := int64(i*97 + 1)
+		sc := d002StandardScenario(seed)
+		sc.Events = waveScheduleToEvents(sc.WaveSchedule)
+		rng := types.NewSeededRNG(seed)
+
+		engine, err := NewSimulationEngine(sc, rng)
+		if err != nil {
+			t.Fatalf("seed %d: NewSimulationEngine: %v", seed, err)
+		}
+
+		ai := NewSimpleAIPlayer(engine.State)
+		result, err := engine.Run(300, func(snap scenario.GameSnapshot) []PlayerAction {
+			return ai.DecideActions(snap)
+		})
+		if err != nil {
+			t.Fatalf("seed %d: Run: %v", seed, err)
+		}
+
+		if result.Status != Won {
+			continue
+		}
+		wins++
+
+		// Check if all rooms are at max level.
+		allRoomsMax := true
+		roomCount := len(engine.State.Cave.Rooms)
+		if roomCount < sc.Constraints.MaxRooms {
+			allRoomsMax = false
+		} else {
+			for _, room := range engine.State.Cave.Rooms {
+				if room.Level < roomMaxLevel {
+					allRoomsMax = false
+					break
+				}
+			}
+		}
+
+		// Check if all beasts are at max level.
+		allBeastsMax := true
+		beastCount := len(engine.State.Beasts)
+		if beastCount < sc.Constraints.MaxBeasts {
+			allBeastsMax = false
+		} else {
+			for _, beast := range engine.State.Beasts {
+				if beast.Level < beastMaxLevel {
+					allBeastsMax = false
+					break
+				}
+			}
+		}
+
+		if allRoomsMax && allBeastsMax {
+			perfectMaxWins++
+			t.Logf("seed %d: PERFECT MAX achieved at tick %d (rooms=%d beasts=%d)",
+				seed, result.FinalTick, roomCount, beastCount)
+		}
+	}
+
+	t.Logf("results: %d wins out of %d runs, %d achieved perfect max",
+		wins, numRuns, perfectMaxWins)
+
+	if perfectMaxWins > 0 {
+		rate := float64(perfectMaxWins) / float64(numRuns) * 100
+		t.Errorf("perfect max (all rooms level %d + all beasts level %d) achieved in %d/%d runs (%.1f%%); "+
+			"expected 0%% to demonstrate continuous trade-offs",
+			roomMaxLevel, beastMaxLevel, perfectMaxWins, numRuns, rate)
 	}
 }
 

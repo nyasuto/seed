@@ -724,7 +724,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
   - 標準シナリオで侵入波到達時のSimpleAIの構築進捗を記録
   - 侵入波の50%以上が「部屋数 < MaxRooms/2」の状態で到達すること
-- [ ] `simulation/d002_test.go`: D002原則3（トレードオフの連続）検証:
+- [x] `simulation/d002_test.go`: D002原則3（トレードオフの連続）検証:
   - SimpleAIで標準シナリオを100回実行
   - ゲームクリア時に「全部屋MAX + 全仙獣MAX」到達率が0%であること
 - [ ] `simulation/d002_test.go`: アンチパターン検証:
