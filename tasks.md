@@ -635,5 +635,5 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - 仙獣進化テスト（条件を手動で満たして進化発火）
   - 仙獣敗北→Stunned→復活テスト
   - CoreHP が侵入者攻撃で減少するテスト
-- [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
 - [ ] Phase 6 完了。DECISIONS.md に D010（CoreHP）, D011（EventCommand パターン）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase7_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
