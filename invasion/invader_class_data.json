@@ -1,0 +1,67 @@
+[
+  {
+    "id": "wood_ascetic",
+    "name": "木行の修行者",
+    "element": "Wood",
+    "base_hp": 100,
+    "base_atk": 25,
+    "base_def": 20,
+    "base_spd": 20,
+    "reward_chi": 15.0,
+    "preferred_goal": "DestroyCore",
+    "retreat_threshold": 0.3,
+    "description": "バランスの取れた修行者。龍穴の破壊を目指す"
+  },
+  {
+    "id": "fire_fighter",
+    "name": "火行の武闘家",
+    "element": "Fire",
+    "base_hp": 80,
+    "base_atk": 40,
+    "base_def": 15,
+    "base_spd": 25,
+    "reward_chi": 18.0,
+    "preferred_goal": "HuntBeasts",
+    "retreat_threshold": 0.15,
+    "description": "攻撃特化の武闘家。仙獣を狩ることを好む"
+  },
+  {
+    "id": "earth_knight",
+    "name": "土行の鎧武者",
+    "element": "Earth",
+    "base_hp": 140,
+    "base_atk": 20,
+    "base_def": 35,
+    "base_spd": 10,
+    "reward_chi": 20.0,
+    "preferred_goal": "DestroyCore",
+    "retreat_threshold": 0.4,
+    "description": "防御特化の鎧武者。龍穴の破壊を目指す"
+  },
+  {
+    "id": "metal_thief",
+    "name": "金行の盗賊",
+    "element": "Metal",
+    "base_hp": 70,
+    "base_atk": 20,
+    "base_def": 15,
+    "base_spd": 40,
+    "reward_chi": 12.0,
+    "preferred_goal": "StealTreasure",
+    "retreat_threshold": 0.5,
+    "description": "素早い盗賊。倉庫の宝物を狙う"
+  },
+  {
+    "id": "water_taoist",
+    "name": "水行の道士",
+    "element": "Water",
+    "base_hp": 90,
+    "base_atk": 30,
+    "base_def": 20,
+    "base_spd": 20,
+    "reward_chi": 22.0,
+    "preferred_goal": "DestroyCore",
+    "retreat_threshold": 0.25,
+    "description": "回復能力を持つ道士。龍穴の破壊を目指す"
+  }
+]
