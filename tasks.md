@@ -348,7 +348,7 @@ sim/adapter/ai/ パッケージを作成する。
 - 全メッセージ型の JSON シリアライズ/デシリアライズのラウンドトリップテスト
 - ValidAction が正しく生成されるテスト（建設可能座標、召喚可能種族等）
 
-- [ ] **Task 3-B: AI Mode — valid_actions生成とSnapshot変換**
+- [x] **Task 3-B: AI Mode — valid_actions生成とSnapshot変換**
 
 1. adapter/ai/serializer.go:
    - SnapshotToJSON: GameSnapshot を JSON に変換
