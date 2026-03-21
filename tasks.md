@@ -240,7 +240,7 @@ sim/adapter/human/ パッケージを作成する。
 - コスト不足時に警告が表示されるテスト
 - "戻る" でメインメニューに戻るテスト
 
-- [ ] **Task 2-D: Human Mode — サブメニュー（召喚・アップグレード）**
+- [x] **Task 2-D: Human Mode — サブメニュー（召喚・アップグレード）**
 
 1. adapter/human/submenu_unit.go: 仙獣系サブメニュー
    - 仙獣を召喚する: 部屋ID → 種族選択 → PlayerAction生成
