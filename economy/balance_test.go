@@ -173,6 +173,165 @@ func TestBalance_CannotMaxAllByTick200(t *testing.T) {
 		totalNetIncome, totalCostToMax, totalCostToMax-totalNetIncome)
 }
 
+func TestBalance_DoubledSupplyStillHasScarcity(t *testing.T) {
+	// When supply is doubled, the economy must NOT become trivially always-profitable.
+	// D002 anti-pattern: if doubled supply makes deficit/construction trade-offs
+	// irrelevant, the base supply is already too generous.
+	sp := DefaultSupplyParams()
+	sp.BaseSupplyPerVein *= 2 // Double the supply
+
+	pool := NewChiPool(1000)
+	e := NewEconomyEngine(
+		pool,
+		sp,
+		DefaultCostParams(),
+		DefaultDeficitParams(),
+		DefaultConstructionCost(),
+		DefaultBeastCost(),
+	)
+
+	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
+
+	const totalTicks = 200
+	var totalSupply, totalMaintenance float64
+	deficitHit := false
+
+	for tick := types.Tick(1); tick <= totalTicks; tick++ {
+		result := e.Tick(tick, veins, roomChis, caveScore, rooms, beastCount, trapCount)
+		totalSupply += result.Supply
+		totalMaintenance += result.Maintenance.Total
+		if result.DeficitResult.Severity != None {
+			deficitHit = true
+		}
+	}
+
+	totalNetIncome := totalSupply - totalMaintenance
+
+	// Maintenance should still be a meaningful fraction of supply (at least 15%).
+	// If it drops below this, maintenance pressure has vanished.
+	maintenanceRatio := totalMaintenance / totalSupply
+	if maintenanceRatio < 0.15 {
+		t.Errorf("with doubled supply, maintenance ratio too low (%.3f): scarcity has disappeared", maintenanceRatio)
+	}
+
+	// Dragon den construction should still consume a noticeable portion of
+	// accumulated balance after 20 ticks (same check as base test).
+	balanceBefore := e.ChiPool.Balance()
+	cc := DefaultConstructionCost()
+	dragonDenCost := cc.CalcRoomCost("dragon_den")
+	dropRatio := dragonDenCost / balanceBefore
+	if dropRatio < 0.05 {
+		t.Errorf("with doubled supply, construction drop ratio too low (%.3f): building is trivial", dropRatio)
+	}
+
+	// Recovery after the most expensive build should still take multiple ticks.
+	avgNetPerTick := totalNetIncome / totalTicks
+	recoveryTicks := int(dragonDenCost / avgNetPerTick)
+	if recoveryTicks < 3 {
+		t.Errorf("with doubled supply, recovery too fast (%d ticks): no meaningful trade-off", recoveryTicks)
+	}
+
+	// Removing all veins should still cause deficit even with doubled base.
+	e2 := NewEconomyEngine(
+		NewChiPool(1000),
+		sp,
+		DefaultCostParams(),
+		DefaultDeficitParams(),
+		DefaultConstructionCost(),
+		DefaultBeastCost(),
+	)
+	noVeins := []fengshui.DragonVein{}
+	deficitWithNoVeins := false
+	for tick := types.Tick(1); tick <= 30; tick++ {
+		result := e2.Tick(tick, noVeins, roomChis, caveScore, rooms, beastCount, trapCount)
+		if result.DeficitResult.Severity != None {
+			deficitWithNoVeins = true
+			break
+		}
+	}
+	if !deficitWithNoVeins {
+		t.Error("with doubled supply but no veins, deficit should still occur")
+	}
+
+	t.Logf("doubled supply: net=%.1f, maint/supply=%.3f, dropRatio=%.3f, recoveryTicks=%d, deficitHit=%v",
+		totalNetIncome, maintenanceRatio, dropRatio, recoveryTicks, deficitHit)
+}
+
+func TestBalance_HalvedMaintenanceStillHasTradeoffs(t *testing.T) {
+	// When maintenance cost is halved, trade-offs must not vanish.
+	// D002 anti-pattern: if halved maintenance makes the economy trivially
+	// self-sustaining, the base maintenance is the only pressure.
+	cp := DefaultCostParams()
+	// Halve all maintenance costs.
+	for k, v := range cp.RoomMaintenancePerTick {
+		cp.RoomMaintenancePerTick[k] = v / 2
+	}
+	cp.BeastMaintenancePerTick /= 2
+	cp.TrapMaintenancePerTick /= 2
+
+	pool := NewChiPool(1000)
+	e := NewEconomyEngine(
+		pool,
+		DefaultSupplyParams(),
+		cp,
+		DefaultDeficitParams(),
+		DefaultConstructionCost(),
+		DefaultBeastCost(),
+	)
+
+	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
+
+	const totalTicks = 200
+	var totalSupply, totalMaintenance float64
+
+	for tick := types.Tick(1); tick <= totalTicks; tick++ {
+		result := e.Tick(tick, veins, roomChis, caveScore, rooms, beastCount, trapCount)
+		totalSupply += result.Supply
+		totalMaintenance += result.Maintenance.Total
+	}
+
+	// Even with halved maintenance, total net income should NOT cover maxing everything.
+	cc := DefaultConstructionCost()
+	bc := DefaultBeastCost()
+
+	var totalCostToMax float64
+	for _, r := range rooms {
+		for lv := 1; lv < 5; lv++ {
+			totalCostToMax += cc.CalcUpgradeCost(r.TypeID, lv)
+		}
+	}
+	for _, el := range []types.Element{types.Wood, types.Fire, types.Earth} {
+		totalCostToMax += bc.CalcSummonCost(el)
+	}
+
+	totalNetIncome := totalSupply - totalMaintenance
+	if totalNetIncome >= totalCostToMax {
+		t.Errorf("halved maintenance allows maxing everything: net=%.1f >= cost=%.1f", totalNetIncome, totalCostToMax)
+	}
+
+	// Construction should still cause a meaningful drop.
+	// Build dragon_den and check that it consumes a noticeable fraction of balance.
+	balanceBefore := e.ChiPool.Balance()
+	cost, err := e.TryBuildRoom("dragon_den", 201)
+	if err != nil {
+		t.Fatalf("expected to afford dragon_den, balance=%.1f: %v", balanceBefore, err)
+	}
+	dropRatio := cost / balanceBefore
+	if dropRatio < 0.1 {
+		t.Errorf("with halved maintenance, construction drop ratio too low (%.3f): trade-offs gone", dropRatio)
+	}
+
+	// Recovery from building should still take meaningful time.
+	avgNetPerTick := (totalSupply - totalMaintenance) / totalTicks
+	recoveryTicks := int(cost / avgNetPerTick)
+	if recoveryTicks < 3 {
+		t.Errorf("recovery after construction too fast (%d ticks): trade-off eliminated", recoveryTicks)
+	}
+
+	t.Logf("halved maintenance: net=%.1f, costToMax=%.1f, dropRatio=%.3f, recoveryTicks=%d",
+		totalNetIncome, totalCostToMax, dropRatio, recoveryTicks)
+}
+
 func TestBalance_DeficitRecoveryCycle(t *testing.T) {
 	// Simulate dragon vein loss (e.g., during invasion damage) → deficit → recovery.
 	// Phase 1: No veins, maintenance drains balance to deficit.
