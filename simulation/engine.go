@@ -12,6 +12,38 @@ import (
 	"github.com/ponpoko/chaosseed-core/world"
 )
 
+// Run executes the simulation loop up to maxTicks ticks. Each tick, the
+// actionProvider is called with a snapshot of the current game state to obtain
+// player actions. If actionProvider is nil, no actions are submitted each tick.
+// The loop ends early if a win or loss condition is met. If maxTicks is reached
+// without a terminal condition, the game is considered lost due to timeout.
+func (e *SimulationEngine) Run(maxTicks int, actionProvider func(scenario.GameSnapshot) []PlayerAction) (GameResult, error) {
+	for i := 0; i < maxTicks; i++ {
+		var actions []PlayerAction
+		if actionProvider != nil {
+			snapshot := BuildSnapshot(e.State)
+			actions = actionProvider(snapshot)
+		}
+		if actions == nil {
+			actions = []PlayerAction{NoAction{}}
+		}
+
+		result, err := e.Step(actions)
+		if err != nil {
+			return GameResult{}, err
+		}
+		if result.Status != Running {
+			return result, nil
+		}
+	}
+
+	return GameResult{
+		Status:    Lost,
+		FinalTick: e.State.Progress.CurrentTick,
+		Reason:    "max ticks reached",
+	}, nil
+}
+
 // Step executes one tick of the simulation. It processes player actions, then
 // runs all subsystem engines in a fixed order, evaluates win/loss conditions,
 // and records the tick log. The returned GameResult indicates whether the game

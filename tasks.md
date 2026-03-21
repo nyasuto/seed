@@ -685,8 +685,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   10. EventEngine.Tick → CommandExecutor.Apply
   11. 勝利/敗北条件評価
   12. TickLog記録
-- [ ] `simulation/engine.go`: Run(maxTicks, actionProvider func(GameSnapshot) []PlayerAction) GameResult — actionProviderで毎ティックのアクションを外部から注入。nil なら NoAction
-- [ ] `simulation/engine_test.go`: 1ティック実行テスト、勝利到達テスト、敗北到達テスト、PlayerAction実行テスト、maxTicks制限テスト
+- [x] `simulation/engine.go`: Run(maxTicks, actionProvider func(GameSnapshot) []PlayerAction) GameResult — actionProviderで毎ティックのアクションを外部から注入。nil なら NoAction
+- [x] `simulation/engine_test.go`: 1ティック実行テスト、勝利到達テスト、敗北到達テスト、PlayerAction実行テスト、maxTicks制限テスト
 
 ## Phase 7-D: スナップショットと巻き戻し（simulation/）
 

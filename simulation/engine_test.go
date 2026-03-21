@@ -280,6 +280,148 @@ func TestNewSimulationEngine_DefaultLevel(t *testing.T) {
 	}
 }
 
+func TestRun_SingleTick(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	result, err := engine.Run(1, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	// With no win/lose conditions and only 1 tick, maxTicks is reached → Lost.
+	if result.Status != Lost {
+		t.Errorf("Status = %v, want Lost (max ticks reached)", result.Status)
+	}
+	if result.Reason != "max ticks reached" {
+		t.Errorf("Reason = %q, want %q", result.Reason, "max ticks reached")
+	}
+	// One tick should have been executed.
+	if engine.State.Progress.CurrentTick != 1 {
+		t.Errorf("CurrentTick = %d, want 1", engine.State.Progress.CurrentTick)
+	}
+	if len(engine.TickLog) != 1 {
+		t.Errorf("TickLog length = %d, want 1", len(engine.TickLog))
+	}
+}
+
+func TestRun_WinCondition(t *testing.T) {
+	sc := minimalScenario()
+	sc.WinConditions = []scenario.ConditionDef{
+		{Type: "survive_until", Params: map[string]any{"ticks": float64(5)}},
+	}
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	result, err := engine.Run(100, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result.Status != Won {
+		t.Errorf("Status = %v, want Won", result.Status)
+	}
+	if result.FinalTick > 10 {
+		t.Errorf("FinalTick = %d, expected <= 10", result.FinalTick)
+	}
+}
+
+func TestRun_LoseCondition(t *testing.T) {
+	sc := minimalScenario()
+	sc.LoseConditions = []scenario.ConditionDef{
+		{Type: "core_destroyed"},
+	}
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	// Set core HP to 0 to trigger immediate loss.
+	engine.State.Progress.CoreHP = 0
+
+	result, err := engine.Run(100, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result.Status != Lost {
+		t.Errorf("Status = %v, want Lost", result.Status)
+	}
+	if result.FinalTick != 0 {
+		t.Errorf("FinalTick = %d, want 0", result.FinalTick)
+	}
+}
+
+func TestRun_PlayerAction(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	callCount := 0
+	provider := func(snap scenario.GameSnapshot) []PlayerAction {
+		callCount++
+		return []PlayerAction{NoAction{}}
+	}
+
+	result, err := engine.Run(3, provider)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result.Status != Lost {
+		t.Errorf("Status = %v, want Lost (max ticks)", result.Status)
+	}
+	if callCount != 3 {
+		t.Errorf("actionProvider called %d times, want 3", callCount)
+	}
+	if engine.State.Progress.CurrentTick != 3 {
+		t.Errorf("CurrentTick = %d, want 3", engine.State.Progress.CurrentTick)
+	}
+}
+
+func TestRun_MaxTicksLimit(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	result, err := engine.Run(10, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result.Status != Lost {
+		t.Errorf("Status = %v, want Lost", result.Status)
+	}
+	if result.Reason != "max ticks reached" {
+		t.Errorf("Reason = %q, want %q", result.Reason, "max ticks reached")
+	}
+	if engine.State.Progress.CurrentTick != 10 {
+		t.Errorf("CurrentTick = %d, want 10", engine.State.Progress.CurrentTick)
+	}
+	if len(engine.TickLog) != 10 {
+		t.Errorf("TickLog length = %d, want 10", len(engine.TickLog))
+	}
+}
+
 func TestNewSimulationEngine_Deterministic(t *testing.T) {
 	sc := minimalScenario()
 	sc.InitialState.DragonVeins = []scenario.DragonVeinPlacement{
