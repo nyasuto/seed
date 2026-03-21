@@ -57,8 +57,8 @@
 
 ## Phase 1-F: シリアライズ（world/）
 
-- [ ] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
-- [ ] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
+- [x] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
+- [x] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
 
 ## Phase 1-G: 統合検証
 
