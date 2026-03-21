@@ -1,56 +1,57 @@
-# Phase 3 完了レポート — 仙獣システム（senju/）
+# Phase 3.5 完了レポート — 仙獣AI行動システム（senju/）
 
 ## 1. 実装した内容の要約
 
-### Phase 3-A: 仙獣基本型定義
-- Species（種族）: 5種族の定義（翠龍/炎鳳/岩亀/金狼/水蛇、各五行属性に1種）
-- SpeciesRegistry: JSON から種族データを一括ロード・管理
+### Phase 3.5-A: 行動パターン定義
+- BehaviorType（Guard/Patrol/Chase/Flee）と Behavior インターフェース
+- Action / ActionType（Stay/MoveToRoom/Attack/Retreat）構造体
+- GuardBehavior: 定点防衛AI（侵入者がいればAttack、いなければStay）
 
-### Phase 3-B: 部屋の仙獣容量（world/ 拡張）
-- RoomType に MaxBeasts フィールドを追加（仙獣部屋: 3, 龍穴: 1, 罠部屋: 2, その他: 0）
-- Room に BeastIDs フィールドを追加、容量管理メソッド
+### Phase 3.5-B: 巡回と追跡AI
+- PatrolBehavior: 隣接部屋を順番に巡回、侵入者発見でChaseに遷移
+- ChaseBehavior: 侵入者の方向へ追跡移動、タイムアウトでPatrolに復帰
+- FleeBehavior: HP低下時に侵入者から逃走、回復室を目指す
 
-### Phase 3-C: 仙獣インスタンスと配置
-- Beast 構造体: ステータス（HP/ATK/DEF/SPD）、レベル、EXP、状態管理
-- CombatStats: 部屋の気の属性相性に基づく実効戦闘ステータス計算
-- RoomAffinity / GrowthAffinity: 仙獣と部屋の属性相性倍率
-- PlaceBeast / RemoveBeast / MoveBeast: 配置・除去・移動ロジック
+### Phase 3.5-C: 行動エンジン
+- BehaviorEngine: 全仙獣の1ティック分の行動を一括決定
+- HP閾値による自動Flee遷移
+- 行動衝突の先着順解決
+- ApplyActions: 行動結果の適用（位置・状態更新）
 
-### Phase 3-D: 成長システム
-- GrowthEngine: ティックベースの成長シミュレーション
-- 気を消費してEXPを獲得、レベルアップ処理
-- 属性相性と種族GrowthRateによる成長速度変化
-- GrowthEvent: 成長イベント（EXPGained/LevelUp/ChiStarved）の記録
+### Phase 3.5-D: AIパラメータ外出し
+- BehaviorParams: 逃走HP閾値、追跡タイムアウト、巡回滞在ティック
+- JSON からのパラメータ読み込み対応
 
-### Phase 3-E: シリアライズ
-- MarshalBeasts / UnmarshalBeasts: 全仙獣の JSON 保存/復元
-- SpeciesID からの復元時検証
+### Phase 3.5-E: ASCII可視化
+- 仙獣の行動状態オーバーレイ表示（[G]/[P]/[!]/[←]/[+]）
+- caveviz コマンドの --ai フラグ対応
 
-### Phase 3-F: ASCII可視化
-- RenderBeastOverlay: 仙獣の属性文字（W/F/E/M/A）のオーバーレイ表示
-- caveviz コマンドの --beasts / --all フラグ対応
-
-### Phase 3-G: 統合検証
-- 3部屋×3仙獣×30ティックの成長シミュレーション統合テスト
-- 属性相性による成長速度差、気消費の検証
+### Phase 3.5-F: 統合検証
+- 5部屋×3仙獣（Guard/Patrol/Chase）×20ティックの行動シミュレーション統合テスト
+- 疑似侵入者による追跡・逃走遷移の検証
 
 ## 2. 未解決の課題や技術的負債
 
-- **仙獣の行動AI未実装**: 現在の仙獣は配置された部屋に静止しているだけ。巡回・追跡・逃走などの行動パターンは Phase 3.5 で実装予定
-- **進化システム未実装**: PRD に記載のある仙獣の進化（上位種族への変化）は未実装。Phase 3.5 以降で対応
-- **戦闘システム未実装**: CalcCombatStats は計算のみで、実際の戦闘解決ロジックは Phase 4 で実装
-- **仙獣の召喚コスト未実装**: 現在は制約なく配置可能。Phase 5（経済システム）で気の消費コストを導入
+- **進化システム未実装**: PRD記載の仙獣進化は未実装。Phase 4以降で対応
+- **行動AIの知能レベルが単純**: 現在のAIは最近傍の隣接部屋への移動のみ。複数部屋先を見据えた経路計画は未実装
+- **回復メカニクスが未完成**: FleeBehaviorで回復室到達後のRecovering状態からの復帰条件（HP回復速度等）は Phase 4 の戦闘システムと合わせて定義が必要
+- **侵入者が仮実装**: 侵入者位置は map[int][]int のモックデータ。Phase 4 で実際の Invader 型に置き換え
 
 ## 3. 次フェーズへの申し送り事項
 
-- Phase 3.5（仙獣AI）では `senju/behavior.go` に行動パターン（Guard/Patrol/Chase/Flee）を定義し、BehaviorEngine で1ティック分の行動決定を行う
-- 行動AIは仙獣の `State`（Idle/Patrolling/Chasing/Fighting/Recovering）を遷移させる。State フィールドは既に Beast 構造体に存在する
-- 侵入者の位置は Phase 4 まで未実装のため、Phase 3.5 では `map[int][]int`（部屋ID → 侵入者ID リスト）のモックデータでテストする
-- BehaviorEngine の行動決定は `world.AdjacencyGraph` に依存する（隣接部屋への移動判定）
-- `senju` パッケージの依存: `types` ← `world` ← `fengshui` ← `senju`（Phase 3.5 でも変更なし）
+- Phase 4（侵入システム invasion/）では以下を実装:
+  - Invader 型の定義（種類、強さ、HP、属性、経路探索AI）
+  - 侵入波（InvasionWave）の生成・スケジューリング
+  - 仙獣 vs 侵入者の戦闘解決ロジック
+  - 罠部屋の妨害効果
+- 侵入者の経路探索は入口から部屋を探索しながら進行。world.AdjacencyGraph を利用
+- 戦闘解決では `senju/combat_stats.go` の CalcCombatStats を使用
+- senju パッケージへの依存方向: invasion → senju（invasion が senju を呼ぶ）
+- BehaviorEngine の侵入者位置引数 `map[int][]int` は Phase 4 で invasion 側が構築する
 
 ## 4. LESSONS.md から特に重要な知見
 
-- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した前例がある。Phase 3 でも Beast の State 定数は `BeastState` 型として名前空間を分離した
+- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した前例。Phase 3.5 では ActionType と BeastState の定数名に注意して設計した
+- **パッケージ依存方向の厳守**: senju が invasion に依存しないよう、侵入者情報は map[int][]int で受け取る設計とした（DECISIONS.md D006）
+- **行動衝突は先着順**: 決定論的設計を保つため、複雑な優先度ルールよりシンプルな順序依存を選択（DECISIONS.md D005）
 - **golangci-lint v2 の破壊的変更**: 設定ファイルの互換性に注意
-- **GrowthEngine の気消費方式**: RoomChi.Current を直接減算する方式を採用（DECISIONS.md D003 参照）。将来の経済システムとの整合に注意
