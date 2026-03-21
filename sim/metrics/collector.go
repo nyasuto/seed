@@ -9,6 +9,10 @@ import (
 // stompThreshold is the fraction of MaxCoreHP above which a win is considered a stomp.
 const stompThreshold = 0.8
 
+// surplusThreshold is the fraction of peak ChiPool above which a tick
+// is considered to have surplus resources.
+const surplusThreshold = 0.5
+
 // earlyWipeFraction is the fraction of MaxTicks within which a loss is considered early.
 const earlyWipeFraction = 0.5
 
@@ -52,6 +56,10 @@ type Collector struct {
 	gameResult      simulation.GameStatus // set via RecordGameResult
 	gameResultSet   bool
 	finalRoomLevels []int // room levels at game end (set via RecordFinalRoomLevels)
+
+	// B11: resource surplus rate
+	peakChiPool  float64 // max observed ChiPoolBalance
+	surplusTicks int     // ticks where ChiPool >= surplusThreshold * peakChiPool
 }
 
 // NewCollector creates a new Collector ready to receive tick data.
@@ -156,6 +164,14 @@ func (c *Collector) OnTick(snapshot scenario.GameSnapshot, actions []simulation.
 	// Prune old dig ticks beyond the overlap window.
 	c.pruneDigTicks(currentTick)
 
+	// B11: track ChiPool surplus.
+	if snapshot.ChiPoolBalance > c.peakChiPool {
+		c.peakChiPool = snapshot.ChiPoolBalance
+	}
+	if c.peakChiPool > 0 && snapshot.ChiPoolBalance >= surplusThreshold*c.peakChiPool {
+		c.surplusTicks++
+	}
+
 	c.lastSnapshot = snapshot
 }
 
@@ -230,6 +246,11 @@ func (c *Collector) BreakageMetrics() BreakageData {
 		}
 		bd.B08Perfection = allMax
 		bd.B09RoomLevelRatio = float64(levelSum) / float64(len(c.finalRoomLevels)*c.maxRoomLevel)
+	}
+
+	// B11: ResourceSurplusRate — fraction of ticks with surplus ChiPool.
+	if c.tickCount > 0 {
+		bd.B11SurplusRate = float64(c.surplusTicks) / float64(c.tickCount)
 	}
 
 	return bd

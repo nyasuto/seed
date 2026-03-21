@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"math"
 	"testing"
 
 	"github.com/nyasuto/seed/core/scenario"
@@ -331,5 +332,156 @@ func TestB09_AvgRoomLevelRatio(t *testing.T) {
 	bd2 := c2.BreakageMetrics()
 	if bd2.B09RoomLevelRatio != 0.0 {
 		t.Errorf("B09RoomLevelRatio should be 0.0 on loss, got %f", bd2.B09RoomLevelRatio)
+	}
+}
+
+func TestB10_LayoutEntropy_DiversePositions(t *testing.T) {
+	// 10 games, each placing rooms in completely different positions.
+	games := make([][]types.Pos, 10)
+	for i := 0; i < 10; i++ {
+		games[i] = []types.Pos{
+			{X: i * 3, Y: i * 3},
+			{X: i*3 + 1, Y: i*3 + 1},
+		}
+	}
+
+	entropy := CalcLayoutEntropy(games)
+	if entropy < 0.9 {
+		t.Errorf("B10 LayoutEntropy = %f, want >= 0.9 for diverse positions", entropy)
+	}
+}
+
+func TestB10_LayoutEntropy_IdenticalPositions(t *testing.T) {
+	// 10 games, all placing rooms in exactly the same positions.
+	games := make([][]types.Pos, 10)
+	for i := 0; i < 10; i++ {
+		games[i] = []types.Pos{
+			{X: 5, Y: 5},
+			{X: 10, Y: 10},
+		}
+	}
+
+	entropy := CalcLayoutEntropy(games)
+	// With only 2 distinct positions used equally, normalized entropy should still be 1.0
+	// because the distribution is uniform over the 2 positions.
+	// The key is that the positions are always the same across games.
+	if entropy < 0.99 {
+		t.Errorf("B10 LayoutEntropy = %f, want ~1.0 for uniform distribution over 2 positions", entropy)
+	}
+}
+
+func TestB10_LayoutEntropy_SinglePosition(t *testing.T) {
+	// All games place rooms in exactly the same single position.
+	games := make([][]types.Pos, 10)
+	for i := 0; i < 10; i++ {
+		games[i] = []types.Pos{{X: 5, Y: 5}}
+	}
+
+	entropy := CalcLayoutEntropy(games)
+	if entropy != 0.0 {
+		t.Errorf("B10 LayoutEntropy = %f, want 0.0 for single position", entropy)
+	}
+}
+
+func TestB10_LayoutEntropy_TooFewGames(t *testing.T) {
+	// Fewer than 2 games should return 0.
+	entropy := CalcLayoutEntropy([][]types.Pos{{{X: 1, Y: 1}}})
+	if entropy != 0.0 {
+		t.Errorf("B10 LayoutEntropy = %f, want 0.0 for single game", entropy)
+	}
+
+	entropy = CalcLayoutEntropy(nil)
+	if entropy != 0.0 {
+		t.Errorf("B10 LayoutEntropy = %f, want 0.0 for nil input", entropy)
+	}
+}
+
+func TestB10_LayoutEntropy_SkewedDistribution(t *testing.T) {
+	// 10 games: 9 use position (0,0), 1 uses (1,1).
+	// Entropy should be low (skewed).
+	games := make([][]types.Pos, 10)
+	for i := 0; i < 9; i++ {
+		games[i] = []types.Pos{{X: 0, Y: 0}}
+	}
+	games[9] = []types.Pos{{X: 1, Y: 1}}
+
+	entropy := CalcLayoutEntropy(games)
+	// p(0,0)=0.9, p(1,1)=0.1 → H = -(0.9*log2(0.9) + 0.1*log2(0.1)) ≈ 0.469
+	// maxH = log2(2) = 1.0 → normalized ≈ 0.469
+	if entropy > 0.6 {
+		t.Errorf("B10 LayoutEntropy = %f, want < 0.6 for skewed distribution", entropy)
+	}
+	if entropy < 0.3 {
+		t.Errorf("B10 LayoutEntropy = %f, want > 0.3 for skewed distribution", entropy)
+	}
+}
+
+func TestB11_SurplusRate_HighSurplus(t *testing.T) {
+	c := NewCollector()
+
+	// Simulate a game where ChiPool is always high.
+	// Peak is established on tick 1, then surplus for all remaining ticks.
+	for tick := 1; tick <= 100; tick++ {
+		c.OnTick(scenario.GameSnapshot{
+			Tick:           types.Tick(tick),
+			ChiPoolBalance: 100.0, // constant high value
+		}, nil)
+	}
+
+	bd := c.BreakageMetrics()
+	if bd.B11SurplusRate != 1.0 {
+		t.Errorf("B11SurplusRate = %f, want 1.0 for constant high ChiPool", bd.B11SurplusRate)
+	}
+}
+
+func TestB11_SurplusRate_LowSurplus(t *testing.T) {
+	c := NewCollector()
+
+	// Tick 1: peak at 100
+	c.OnTick(scenario.GameSnapshot{
+		Tick:           1,
+		ChiPoolBalance: 100.0,
+	}, nil)
+
+	// Ticks 2-100: ChiPool drops to near zero (below 50% of peak).
+	for tick := 2; tick <= 100; tick++ {
+		c.OnTick(scenario.GameSnapshot{
+			Tick:           types.Tick(tick),
+			ChiPoolBalance: 10.0, // 10% of peak
+		}, nil)
+	}
+
+	bd := c.BreakageMetrics()
+	// Only tick 1 was at peak (100 >= 50), ticks 2-100 are below threshold.
+	// surplus = 1/100 = 0.01
+	const epsilon = 0.001
+	want := 1.0 / 100.0
+	if math.Abs(bd.B11SurplusRate-want) > epsilon {
+		t.Errorf("B11SurplusRate = %f, want %f", bd.B11SurplusRate, want)
+	}
+}
+
+func TestB11_SurplusRate_NoTicks(t *testing.T) {
+	c := NewCollector()
+	bd := c.BreakageMetrics()
+	if bd.B11SurplusRate != 0.0 {
+		t.Errorf("B11SurplusRate = %f, want 0.0 for no ticks", bd.B11SurplusRate)
+	}
+}
+
+func TestB11_SurplusRate_ZeroChiPool(t *testing.T) {
+	c := NewCollector()
+
+	// All ticks have zero ChiPool.
+	for tick := 1; tick <= 50; tick++ {
+		c.OnTick(scenario.GameSnapshot{
+			Tick:           types.Tick(tick),
+			ChiPoolBalance: 0.0,
+		}, nil)
+	}
+
+	bd := c.BreakageMetrics()
+	if bd.B11SurplusRate != 0.0 {
+		t.Errorf("B11SurplusRate = %f, want 0.0 for zero ChiPool", bd.B11SurplusRate)
 	}
 }
