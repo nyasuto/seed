@@ -1,6 +1,9 @@
 package scenario
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/types"
@@ -284,4 +287,370 @@ func TestLoadScenario_EmptyArrays(t *testing.T) {
 	if s.Events != nil {
 		t.Errorf("Events = %v, want nil", s.Events)
 	}
+}
+
+// --- Validation tests ---
+
+// validScenario returns a minimal valid scenario for use in validation tests.
+func validScenario() *Scenario {
+	return &Scenario{
+		ID:   "valid",
+		Name: "Valid",
+		InitialState: InitialState{
+			CaveWidth:      16,
+			CaveHeight:     16,
+			TerrainDensity: 0.1,
+			PrebuiltRooms: []RoomPlacement{
+				{TypeID: "dragon_hole", Pos: types.Pos{X: 8, Y: 8}, Level: 1},
+			},
+		},
+		WinConditions:  []ConditionDef{{Type: "survive_until", Params: map[string]any{"ticks": 300.0}}},
+		LoseConditions: []ConditionDef{{Type: "core_destroyed"}},
+		Constraints:    GameConstraints{MaxTicks: 500},
+	}
+}
+
+func TestValidateScenario_Valid(t *testing.T) {
+	s := validScenario()
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got %v", errs)
+	}
+}
+
+func TestValidateScenario_NoWinConditions(t *testing.T) {
+	s := validScenario()
+	s.WinConditions = nil
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "at least one win condition") {
+		t.Errorf("expected win condition error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_NoLoseConditions(t *testing.T) {
+	s := validScenario()
+	s.LoseConditions = nil
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "at least one lose condition") {
+		t.Errorf("expected lose condition error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_InvalidWinConditionType(t *testing.T) {
+	s := validScenario()
+	s.WinConditions = []ConditionDef{{Type: "nonexistent"}}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "win_conditions[0]") {
+		t.Errorf("expected win condition type error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_InvalidLoseConditionType(t *testing.T) {
+	s := validScenario()
+	s.LoseConditions = []ConditionDef{{Type: "nonexistent"}}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "lose_conditions[0]") {
+		t.Errorf("expected lose condition type error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_RoomOutOfBounds(t *testing.T) {
+	s := validScenario()
+	s.InitialState.PrebuiltRooms = append(s.InitialState.PrebuiltRooms,
+		RoomPlacement{TypeID: "wood_room", Pos: types.Pos{X: 100, Y: 100}, Level: 1},
+	)
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "out of cave bounds") {
+		t.Errorf("expected out of bounds error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_RoomNegativePos(t *testing.T) {
+	s := validScenario()
+	s.InitialState.PrebuiltRooms = append(s.InitialState.PrebuiltRooms,
+		RoomPlacement{TypeID: "wood_room", Pos: types.Pos{X: -1, Y: 5}, Level: 1},
+	)
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "out of cave bounds") {
+		t.Errorf("expected out of bounds error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_WaveTriggerExceedsMaxTicks(t *testing.T) {
+	s := validScenario()
+	s.Constraints.MaxTicks = 200
+	s.WaveSchedule = []WaveScheduleEntry{
+		{TriggerTick: 300, Difficulty: 1.0, MinInvaders: 1, MaxInvaders: 2},
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "exceeds max_ticks") {
+		t.Errorf("expected trigger_tick exceeds max_ticks error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_WaveTriggerWithZeroMaxTicks(t *testing.T) {
+	s := validScenario()
+	s.Constraints.MaxTicks = 0
+	s.WaveSchedule = []WaveScheduleEntry{
+		{TriggerTick: 9999, Difficulty: 1.0, MinInvaders: 1, MaxInvaders: 2},
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	// MaxTicks == 0 means no limit, so no error expected.
+	if containsError(errs, "exceeds max_ticks") {
+		t.Errorf("should not error when MaxTicks is 0, got %v", errs)
+	}
+}
+
+func TestValidateScenario_TerrainDensityOutOfRange(t *testing.T) {
+	tests := []struct {
+		name    string
+		density float64
+	}{
+		{"negative", -0.1},
+		{"too_high", 0.6},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s := validScenario()
+			s.InitialState.TerrainDensity = tc.density
+			errs := ValidateScenario(s, ValidationContext{})
+			if !containsError(errs, "terrain_density") {
+				t.Errorf("expected terrain_density error for %f, got %v", tc.density, errs)
+			}
+		})
+	}
+}
+
+func TestValidateScenario_NoDragonHole(t *testing.T) {
+	s := validScenario()
+	s.InitialState.PrebuiltRooms = []RoomPlacement{
+		{TypeID: "wood_room", Pos: types.Pos{X: 5, Y: 5}, Level: 1},
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "dragon_hole") {
+		t.Errorf("expected dragon_hole error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_InvalidEventCondition(t *testing.T) {
+	s := validScenario()
+	s.Events = []EventDef{
+		{
+			ID:        "bad_event",
+			Condition: ConditionDef{Type: "nonexistent"},
+			Commands:  []CommandDef{{Type: "message", Params: map[string]any{"text": "hi"}}},
+		},
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "events[0]") {
+		t.Errorf("expected event condition error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_InvalidEventCommand(t *testing.T) {
+	s := validScenario()
+	s.Events = []EventDef{
+		{
+			ID:        "bad_cmd_event",
+			Condition: ConditionDef{Type: "core_destroyed"},
+			Commands:  []CommandDef{{Type: "nonexistent_cmd"}},
+		},
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "commands[0]") {
+		t.Errorf("expected event command error, got %v", errs)
+	}
+}
+
+func TestValidateScenario_MultipleErrors(t *testing.T) {
+	s := &Scenario{
+		ID: "broken",
+		InitialState: InitialState{
+			CaveWidth:      8,
+			CaveHeight:     8,
+			TerrainDensity: 0.8, // out of range
+			PrebuiltRooms: []RoomPlacement{
+				{TypeID: "wood_room", Pos: types.Pos{X: 100, Y: 100}, Level: 1}, // out of bounds, no dragon_hole
+			},
+		},
+		// no win or lose conditions
+	}
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) < 4 {
+		t.Errorf("expected at least 4 errors (no win, no lose, out of bounds, terrain_density, no dragon_hole), got %d: %v", len(errs), errs)
+	}
+}
+
+// --- Testdata JSON loading tests ---
+
+func TestLoadScenario_TutorialJSON(t *testing.T) {
+	data := readTestdata(t, "tutorial.json")
+	s, err := LoadScenario(data)
+	if err != nil {
+		t.Fatalf("LoadScenario tutorial.json: %v", err)
+	}
+
+	if s.ID != "tutorial" {
+		t.Errorf("ID = %q, want %q", s.ID, "tutorial")
+	}
+	if s.Difficulty != "easy" {
+		t.Errorf("Difficulty = %q, want %q", s.Difficulty, "easy")
+	}
+	if s.InitialState.CaveWidth != 16 || s.InitialState.CaveHeight != 16 {
+		t.Errorf("cave size = %dx%d, want 16x16", s.InitialState.CaveWidth, s.InitialState.CaveHeight)
+	}
+	if len(s.WinConditions) != 1 || s.WinConditions[0].Type != "survive_until" {
+		t.Errorf("unexpected win conditions: %v", s.WinConditions)
+	}
+	if len(s.LoseConditions) != 1 || s.LoseConditions[0].Type != "core_destroyed" {
+		t.Errorf("unexpected lose conditions: %v", s.LoseConditions)
+	}
+	if len(s.WaveSchedule) != 1 {
+		t.Errorf("WaveSchedule len = %d, want 1", len(s.WaveSchedule))
+	}
+	if len(s.InitialState.StartingBeasts) != 1 {
+		t.Errorf("StartingBeasts len = %d, want 1", len(s.InitialState.StartingBeasts))
+	}
+
+	// Should pass validation (no registry context).
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) != 0 {
+		t.Errorf("validation errors: %v", errs)
+	}
+}
+
+func TestLoadScenario_StandardJSON(t *testing.T) {
+	data := readTestdata(t, "standard.json")
+	s, err := LoadScenario(data)
+	if err != nil {
+		t.Fatalf("LoadScenario standard.json: %v", err)
+	}
+
+	if s.ID != "standard" {
+		t.Errorf("ID = %q, want %q", s.ID, "standard")
+	}
+	if s.Difficulty != "normal" {
+		t.Errorf("Difficulty = %q, want %q", s.Difficulty, "normal")
+	}
+	if s.InitialState.CaveWidth != 32 || s.InitialState.CaveHeight != 32 {
+		t.Errorf("cave size = %dx%d, want 32x32", s.InitialState.CaveWidth, s.InitialState.CaveHeight)
+	}
+	if len(s.WinConditions) != 2 {
+		t.Errorf("WinConditions len = %d, want 2", len(s.WinConditions))
+	}
+	if len(s.LoseConditions) != 2 {
+		t.Errorf("LoseConditions len = %d, want 2", len(s.LoseConditions))
+	}
+	if len(s.WaveSchedule) != 5 {
+		t.Errorf("WaveSchedule len = %d, want 5", len(s.WaveSchedule))
+	}
+	if len(s.Events) != 2 {
+		t.Errorf("Events len = %d, want 2", len(s.Events))
+	}
+	if len(s.InitialState.DragonVeins) != 2 {
+		t.Errorf("DragonVeins len = %d, want 2", len(s.InitialState.DragonVeins))
+	}
+
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) != 0 {
+		t.Errorf("validation errors: %v", errs)
+	}
+}
+
+func TestLoadScenario_AntipatternRichJSON(t *testing.T) {
+	data := readTestdata(t, "antipattern_rich.json")
+	s, err := LoadScenario(data)
+	if err != nil {
+		t.Fatalf("LoadScenario antipattern_rich.json: %v", err)
+	}
+
+	if s.ID != "antipattern_rich" {
+		t.Errorf("ID = %q, want %q", s.ID, "antipattern_rich")
+	}
+	if s.InitialState.StartingChi != 9999.0 {
+		t.Errorf("StartingChi = %f, want 9999.0", s.InitialState.StartingChi)
+	}
+	if len(s.InitialState.DragonVeins) != 3 {
+		t.Errorf("DragonVeins len = %d, want 3", len(s.InitialState.DragonVeins))
+	}
+	if len(s.WaveSchedule) != 2 {
+		t.Errorf("WaveSchedule len = %d, want 2", len(s.WaveSchedule))
+	}
+
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) != 0 {
+		t.Errorf("validation errors: %v", errs)
+	}
+}
+
+func TestLoadScenario_AntipatternImpossibleJSON(t *testing.T) {
+	data := readTestdata(t, "antipattern_impossible.json")
+	s, err := LoadScenario(data)
+	if err != nil {
+		t.Fatalf("LoadScenario antipattern_impossible.json: %v", err)
+	}
+
+	if s.ID != "antipattern_impossible" {
+		t.Errorf("ID = %q, want %q", s.ID, "antipattern_impossible")
+	}
+	if s.InitialState.TerrainDensity != 0.5 {
+		t.Errorf("TerrainDensity = %f, want 0.5", s.InitialState.TerrainDensity)
+	}
+	if s.InitialState.StartingChi != 10.0 {
+		t.Errorf("StartingChi = %f, want 10.0", s.InitialState.StartingChi)
+	}
+	if len(s.WaveSchedule) != 3 {
+		t.Errorf("WaveSchedule len = %d, want 3", len(s.WaveSchedule))
+	}
+	if s.WaveSchedule[0].TriggerTick != 10 {
+		t.Errorf("first wave TriggerTick = %d, want 10", s.WaveSchedule[0].TriggerTick)
+	}
+
+	// TerrainDensity 0.5 is at the boundary, should still pass.
+	errs := ValidateScenario(s, ValidationContext{})
+	if len(errs) != 0 {
+		t.Errorf("validation errors: %v", errs)
+	}
+}
+
+// --- Rejection tests for invalid scenarios ---
+
+func TestLoadScenario_RejectMissingConditionParams(t *testing.T) {
+	// survive_until without ticks param should fail at validation.
+	s := validScenario()
+	s.WinConditions = []ConditionDef{{Type: "survive_until"}} // missing "ticks"
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "win_conditions[0]") {
+		t.Errorf("expected validation error for missing params, got %v", errs)
+	}
+}
+
+func TestLoadScenario_RejectInvalidConditionParams(t *testing.T) {
+	// fengshui_score without threshold param.
+	s := validScenario()
+	s.WinConditions = []ConditionDef{{Type: "fengshui_score"}} // missing "threshold"
+	errs := ValidateScenario(s, ValidationContext{})
+	if !containsError(errs, "win_conditions[0]") {
+		t.Errorf("expected validation error for missing threshold, got %v", errs)
+	}
+}
+
+// --- Helpers ---
+
+func readTestdata(t *testing.T, name string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatalf("reading testdata/%s: %v", name, err)
+	}
+	return data
+}
+
+func containsError(errs []error, substr string) bool {
+	for _, e := range errs {
+		if strings.Contains(e.Error(), substr) {
+			return true
+		}
+	}
+	return false
 }
