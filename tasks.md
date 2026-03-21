@@ -342,7 +342,7 @@
 
 - [x] `invasion/ascii.go`: RenderInvasionOverlay(cave, waves) string — CaveのASCII表示に侵入者をオーバーレイ。Advancing: `>>`, Fighting: `XX`, Retreating: `<<`, 目標達成: `$$`。複数侵入者がいる部屋は人数表示（例: `3>>`）
 - [x] `cmd/caveviz/main.go` 更新: `--invasion` フラグで侵入レイヤー表示。`--battle` フラグで全レイヤー（地形+気+仙獣+侵入者）を重ねて戦況表示
-- [ ] `invasion/ascii_test.go`: 各State の表示テスト、複数侵入者の人数表示テスト
+- [x] `invasion/ascii_test.go`: 各State の表示テスト、複数侵入者の人数表示テスト
 
 ## Phase 4-J: 統合検証
 
