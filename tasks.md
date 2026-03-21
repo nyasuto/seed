@@ -525,7 +525,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 6-B: 延期タスク消化 — 仙獣敗北後処理（senju/ 拡張）
 
-- [ ] `senju/beast.go` 更新: BeastState に Stunned を追加（既存: Idle/Patrolling/Chasing/Fighting/Recovering/Fleeing）
+- [x] `senju/beast.go` 更新: BeastState に Stunned を追加（既存: Idle/Patrolling/Chasing/Fighting/Recovering/Fleeing）
 - [ ] `senju/defeat.go`: DefeatProcessor 構造体。ProcessDefeat(beast, tick) DefeatResult:
   - HP 0以下の仙獣を Stunned 状態に遷移
   - StunnedDuration ティック後に自動復活（HP = MaxHP × 0.3、レベル -1（最低1））

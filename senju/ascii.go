@@ -120,6 +120,8 @@ func stateTag(state BeastState) string {
 		return "[!]"
 	case Recovering:
 		return "[+]"
+	case Stunned:
+		return "[X]"
 	default:
 		return "[?]"
 	}
@@ -221,6 +223,8 @@ func stateChar(state BeastState) byte {
 		return '!'
 	case Recovering:
 		return '+'
+	case Stunned:
+		return 'X'
 	default:
 		return '?'
 	}

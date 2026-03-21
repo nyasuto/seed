@@ -16,6 +16,9 @@ const (
 	Fighting
 	// Recovering means the beast is healing after combat.
 	Recovering
+	// Stunned means the beast has been defeated and is temporarily incapacitated.
+	// While stunned, the beast cannot act or participate in combat.
+	Stunned
 )
 
 // String returns the name of the beast state.
@@ -31,6 +34,8 @@ func (s BeastState) String() string {
 		return "Fighting"
 	case Recovering:
 		return "Recovering"
+	case Stunned:
+		return "Stunned"
 	default:
 		return "Unknown"
 	}

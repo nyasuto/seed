@@ -387,6 +387,7 @@ func TestBeastState_String(t *testing.T) {
 		{Chasing, "Chasing"},
 		{Fighting, "Fighting"},
 		{Recovering, "Recovering"},
+		{Stunned, "Stunned"},
 		{BeastState(99), "Unknown"},
 	}
 	for _, tt := range tests {
