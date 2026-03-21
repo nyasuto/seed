@@ -530,7 +530,7 @@ sim/adapter/batch/ パッケージを作成する。
 - results.json の breakage_report.alerts が空配列
 - 1,000ゲームが5分以内に完了（テストでタイムアウト設定）
 
-- [ ] **Task 4-H: Phase 4 統合テストと完了**
+- [x] **Task 4-H: Phase 4 統合テストと完了**
 
 1. Batch Mode の全機能統合テスト
 2. Human Mode / AI Mode / Batch Mode の共存テスト
