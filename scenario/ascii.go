@@ -1,8 +1,10 @@
 package scenario
 
-import "strings"
-
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 // RenderScenarioStatus returns a one-line status summary of the running scenario.
 // Format: [<difficulty> | Tick <cur>/<max> | Waves <defeated>/<total> | Core HP <hp> | Win: <condition> <cur>/<target>]
@@ -40,17 +42,17 @@ func RenderScenarioStatus(sc *Scenario, prog *ScenarioProgress, snap GameSnapsho
 func winConditionLabel(cond ConditionDef, snap GameSnapshot) string {
 	switch cond.Type {
 	case "fengshui_score":
-		threshold, err := paramFloat64(cond.Params, "threshold")
-		if err != nil {
+		var p fengshuiScoreParams
+		if err := json.Unmarshal(cond.Params, &p); err != nil {
 			return ""
 		}
-		return fmt.Sprintf("FengShui %.0f/%.0f", snap.CaveFengShuiScore, threshold)
+		return fmt.Sprintf("FengShui %.0f/%.0f", snap.CaveFengShuiScore, p.Threshold)
 	case "chi_pool":
-		threshold, err := paramFloat64(cond.Params, "threshold")
-		if err != nil {
+		var p chiPoolParams
+		if err := json.Unmarshal(cond.Params, &p); err != nil {
 			return ""
 		}
-		return fmt.Sprintf("Chi %.0f/%.0f", snap.ChiPoolBalance, threshold)
+		return fmt.Sprintf("Chi %.0f/%.0f", snap.ChiPoolBalance, p.Threshold)
 	default:
 		return ""
 	}

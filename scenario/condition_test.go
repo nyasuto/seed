@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -20,7 +21,7 @@ func TestNewCondition_UnknownType(t *testing.T) {
 func TestSurviveUntil_Evaluate(t *testing.T) {
 	cond, err := NewCondition(ConditionDef{
 		Type:   "survive_until",
-		Params: map[string]any{"ticks": float64(100)},
+		Params: json.RawMessage(`{"ticks": 100}`),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -48,7 +49,7 @@ func TestSurviveUntil_Evaluate(t *testing.T) {
 func TestSurviveUntil_MissingParam(t *testing.T) {
 	_, err := NewCondition(ConditionDef{
 		Type:   "survive_until",
-		Params: map[string]any{},
+		Params: json.RawMessage(`{}`),
 	})
 	if err == nil {
 		t.Fatal("expected error for missing ticks param")
@@ -83,7 +84,7 @@ func TestDefeatAllWaves_Evaluate(t *testing.T) {
 func TestFengshuiScore_Evaluate(t *testing.T) {
 	cond, err := NewCondition(ConditionDef{
 		Type:   "fengshui_score",
-		Params: map[string]any{"threshold": float64(80.0)},
+		Params: json.RawMessage(`{"threshold": 80.0}`),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -110,7 +111,7 @@ func TestFengshuiScore_Evaluate(t *testing.T) {
 func TestChiPool_Evaluate(t *testing.T) {
 	cond, err := NewCondition(ConditionDef{
 		Type:   "chi_pool",
-		Params: map[string]any{"threshold": float64(500.0)},
+		Params: json.RawMessage(`{"threshold": 500.0}`),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -184,7 +185,7 @@ func TestAllBeastsDefeated_Evaluate(t *testing.T) {
 func TestBankrupt_Evaluate(t *testing.T) {
 	cond, err := NewCondition(ConditionDef{
 		Type:   "bankrupt",
-		Params: map[string]any{"ticks": float64(10)},
+		Params: json.RawMessage(`{"ticks": 10}`),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -211,7 +212,7 @@ func TestBankrupt_Evaluate(t *testing.T) {
 func TestNewCondition_InvalidParamType(t *testing.T) {
 	_, err := NewCondition(ConditionDef{
 		Type:   "survive_until",
-		Params: map[string]any{"ticks": "not a number"},
+		Params: json.RawMessage(`{"ticks": "not a number"}`),
 	})
 	if err == nil {
 		t.Fatal("expected error for non-numeric param")
@@ -222,7 +223,7 @@ func TestNewCondition_InvalidParamType(t *testing.T) {
 func TestSurviveUntil_TickType(t *testing.T) {
 	cond, err := NewCondition(ConditionDef{
 		Type:   "survive_until",
-		Params: map[string]any{"ticks": float64(3000)},
+		Params: json.RawMessage(`{"ticks": 3000}`),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

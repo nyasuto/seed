@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/scenario"
@@ -313,7 +314,7 @@ func TestRun_SingleTick(t *testing.T) {
 func TestRun_WinCondition(t *testing.T) {
 	sc := minimalScenario()
 	sc.WinConditions = []scenario.ConditionDef{
-		{Type: "survive_until", Params: map[string]any{"ticks": float64(5)}},
+		{Type: "survive_until", Params: json.RawMessage(`{"ticks": 5}`)},
 	}
 	rng := types.NewSeededRNG(1)
 

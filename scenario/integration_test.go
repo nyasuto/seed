@@ -2,6 +2,7 @@ package scenario
 
 import (
 	_ "embed"
+	"encoding/json"
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/invasion"
@@ -246,11 +247,11 @@ func TestIntegration_TutorialScenario(t *testing.T) {
 				ID: "chi_bonus",
 				Condition: ConditionDef{
 					Type:   "survive_until",
-					Params: map[string]any{"ticks": float64(50)},
+					Params: json.RawMessage(`{"ticks": 50}`),
 				},
 				Commands: []CommandDef{
-					{Type: "modify_chi", Params: map[string]any{"amount": float64(100)}},
-					{Type: "message", Params: map[string]any{"text": "ボーナス気を獲得！"}},
+					{Type: "modify_chi", Params: json.RawMessage(`{"amount": 100}`)},
+					{Type: "message", Params: json.RawMessage(`{"text": "ボーナス気を獲得！"}`)},
 				},
 				OneShot: true,
 			},

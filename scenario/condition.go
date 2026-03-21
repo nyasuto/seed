@@ -1,6 +1,10 @@
 package scenario
 
-import "github.com/ponpoko/chaosseed-core/types"
+import (
+	"encoding/json"
+
+	"github.com/ponpoko/chaosseed-core/types"
+)
 
 // GameSnapshot is a read-only snapshot of the current game state,
 // passed to ConditionEvaluator.Evaluate each tick to determine
@@ -31,7 +35,7 @@ type ConditionDef struct {
 	// Type is the condition identifier used by the factory to instantiate
 	// the corresponding ConditionEvaluator.
 	Type string
-	// Params holds condition-specific parameters. For example a
+	// Params holds condition-specific parameters as raw JSON. For example a
 	// "survive_until" condition might contain {"ticks": 3000}.
-	Params map[string]any
+	Params json.RawMessage
 }

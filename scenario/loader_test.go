@@ -1,6 +1,7 @@
 package scenario
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -304,7 +305,7 @@ func validScenario() *Scenario {
 				{TypeID: "dragon_hole", Pos: types.Pos{X: 8, Y: 8}, Level: 1},
 			},
 		},
-		WinConditions:  []ConditionDef{{Type: "survive_until", Params: map[string]any{"ticks": 300.0}}},
+		WinConditions:  []ConditionDef{{Type: "survive_until", Params: json.RawMessage(`{"ticks": 300}`)}},
 		LoseConditions: []ConditionDef{{Type: "core_destroyed"}},
 		Constraints:    GameConstraints{MaxTicks: 500},
 	}
@@ -438,7 +439,7 @@ func TestValidateScenario_InvalidEventCondition(t *testing.T) {
 		{
 			ID:        "bad_event",
 			Condition: ConditionDef{Type: "nonexistent"},
-			Commands:  []CommandDef{{Type: "message", Params: map[string]any{"text": "hi"}}},
+			Commands:  []CommandDef{{Type: "message", Params: json.RawMessage(`{"text": "hi"}`)}},
 		},
 	}
 	errs := ValidateScenario(s, ValidationContext{})
