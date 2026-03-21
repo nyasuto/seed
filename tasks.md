@@ -20,8 +20,8 @@
 ## Phase 1-B: グリッドとセル管理（world/）
 
 - [x] `world/cell.go`: CellType 定義（Rock/Corridor/RoomFloor/Entrance）、Cell 構造体（Type, RoomID（部屋の一部なら所属ID, それ以外は0））
-- [ ] `world/grid.go`: Grid 構造体（Width, Height int, cells [][]Cell）、NewGrid(w, h) コンストラクタ、At(pos)/Set(pos, cell) メソッド、InBounds(pos) bool
-- [ ] `world/grid_test.go`: グリッド生成、範囲外アクセスのエラー、セル読み書きのテスト
+- [x] `world/grid.go`: Grid 構造体（Width, Height int, cells [][]Cell）、NewGrid(w, h) コンストラクタ、At(pos)/Set(pos, cell) メソッド、InBounds(pos) bool
+- [x] `world/grid_test.go`: グリッド生成、範囲外アクセスのエラー、セル読み書きのテスト
 
 ## Phase 1-C: 部屋の定義と配置（world/）
 
