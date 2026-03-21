@@ -610,7 +610,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `scenario/testdata/tutorial.json`: チュートリアルシナリオ（小マップ16x16、HardRock少、弱い侵入波1つ、survive_until条件のみ、仙獣1体配置済み）
 - [x] `scenario/testdata/standard.json`: 標準シナリオ（中マップ32x32、HardRock中密度、5波、defeat_all_waves + fengshui_score の勝利条件、イベント2つ）
 - [x] `scenario/testdata/antipattern_rich.json`: D002アンチパターン検証用（StartingChi を極端に多く、侵入波を弱く設定。「リソースが潤沢で全部に投資できる」状態を再現。Phase 7でこのシナリオが面白くないことを検証する素材）
-- [ ] `scenario/testdata/antipattern_impossible.json`: D002アンチパターン検証用（HardRock密度0.5、初波tick10、StartingChi極小。「0点（詰み）」に近い状態。ValidateTerrainが警告を出すことを確認）
+- [x] `scenario/testdata/antipattern_impossible.json`: D002アンチパターン検証用（HardRock密度0.5、初波tick10、StartingChi極小。「0点（詰み）」に近い状態。ValidateTerrainが警告を出すことを確認）
 - [ ] `scenario/loader_test.go`: JSONロードテスト、バリデーション全項目テスト、不正シナリオの拒否テスト、アンチパターンシナリオのロードテスト
 
 ## Phase 6-J: シリアライズ（scenario/）
