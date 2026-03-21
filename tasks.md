@@ -579,8 +579,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - ModifyConstraintCommand: 制約変更内容を返す
   - MessageCommand: 通知メッセージを返す
 - [x] `scenario/command.go`: NewCommand(def CommandDef) (EventCommand, error) — ファクトリ
-- [ ] `scenario/event_engine.go`: EventEngine 構造体。Tick(snapshot GameSnapshot, events []EventDef) []EventCommand — 条件を評価し、発火したイベントのコマンドリストを返す。OneShot管理（FiredEventsのSet）。コマンドの適用はsimulation層が行う（D011）
-- [ ] `scenario/event_test.go`: OneShot 1回実行テスト、条件未達で発火しないテスト、複数イベント同時発火テスト、FiredEventsの永続管理テスト
+- [x] `scenario/event_engine.go`: EventEngine 構造体。Tick(snapshot GameSnapshot, events []EventDef) []EventCommand — 条件を評価し、発火したイベントのコマンドリストを返す。OneShot管理（FiredEventsのSet）。コマンドの適用はsimulation層が行う（D011）
+- [x] `scenario/event_test.go`: OneShot 1回実行テスト、条件未達で発火しないテスト、複数イベント同時発火テスト、FiredEventsの永続管理テスト
 
 ## Phase 6-G: 動的侵入波スケジュール（scenario/）
 
