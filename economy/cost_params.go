@@ -25,9 +25,8 @@ type CostParams struct {
 }
 
 // DefaultCostParams returns the default cost parameters loaded from embedded JSON.
-func DefaultCostParams() *CostParams {
-	p, _ := LoadCostParams(defaultCostParamsJSON)
-	return p
+func DefaultCostParams() (*CostParams, error) {
+	return LoadCostParams(defaultCostParamsJSON)
 }
 
 // LoadCostParams parses cost parameters from JSON data.

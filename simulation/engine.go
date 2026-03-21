@@ -498,13 +498,33 @@ func NewSimulationEngine(sc *scenario.Scenario, rng types.RNG) (*SimulationEngin
 	}
 
 	// Create economy engine.
+	supplyParams, err := economy.DefaultSupplyParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading supply params: %w", err)
+	}
+	costParams, err := economy.DefaultCostParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading cost params: %w", err)
+	}
+	deficitParams, err := economy.DefaultDeficitParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading deficit params: %w", err)
+	}
+	constructionCost, err := economy.DefaultConstructionCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading construction cost: %w", err)
+	}
+	beastCost, err := economy.DefaultBeastCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading beast cost: %w", err)
+	}
 	economyEngine := economy.NewEconomyEngine(
 		chiPool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
+		supplyParams,
+		costParams,
+		deficitParams,
+		constructionCost,
+		beastCost,
 	)
 
 	// Create invasion engine.

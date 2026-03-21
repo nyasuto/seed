@@ -3,9 +3,9 @@ package economy
 import "testing"
 
 func TestConstructionCost_DefaultLoad(t *testing.T) {
-	c := DefaultConstructionCost()
-	if c == nil {
-		t.Fatal("DefaultConstructionCost returned nil")
+	c, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
 	}
 	if len(c.RoomCost) == 0 {
 		t.Error("RoomCost should not be empty")
@@ -13,7 +13,10 @@ func TestConstructionCost_DefaultLoad(t *testing.T) {
 }
 
 func TestConstructionCost_CalcRoomCost(t *testing.T) {
-	c := DefaultConstructionCost()
+	c, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
 
 	tests := []struct {
 		roomTypeID string
@@ -39,7 +42,10 @@ func TestConstructionCost_CalcRoomCost(t *testing.T) {
 }
 
 func TestConstructionCost_CalcCorridorCost(t *testing.T) {
-	c := DefaultConstructionCost()
+	c, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
 
 	tests := []struct {
 		name       string
@@ -63,7 +69,10 @@ func TestConstructionCost_CalcCorridorCost(t *testing.T) {
 }
 
 func TestConstructionCost_CalcUpgradeCost(t *testing.T) {
-	c := DefaultConstructionCost()
+	c, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
 
 	tests := []struct {
 		name         string

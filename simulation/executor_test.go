@@ -34,14 +34,27 @@ func newExecutorTestState(t *testing.T) *GameState {
 	chiPool := economy.NewChiPool(1000)
 	_ = chiPool.Deposit(500, economy.Supply, "test init", 0)
 
-	engine := economy.NewEconomyEngine(
-		chiPool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
-	)
+	sp, err := economy.DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
+	}
+	cp, err := economy.DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	dp, err := economy.DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
+	cc, err := economy.DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
+	bc, err := economy.DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
+	engine := economy.NewEconomyEngine(chiPool, sp, cp, dp, cc, bc)
 
 	invReg := invasion.NewInvaderClassRegistry()
 	_ = invReg.Register(invasion.InvaderClass{

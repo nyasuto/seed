@@ -7,9 +7,9 @@ import (
 )
 
 func TestDefaultBeastCost(t *testing.T) {
-	bc := DefaultBeastCost()
-	if bc == nil {
-		t.Fatal("DefaultBeastCost() returned nil")
+	bc, err := DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
 	}
 	if len(bc.SummonCostByElement) != types.ElementCount {
 		t.Errorf("expected %d elements, got %d", types.ElementCount, len(bc.SummonCostByElement))
@@ -17,7 +17,10 @@ func TestDefaultBeastCost(t *testing.T) {
 }
 
 func TestCalcSummonCost_ByElement(t *testing.T) {
-	bc := DefaultBeastCost()
+	bc, err := DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
 
 	tests := []struct {
 		element types.Element

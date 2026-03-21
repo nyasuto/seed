@@ -39,14 +39,27 @@ func buildMinimalEngine(t *testing.T) *SimulationEngine {
 
 	chiPool := economy.NewChiPool(100)
 	_ = chiPool.Deposit(50, economy.Supply, "init", 0)
-	econEngine := economy.NewEconomyEngine(
-		chiPool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
-	)
+	sp, err := economy.DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
+	}
+	cp, err := economy.DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	dp, err := economy.DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
+	cc, err := economy.DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
+	bc, err := economy.DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
+	econEngine := economy.NewEconomyEngine(chiPool, sp, cp, dp, cc, bc)
 
 	progress := &scenario.ScenarioProgress{
 		ScenarioID:  "test_scenario",
