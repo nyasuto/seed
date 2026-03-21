@@ -1,0 +1,11 @@
+{
+  "ATKMultiplier": 1.0,
+  "DEFReduction": 0.5,
+  "ElementAdvantage": 1.5,
+  "ElementDisadvantage": 0.7,
+  "MinDamage": 1,
+  "CriticalChance": 0.1,
+  "CriticalMultiplier": 2.0,
+  "TrapDamageBase": 20,
+  "TrapElementMultiplier": 1.3
+}

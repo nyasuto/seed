@@ -269,8 +269,8 @@
 
 ## Phase 4-C: 戦闘解決システム（invasion/）
 
-- [ ] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
-- [ ] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
+- [x] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
+- [x] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
 - [ ] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi *fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
   1. 仙獣の実効ステータス = beast.CalcCombatStats(roomChi)
   2. 素早さ比較で先攻/後攻決定（同値はRNG）
