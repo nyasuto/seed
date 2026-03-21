@@ -1,0 +1,6 @@
+{
+  "base_supply_per_vein": 5.0,
+  "feng_shui_min_multiplier": 0.8,
+  "feng_shui_max_multiplier": 1.3,
+  "chi_ratio_supply_weight": 0.5
+}

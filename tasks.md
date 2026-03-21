@@ -389,14 +389,14 @@
 
 ## Phase 5-B: 気の供給計算（economy/）
 
-- [ ] `economy/supply_params.go`: SupplyParams 構造体（BaseSupplyPerVein float64, FengShuiMinMultiplier float64, FengShuiMaxMultiplier float64, ChiRatioSupplyWeight float64）。DefaultSupplyParams()。LoadSupplyParams(data []byte)
-- [ ] `economy/supply_params_data.json`: デフォルト供給パラメータ（龍脈基本供給: 5.0, 風水最低倍率: 0.8, 風水最高倍率: 1.3, 気充填率ウェイト: 0.5）
-- [ ] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
+- [x] `economy/supply_params.go`: SupplyParams 構造体（BaseSupplyPerVein float64, FengShuiMinMultiplier float64, FengShuiMaxMultiplier float64, ChiRatioSupplyWeight float64）。DefaultSupplyParams()。LoadSupplyParams(data []byte)
+- [x] `economy/supply_params_data.json`: デフォルト供給パラメータ（龍脈基本供給: 5.0, 風水最低倍率: 0.8, 風水最高倍率: 1.3, 気充填率ウェイト: 0.5）
+- [x] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
   1. 基本供給 = 龍脈本数 × BaseSupplyPerVein
   2. 充填率ボーナス = 全部屋の平均気充填率 × ChiRatioSupplyWeight
   3. 風水倍率 = caveScore を FengShuiMinMultiplier〜FengShuiMaxMultiplier に線形マッピング
   4. 最終供給 = (基本供給 + 充填率ボーナス) × 風水倍率
-- [ ] `economy/supply_test.go`: 龍脈なしで供給0テスト、龍脈複数の合算テスト、風水スコアによるボーナス/ペナルティテスト、気充填率が低いと供給も下がるテスト
+- [x] `economy/supply_test.go`: 龍脈なしで供給0テスト、龍脈複数の合算テスト、風水スコアによるボーナス/ペナルティテスト、気充填率が低いと供給も下がるテスト
 
 ## Phase 5-C: 維持コストモデル（economy/）
 
