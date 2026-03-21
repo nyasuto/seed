@@ -88,7 +88,7 @@ func (p *Pathfinder) FindNextRoom(invader *Invader, rng types.RNG) int {
 	targetRoom := invader.Goal.TargetRoomID(p.cave, invader, memory)
 	if targetRoom != 0 && targetRoom != currentRoom {
 		path := p.FindPath(currentRoom, targetRoom)
-		if path != nil && len(path) >= 2 {
+		if len(path) >= 2 {
 			return path[1]
 		}
 	}

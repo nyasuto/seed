@@ -53,12 +53,12 @@ func (p *InvasionEconomyProcessor) ProcessInvasionEvents(events []invasion.Invas
 
 	// Deposit rewards.
 	if summary.RewardChi > 0 {
-		chiPool.Deposit(summary.RewardChi, Reward, fmt.Sprintf("invasion reward at tick %d", tick), tick)
+		_ = chiPool.Deposit(summary.RewardChi, Reward, fmt.Sprintf("invasion reward at tick %d", tick), tick)
 	}
 
 	// Withdraw stolen chi.
 	if summary.StolenChi > 0 {
-		chiPool.Withdraw(summary.StolenChi, Theft, fmt.Sprintf("invasion theft at tick %d", tick), tick)
+		_ = chiPool.Withdraw(summary.StolenChi, Theft, fmt.Sprintf("invasion theft at tick %d", tick), tick)
 	}
 
 	return summary

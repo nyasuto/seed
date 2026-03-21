@@ -65,15 +65,9 @@ func (dp *DeficitProcessor) ProcessDeficit(chiPool *ChiPool, maintenance Mainten
 	}
 
 	// Partial payment occurred. Calculate shortage and ratio.
-	shortage := maintenance.Total - chiPool.Balance()
 	// After partial withdrawal, balance is 0. The shortage is the unpaid portion.
-	// Since Withdraw sets balance to 0 on insufficient funds, shortage = total - (total - shortage_from_withdraw)
-	// But the withdraw already happened, so we recalculate: the actual paid amount was (total - shortage).
-	// However, balance is now 0. The shortage is simply: maintenance.Total minus what was actually withdrawn.
-	// Withdraw with insufficient funds: actual = previous balance, balance → 0.
-	// So shortage = maintenance.Total - previous_balance. But we don't have previous_balance here.
-	// Instead, look at the last transaction to figure out the actual amount.
-	shortage = maintenance.Total - chiPool.History[len(chiPool.History)-1].Amount
+	// Look at the last transaction to figure out the actual amount withdrawn.
+	shortage := maintenance.Total - chiPool.History[len(chiPool.History)-1].Amount
 
 	ratio := shortage / maintenance.Total
 

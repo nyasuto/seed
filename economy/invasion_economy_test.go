@@ -9,7 +9,7 @@ import (
 
 func TestProcessInvasionEvents_RewardOnDefeat(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(100, Supply, "initial", 0)
+	_ = pool.Deposit(100, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	events := []invasion.InvasionEvent{
@@ -35,7 +35,7 @@ func TestProcessInvasionEvents_RewardOnDefeat(t *testing.T) {
 
 func TestProcessInvasionEvents_TheftOnEscape(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(100, Supply, "initial", 0)
+	_ = pool.Deposit(100, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	events := []invasion.InvasionEvent{
@@ -60,7 +60,7 @@ func TestProcessInvasionEvents_TheftOnEscape(t *testing.T) {
 
 func TestProcessInvasionEvents_RewardAndTheftNetBalance(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(200, Supply, "initial", 0)
+	_ = pool.Deposit(200, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	events := []invasion.InvasionEvent{
@@ -88,7 +88,7 @@ func TestProcessInvasionEvents_RewardAndTheftNetBalance(t *testing.T) {
 
 func TestProcessInvasionEvents_MultipleEvents(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(500, Supply, "initial", 0)
+	_ = pool.Deposit(500, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	events := []invasion.InvasionEvent{
@@ -125,7 +125,7 @@ func TestProcessInvasionEvents_MultipleEvents(t *testing.T) {
 
 func TestProcessInvasionEvents_EmptyEvents(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(100, Supply, "initial", 0)
+	_ = pool.Deposit(100, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	summary := proc.ProcessInvasionEvents(nil, pool, 1)
@@ -140,7 +140,7 @@ func TestProcessInvasionEvents_EmptyEvents(t *testing.T) {
 
 func TestProcessInvasionEvents_TheftExceedsBalance(t *testing.T) {
 	pool := NewChiPool(1000)
-	pool.Deposit(20, Supply, "initial", 0)
+	_ = pool.Deposit(20, Supply, "initial", 0)
 	proc := NewInvasionEconomyProcessor()
 
 	events := []invasion.InvasionEvent{

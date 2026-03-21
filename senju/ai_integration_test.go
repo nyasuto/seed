@@ -185,7 +185,7 @@ func TestAIIntegration_20TickSimulation(t *testing.T) {
 
 	// Move chase beast back to room 4 for controlled test
 	if chaseBeast.RoomID != room4ID {
-		MoveBeast(chaseBeast, rooms[chaseBeast.RoomID], rooms[room4ID], rt4)
+		_ = MoveBeast(chaseBeast, rooms[chaseBeast.RoomID], rooms[room4ID], rt4)
 	}
 	// Assign fresh Chase targeting the invader
 	engine.SetBehavior(chaseBeast.ID, NewChaseBehavior(99, 10))
