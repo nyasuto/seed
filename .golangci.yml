@@ -10,7 +10,6 @@ linters:
     - staticcheck
     - unused
     - ineffassign
-
-issues:
-  exclude-dirs:
-    - testdata
+  exclusions:
+    paths:
+      - testdata
