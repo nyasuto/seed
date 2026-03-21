@@ -58,5 +58,65 @@
     "growth_rate": 0.95,
     "max_beasts": 2,
     "description": "水の流れを操る回復型の蛇。周囲の気を穏やかに巡らせる"
+  },
+  {
+    "id": "souryu",
+    "name": "蒼龍",
+    "element": "Wood",
+    "base_hp": 180,
+    "base_atk": 45,
+    "base_def": 45,
+    "base_spd": 40,
+    "growth_rate": 1.1,
+    "max_beasts": 2,
+    "description": "翠龍が進化した姿。木の気を自在に操り、攻守に隙がない"
+  },
+  {
+    "id": "suzaku",
+    "name": "朱雀",
+    "element": "Fire",
+    "base_hp": 130,
+    "base_atk": 65,
+    "base_def": 30,
+    "base_spd": 45,
+    "growth_rate": 1.2,
+    "max_beasts": 2,
+    "description": "炎鳳が進化した聖鳥。灼熱の炎で全てを焼き尽くす"
+  },
+  {
+    "id": "genbu",
+    "name": "玄武",
+    "element": "Earth",
+    "base_hp": 220,
+    "base_atk": 30,
+    "base_def": 65,
+    "base_spd": 20,
+    "growth_rate": 1.0,
+    "max_beasts": 2,
+    "description": "岩亀が進化した霊亀。大地と一体化した鉄壁の守護者"
+  },
+  {
+    "id": "byakko",
+    "name": "白虎",
+    "element": "Metal",
+    "base_hp": 150,
+    "base_atk": 50,
+    "base_def": 35,
+    "base_spd": 60,
+    "growth_rate": 1.15,
+    "max_beasts": 3,
+    "description": "金狼が進化した神獣。疾風の如き速さで敵を切り裂く"
+  },
+  {
+    "id": "seiryu",
+    "name": "青龍",
+    "element": "Water",
+    "base_hp": 160,
+    "base_atk": 40,
+    "base_def": 50,
+    "base_spd": 35,
+    "growth_rate": 1.05,
+    "max_beasts": 2,
+    "description": "水蛇が進化した龍神。水の流れを支配し万物を癒す"
   }
 ]

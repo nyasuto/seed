@@ -12,8 +12,8 @@ func TestLoadDefaultSpecies_AllFiveLoaded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadDefaultSpecies() error: %v", err)
 	}
-	if got := reg.Len(); got != 5 {
-		t.Errorf("Len() = %d, want 5", got)
+	if got := reg.Len(); got != 10 {
+		t.Errorf("Len() = %d, want 10", got)
 	}
 }
 
@@ -33,6 +33,11 @@ func TestSpeciesRegistry_Get_AllSpecies(t *testing.T) {
 		{"ganki", "岩亀", types.Earth},
 		{"kinrou", "金狼", types.Metal},
 		{"suija", "水蛇", types.Water},
+		{"souryu", "蒼龍", types.Wood},
+		{"suzaku", "朱雀", types.Fire},
+		{"genbu", "玄武", types.Earth},
+		{"byakko", "白虎", types.Metal},
+		{"seiryu", "青龍", types.Water},
 	}
 
 	for _, tt := range tests {
@@ -73,8 +78,8 @@ func TestSpeciesRegistry_All_Sorted(t *testing.T) {
 	}
 
 	all := reg.All()
-	if len(all) != 5 {
-		t.Fatalf("All() returned %d species, want 5", len(all))
+	if len(all) != 10 {
+		t.Fatalf("All() returned %d species, want 10", len(all))
 	}
 
 	// Verify sorted by ID
