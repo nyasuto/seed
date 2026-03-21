@@ -560,7 +560,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [x] `scenario/condition.go`: ConditionDef 構造体（Type string, Params map[string]any）。JSON で定義される条件のデータ形式
 - [x] `scenario/condition.go`: ConditionEvaluator インターフェース（Evaluate(snapshot GameSnapshot) bool）。GameSnapshot 構造体（Tick, CoreHP, ChiPoolBalance, BeastCount, AliveBeasts, DefeatedWaves, TotalWaves, CaveFengShuiScore, ConsecutiveDeficitTicks）— 読み取り専用のスナップショット
-- [ ] `scenario/conditions.go`: 具体的な条件実装をファクトリパターンで生成。NewCondition(def ConditionDef) (ConditionEvaluator, error):
+- [x] `scenario/conditions.go`: 具体的な条件実装をファクトリパターンで生成。NewCondition(def ConditionDef) (ConditionEvaluator, error):
   - "survive_until": 指定ティックまで CoreHP > 0
   - "defeat_all_waves": 全波 Completed
   - "fengshui_score": 風水スコア >= 閾値
@@ -568,7 +568,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - "core_destroyed"（敗北）: CoreHP <= 0
   - "all_beasts_defeated"（敗北）: AliveBeasts == 0
   - "bankrupt"（敗北）: ConsecutiveDeficitTicks >= 閾値
-- [ ] `scenario/condition_test.go`: 各条件タイプの Evaluate テスト、不正な Type のエラーテスト
+- [x] `scenario/condition_test.go`: 各条件タイプの Evaluate テスト、不正な Type のエラーテスト
 
 ## Phase 6-F: イベントシステム（scenario/）
 
