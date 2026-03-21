@@ -21,6 +21,19 @@ type RoomType struct {
 	Description string `json:"description"`
 	// MaxBeasts is the maximum number of beasts that can be placed in this room type.
 	MaxBeasts int `json:"max_beasts"`
+	// BaseCoreHP is the base hit points for the core room (dragon hole).
+	// Only non-zero for the dragon hole room type (D010).
+	BaseCoreHP int `json:"base_core_hp"`
+}
+
+// CoreHPAtLevel returns the core HP for this room type at the given level.
+// Returns 0 if BaseCoreHP is 0 (non-core rooms).
+// HP scales linearly: BaseCoreHP * level.
+func (rt RoomType) CoreHPAtLevel(level int) int {
+	if rt.BaseCoreHP == 0 || level <= 0 {
+		return 0
+	}
+	return rt.BaseCoreHP * level
 }
 
 // RoomTypeRegistry holds a collection of room types indexed by ID.
@@ -81,6 +94,7 @@ type roomTypeJSON struct {
 	BaseChiCapacity int    `json:"base_chi_capacity"`
 	Description     string `json:"description"`
 	MaxBeasts       int    `json:"max_beasts"`
+	BaseCoreHP      int    `json:"base_core_hp"`
 }
 
 // elementFromString converts a string name to a types.Element value.
@@ -122,6 +136,7 @@ func LoadRoomTypesJSON(data []byte) (*RoomTypeRegistry, error) {
 			BaseChiCapacity: raw.BaseChiCapacity,
 			Description:     raw.Description,
 			MaxBeasts:       raw.MaxBeasts,
+			BaseCoreHP:      raw.BaseCoreHP,
 		}
 		if err := reg.Register(rt); err != nil {
 			return nil, err
