@@ -1,0 +1,52 @@
+# Phase 2 完了レポート — 風水システム（fengshui/）
+
+## 1. 実装した内容の要約
+
+### Phase 2-A: 風水基本型定義
+- DragonVein（龍脈）: 入口から洞窟内へ気を運ぶ経路の定義
+- RoomChi: 各部屋の気の蓄積状態を管理する型
+
+### Phase 2-B: 龍脈の経路計算
+- BFS ベースの龍脈経路生成（BuildDragonVein）
+- 洞窟変更時の龍脈再計算（RebuildDragonVein）
+
+### Phase 2-C: 気の蓄積・伝播モデル
+- ChiFlowEngine: ティックベースの気の流れシミュレーション
+- 龍脈からの気の供給、隣接部屋間の伝播、減衰の3段階処理
+- 五行相性（相生/相克）による供給・伝播の倍率適用
+- FlowParams: パラメータの JSON 外出し対応
+
+### Phase 2-D: 風水評価スコア
+- FengShuiScore: 気充填率・隣接相性・龍脈接続の3要素による部屋スコア
+- Evaluator: 個別部屋・全部屋一括・洞窟全体のスコア評価
+
+### Phase 2-E: シリアライズ
+- ChiFlowEngine の JSON 保存/復元（龍脈経路 + 各部屋の気状態）
+- 復元時の Cave との整合性検証
+
+### Phase 2-F: ASCII 可視化
+- 気の充填率オーバーレイ表示（░▒▓ によるグラデーション）
+- 龍脈経路の ~~ 表示
+- caveviz コマンドの --chi フラグ対応
+
+### Phase 2-G: 統合検証
+- 5部屋・2龍脈・20ティックの統合テスト
+- 相生ペアの部屋は気が多く、相克ペアは少ないことを検証
+
+## 2. 未解決の課題や技術的負債
+
+- **OnCaveChanged の差分更新**: 現在は龍脈を全再計算している。部屋数が増えた場合にパフォーマンスボトルネックになる可能性がある（DECISIONS.md D001 参照）
+- **龍脈の動的追加/削除 API**: 現在は初期化時に設定するのみ。ゲームプレイ中の龍脈追加シナリオは Phase 6 以降で対応が必要
+- **気の伝播の収束保証**: 特定の相生ループ配置で気が際限なく増加しないことの数学的証明はしていない（Capacity クランプで実用上は問題なし）
+
+## 3. 次フェーズへの申し送り事項
+
+- Phase 3（仙獣システム）では `fengshui.RoomChi` を参照して仙獣の成長速度に影響を与える設計
+- 仙獣が気を消費する仕組みは ChiFlowEngine の RoomChi を直接操作するのではなく、GrowthEngine 側で消費量を計算して RoomChi.Current を減算する方式を推奨
+- `senju` パッケージは `fengshui` に依存する（依存方向: types ← world ← fengshui ← senju）
+- 仙獣の属性と部屋の属性の相性判定は `types.Generates` / `types.Overcomes` を再利用可能
+
+## 4. LESSONS.md から特に重要な知見
+
+- **名前衝突に注意**: Phase 1-D で CellType の `Corridor` と構造体 `Corridor` が衝突した。同一パッケージ内で型名と定数名が被らないよう命名に注意する
+- **golangci-lint v2 の破壊的変更**: `version: "2"` 必須、`typecheck` は独立 linter ではなくなった、`gosimple` は `staticcheck` に統合。ツールのバージョンアップ時は設定ファイルの互換性を確認すること
