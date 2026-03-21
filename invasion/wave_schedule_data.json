@@ -1,0 +1,22 @@
+{
+  "waves": [
+    {
+      "trigger_tick": 50,
+      "difficulty": 1.0,
+      "min_invaders": 2,
+      "max_invaders": 3
+    },
+    {
+      "trigger_tick": 150,
+      "difficulty": 1.5,
+      "min_invaders": 3,
+      "max_invaders": 5
+    },
+    {
+      "trigger_tick": 300,
+      "difficulty": 2.0,
+      "min_invaders": 5,
+      "max_invaders": 7
+    }
+  ]
+}
