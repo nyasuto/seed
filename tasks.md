@@ -382,10 +382,10 @@
 ## Phase 5-A: 経済基本型定義（economy/）
 
 - [x] `economy/doc.go`: パッケージドキュメント。気の経済リソース管理を扱うパッケージ。ChiFlowEngine（部屋レベルの物理的な気）とChiPool（プレイヤーの経済リソース）は別レイヤーであることを明記
-- [ ] `economy/chi_pool.go`: ChiPool 構造体（Current float64, Cap float64, History []ChiTransaction）。Deposit(amount, txType, reason, tick) / Withdraw(amount, txType, reason, tick) error。Balance() float64。CanAfford(amount) bool。Cap はChiPoolの上限（蓄気室の数とレベルで決まる、Phase 5-C で計算）
-- [ ] `economy/chi_pool.go`: ChiTransaction 構造体（Tick types.Tick, Amount float64, Type TransactionType, Reason string, BalanceAfter float64）。TransactionType 型（Supply/RoomMaintenance/BeastMaintenance/TrapMaintenance/Reward/Theft/Construction/BeastSummon/RoomUpgrade/Deficit）
-- [ ] `economy/chi_pool.go`: ChiPool.Withdraw で残高不足の場合は引き落とせる分だけ引き落とし、不足分を error で返す（残高はゼロ止まり、マイナスにはしない）
-- [ ] `economy/chi_pool_test.go`: Deposit/Withdraw テスト、残高不足時の部分引き落としテスト、Cap超過時のクランプテスト、トランザクション履歴テスト、BalanceAfter の正確性テスト
+- [x] `economy/chi_pool.go`: ChiPool 構造体（Current float64, Cap float64, History []ChiTransaction）。Deposit(amount, txType, reason, tick) / Withdraw(amount, txType, reason, tick) error。Balance() float64。CanAfford(amount) bool。Cap はChiPoolの上限（蓄気室の数とレベルで決まる、Phase 5-C で計算）
+- [x] `economy/chi_pool.go`: ChiTransaction 構造体（Tick types.Tick, Amount float64, Type TransactionType, Reason string, BalanceAfter float64）。TransactionType 型（Supply/RoomMaintenance/BeastMaintenance/TrapMaintenance/Reward/Theft/Construction/BeastSummon/RoomUpgrade/Deficit）
+- [x] `economy/chi_pool.go`: ChiPool.Withdraw で残高不足の場合は引き落とせる分だけ引き落とし、不足分を error で返す（残高はゼロ止まり、マイナスにはしない）
+- [x] `economy/chi_pool_test.go`: Deposit/Withdraw テスト、残高不足時の部分引き落としテスト、Cap超過時のクランプテスト、トランザクション履歴テスト、BalanceAfter の正確性テスト
 
 ## Phase 5-B: 気の供給計算（economy/）
 
