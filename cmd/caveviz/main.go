@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
@@ -16,7 +15,7 @@ func main() {
 		return
 	}
 
-	fmt.Println(renderASCII(cave))
+	fmt.Print(cave.RenderASCII())
 	fmt.Println()
 	fmt.Println("Legend: ██=Rock  ..=Corridor  []=RoomFloor  ><= Entrance  1-9,A-Z=RoomID")
 }
@@ -74,44 +73,3 @@ func buildDemoCave() (*world.Cave, error) {
 	return cave, nil
 }
 
-// roomIDChar returns a display character for a room ID.
-// 1-9 → '1'-'9', 10+ → 'A','B','C'...
-func roomIDChar(id int) byte {
-	if id >= 1 && id <= 9 {
-		return byte('0' + id)
-	}
-	return byte('A' + id - 10)
-}
-
-// renderASCII converts the cave grid to an ASCII string.
-func renderASCII(cave *world.Cave) string {
-	g := cave.Grid
-	var sb strings.Builder
-
-	for y := 0; y < g.Height; y++ {
-		for x := 0; x < g.Width; x++ {
-			cell, _ := g.At(types.Pos{X: x, Y: y})
-			switch cell.Type {
-			case world.Rock:
-				sb.WriteString("██")
-			case world.CorridorFloor:
-				sb.WriteString("..")
-			case world.RoomFloor:
-				if cell.RoomID > 0 {
-					ch := roomIDChar(cell.RoomID)
-					sb.WriteByte(ch)
-					sb.WriteByte(ch)
-				} else {
-					sb.WriteString("[]")
-				}
-			case world.Entrance:
-				sb.WriteString("><")
-			default:
-				sb.WriteString("??")
-			}
-		}
-		sb.WriteByte('\n')
-	}
-
-	return sb.String()
-}
