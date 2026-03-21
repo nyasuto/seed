@@ -554,7 +554,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 - [x] `scenario/scenario.go`: Scenario 構造体（ID string, Name string, Description string, Difficulty string, InitialState InitialState, WinConditions []ConditionDef, LoseConditions []ConditionDef, WaveSchedule []WaveScheduleEntry, Events []EventDef, Constraints GameConstraints）
 - [x] `scenario/initial_state.go`: InitialState 構造体（CaveWidth int, CaveHeight int, TerrainSeed int64, TerrainDensity float64, PrebuiltRooms []RoomPlacement, DragonVeins []DragonVeinPlacement, StartingChi float64, StartingBeasts []BeastPlacement）。RoomPlacement/DragonVeinPlacement/BeastPlacement の定義
 - [x] `scenario/constraints.go`: GameConstraints 構造体（MaxRooms int, MaxBeasts int, MaxTicks types.Tick, ForbiddenRoomTypes []string）
-- [ ] `scenario/scenario_test.go`: 構造体の基本テスト
+- [x] `scenario/scenario_test.go`: 構造体の基本テスト
 
 ## Phase 6-E: 勝利/敗北条件（scenario/）
 
