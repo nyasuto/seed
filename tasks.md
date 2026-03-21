@@ -57,12 +57,46 @@
 
 ## Phase 1-F: シリアライズ（world/）
 
-- [ ] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
-- [ ] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
+- [x] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
+- [x] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
 
 ## Phase 1-G: 統合検証
 
-- [ ] `world/integration_test.go`: 中規模マップ（32x32）に部屋5つ配置→全接続→風水フェーズへの受け渡し用データ構造が正しく取れることを確認
-- [ ] testutil に `testutil/rng.go` を作成: FixedRNG（常に同じ値を返すモックRNG）と NewTestRNG(seed) ヘルパー
+- [x] `world/integration_test.go`: 中規模マップ（32x32）に部屋5つ配置→全接続→風水フェーズへの受け渡し用データ構造が正しく取れることを確認
+- [x] testutil に `testutil/rng.go` を作成: FixedRNG（常に同じ値を返すモックRNG）と NewTestRNG(seed) ヘルパー
+- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
+- [x] Phase 1 完了。tasks.md の Phase 2 タスクを追記する（PRD Phase 2 を参照して fengshui/ のタスクを展開）
+
+## Phase 2-A: 風水基本型定義（fengshui/）
+
+- [ ] `fengshui/doc.go`: パッケージドキュメント。龍脈・気・風水評価を扱うパッケージであることを記述
+- [ ] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路
+- [ ] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, ConsumptionRate float64）。部屋ごとの気の状態を管理。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド
+- [ ] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値テスト）
+
+## Phase 2-B: 龍脈の経路計算（fengshui/）
+
+- [ ] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave *world.Cave, sourcePos types.Pos, element types.Element, flowRate float64) (*DragonVein, error) — 入口位置から通路・部屋を通って気を運ぶ経路をBFSで計算。RoomsOnPath(cave *world.Cave) []int で龍脈上にある部屋IDリストを返す
+- [ ] `fengshui/dragon_vein_test.go`: 龍脈が入口から通路を通って部屋に到達するテスト、到達不能ケースのテスト、複数部屋を経由する龍脈のテスト
+
+## Phase 2-C: 気の蓄積・消費モデル（fengshui/）
+
+- [ ] `fengshui/chi_flow.go`: ChiFlowState 構造体（DragonVeins []DragonVein, RoomChi map[int]*RoomChi）。NewChiFlowState(cave *world.Cave, veins []DragonVein) *ChiFlowState で初期化（各部屋のCapacityはRoomTypeのBaseChiCapacityから取得）。Tick() で1ティック分の気の流れを計算: 龍脈上の部屋にFlowRateに応じて気を分配、各部屋のConsumptionRateを減算、Capacityを超えない・0を下回らないようクランプ
+- [ ] `fengshui/chi_flow_test.go`: 1部屋への気の蓄積テスト、容量上限でのクランプテスト、消費による減少テスト、複数ティック経過後の状態テスト、龍脈上にない部屋には気が流れないことのテスト
+
+## Phase 2-D: 風水評価スコア（fengshui/）
+
+- [ ] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, BaseScore float64, AdjacencyBonus float64, DragonVeinBonus float64, TotalScore float64）。部屋単位のスコア内訳を保持
+- [ ] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave *world.Cave, registry *world.RoomTypeRegistry) *Evaluator。EvaluateRoom(roomID int, veins []DragonVein) (FengShuiScore, error) — 個別部屋の風水スコアを算出。EvaluateAll(veins []DragonVein) ([]FengShuiScore, error) — 全部屋のスコアを一括算出。スコアリングルール: (1) BaseScore = 部屋の気の充填率 × 100, (2) AdjacencyBonus = 隣接部屋との五行相性（相生: +20, 相克: -15, 同属性: +5, その他: 0）の合計, (3) DragonVeinBonus = 龍脈に接続されていれば +30
+- [ ] `fengshui/evaluator_test.go`: 単独部屋のスコア計算テスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト
+
+## Phase 2-E: 風水シリアライズ（fengshui/）
+
+- [ ] `fengshui/serialization.go`: ChiFlowState.MarshalJSON() / UnmarshalChiFlowState() — 龍脈と部屋の気の状態を保存/復元
+- [ ] `fengshui/serialization_test.go`: 龍脈と気の状態を含むChiFlowStateの保存→復元→等価検証テスト
+
+## Phase 2-F: 統合検証
+
+- [ ] `fengshui/integration_test.go`: 中規模Cave（32x32）に部屋5つ配置→龍脈2本設定→10ティック気の流れをシミュレーション→風水スコア評価→スコアが相生/相克の配置に応じて正しく変動することを検証
 - [ ] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [ ] Phase 1 完了。tasks.md の Phase 2 タスクを追記する（PRD Phase 2 を参照して fengshui/ のタスクを展開）
+- [ ] Phase 2 完了。tasks.md の Phase 3 タスクを追記する（PRD Phase 3 を参照して senju/ のタスクを展開）
