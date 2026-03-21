@@ -84,9 +84,9 @@
 
 ## Phase 2-B: 龍脈の経路計算と動的再計算（fengshui/）
 
-- [ ] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave, sourcePos, element, flowRate) (\*DragonVein, error) — 入口から通路・部屋床を通る経路をBFSで計算。岩盤は通過不可
-- [ ] `fengshui/dragon_vein_builder.go`: RebuildDragonVein(cave, existingVein) (\*DragonVein, error) — 既存龍脈をCaveの現在の地形で再計算。部屋追加/通路掘削で経路が変化する。元のSourcePos/Element/FlowRateは維持
-- [ ] `fengshui/dragon_vein_test.go`: 龍脈が入口から部屋に到達するテスト、到達不能ケースのエラーテスト、部屋追加後にRebuildで経路が伸びることのテスト、通路がない部屋には到達しないテスト
+- [x] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave, sourcePos, element, flowRate) (\*DragonVein, error) — 入口から通路・部屋床を通る経路をBFSで計算。岩盤は通過不可
+- [x] `fengshui/dragon_vein_builder.go`: RebuildDragonVein(cave, existingVein) (\*DragonVein, error) — 既存龍脈をCaveの現在の地形で再計算。部屋追加/通路掘削で経路が変化する。元のSourcePos/Element/FlowRateは維持
+- [x] `fengshui/dragon_vein_test.go`: 龍脈が入口から部屋に到達するテスト、到達不能ケースのエラーテスト、部屋追加後にRebuildで経路が伸びることのテスト、通路がない部屋には到達しないテスト
 
 ## Phase 2-C: 気の蓄積・伝播モデル（fengshui/）
 
