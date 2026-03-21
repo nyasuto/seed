@@ -1,0 +1,8 @@
+{
+  "mild_threshold": 0.3,
+  "moderate_threshold": 0.7,
+  "mild_growth_penalty": 0.5,
+  "moderate_capacity_penalty": 0.8,
+  "severe_hp_drain": 5,
+  "severe_trap_disable": true
+}

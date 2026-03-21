@@ -408,17 +408,17 @@
 
 ## Phase 5-D: 赤字処理（economy/）
 
-- [ ] `economy/deficit.go`: DeficitProcessor 構造体。ProcessDeficit(chiPool, maintenance MaintenanceBreakdown, tick) DeficitResult — 維持コストがChiPool残高を超える場合の処理:
+- [x] `economy/deficit.go`: DeficitProcessor 構造体。ProcessDeficit(chiPool, maintenance MaintenanceBreakdown, tick) DeficitResult — 維持コストがChiPool残高を超える場合の処理:
   1. 引き落とせる分は引き落とす（ChiPool残高ゼロまで）
   2. 不足額を DeficitResult.Shortage に記録
   3. 不足額に応じたペナルティを決定:
      - 軽度赤字（不足 < 維持コストの30%）: 仙獣の成長速度が半減（GrowthPenalty: 0.5）
      - 中度赤字（不足 30-70%）: 仙獣成長停止 + 部屋の気容量が一時的に減少（CapacityPenalty: 0.8）
      - 重度赤字（不足 > 70%）: 仙獣が衰弱（HP減少）+ 罠が機能停止（TrapDisabled: true）
-- [ ] `economy/deficit.go`: DeficitResult 構造体（Shortage float64, Severity DeficitSeverity, GrowthPenalty float64, CapacityPenalty float64, TrapDisabled bool, BeastHPDrain int）。DeficitSeverity 型（None/Mild/Moderate/Severe）
-- [ ] `economy/deficit_params.go`: DeficitParams 構造体（MildThreshold float64, ModerateThreshold float64, MildGrowthPenalty float64, ModerateCapacityPenalty float64, SevereHPDrain int, SevereTrapDisable bool）。DefaultDeficitParams()。LoadDeficitParams(data []byte)
-- [ ] `economy/deficit_params_data.json`: デフォルト赤字パラメータ（軽度閾値: 0.3, 中度閾値: 0.7, 軽度成長ペナルティ: 0.5, 中度容量ペナルティ: 0.8, 重度HP減少: 5, 重度罠停止: true）
-- [ ] `economy/deficit_test.go`: 赤字なしテスト、軽度赤字ペナルティテスト、中度赤字ペナルティテスト、重度赤字ペナルティテスト、赤字からの回復テスト（次ティックで供給が維持を上回ればペナルティ解除）
+- [x] `economy/deficit.go`: DeficitResult 構造体（Shortage float64, Severity DeficitSeverity, GrowthPenalty float64, CapacityPenalty float64, TrapDisabled bool, BeastHPDrain int）。DeficitSeverity 型（None/Mild/Moderate/Severe）
+- [x] `economy/deficit_params.go`: DeficitParams 構造体（MildThreshold float64, ModerateThreshold float64, MildGrowthPenalty float64, ModerateCapacityPenalty float64, SevereHPDrain int, SevereTrapDisable bool）。DefaultDeficitParams()。LoadDeficitParams(data []byte)
+- [x] `economy/deficit_params_data.json`: デフォルト赤字パラメータ（軽度閾値: 0.3, 中度閾値: 0.7, 軽度成長ペナルティ: 0.5, 中度容量ペナルティ: 0.8, 重度HP減少: 5, 重度罠停止: true）
+- [x] `economy/deficit_test.go`: 赤字なしテスト、軽度赤字ペナルティテスト、中度赤字ペナルティテスト、重度赤字ペナルティテスト、赤字からの回復テスト（次ティックで供給が維持を上回ればペナルティ解除）
 
 ## Phase 5-E: 建設コストモデル（economy/）
 
