@@ -740,7 +740,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-J: ASCII統合表示
 
-- [ ] `simulation/ascii.go`: RenderFullStatus(engine) string — 全レイヤー統合のステータス表示（地形+気+仙獣+侵入者+経済+シナリオ進行を1画面に）
+- [x] `simulation/ascii.go`: RenderFullStatus(engine) string — 全レイヤー統合のステータス表示（地形+気+仙獣+侵入者+経済+シナリオ進行を1画面に）
 - [ ] `cmd/caveviz/main.go` 更新: `--simulate <scenario.json> --seed <N>` でシナリオ自動実行＋毎ティック表示
 - [ ] `make check` で品質を確認、必要に応じて修正
 
