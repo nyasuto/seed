@@ -477,3 +477,29 @@ func TestBehaviorEngine_GuardAttacksInvader(t *testing.T) {
 		t.Errorf("expected Fighting state, got %s", actions[0].ResultingState)
 	}
 }
+
+func TestRemoveBehavior(t *testing.T) {
+	cave, adjGraph, reg, _ := setupTestCaveForEngine(t)
+	engine := NewBehaviorEngine(cave, adjGraph, reg, nil)
+
+	beast := &Beast{ID: 1, RoomID: 1, HP: 100, MaxHP: 100, State: Idle}
+	engine.AssignBehavior(beast, Guard)
+
+	if engine.GetBehavior(1) == nil {
+		t.Fatal("behavior should be assigned")
+	}
+
+	engine.RemoveBehavior(1)
+
+	if engine.GetBehavior(1) != nil {
+		t.Error("behavior should be nil after RemoveBehavior")
+	}
+}
+
+func TestRemoveBehavior_NonExistent(t *testing.T) {
+	cave, adjGraph, reg, _ := setupTestCaveForEngine(t)
+	engine := NewBehaviorEngine(cave, adjGraph, reg, nil)
+
+	// Should not panic when removing a non-existent behavior.
+	engine.RemoveBehavior(999)
+}

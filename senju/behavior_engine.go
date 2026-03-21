@@ -67,6 +67,13 @@ func (be *BehaviorEngine) GetBehavior(beastID int) Behavior {
 	return be.behaviors[beastID]
 }
 
+// RemoveBehavior removes the behavior entry for a beast.
+// Call this when a beast is defeated or removed from the cave to prevent
+// stale entries from accumulating in the behaviors map.
+func (be *BehaviorEngine) RemoveBehavior(beastID int) {
+	delete(be.behaviors, beastID)
+}
+
 // BeastAction records the action decided for a beast and its context.
 type BeastAction struct {
 	// BeastID is the ID of the beast that took the action.
