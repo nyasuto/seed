@@ -1,5 +1,9 @@
 # LESSONS.md — 学んだこと
 
+## Phase 7-A: アクションテスト
+
+- `world/room_type_data.json` と `economy/construction_data.json` で使われている部屋タイプIDが異なる（例: `senju_room` vs `beast_room`）。テストでは両方に存在するID（`trap_room`, `recovery_room`）を使う必要がある。`CalcRoomCost` が 0 を返すとバリデーションを素通りするが `TryBuildRoom` で "unknown room type" エラーになるため、ID不一致に注意。
+
 ## Phase 1-D: 通路の生成
 
 - CellType の定数 `Corridor` と構造体 `Corridor` が名前衝突した。CellType の定数を `CorridorFloor` にリネームして解決。同一パッケージ内で型名と定数名の衝突に注意。
