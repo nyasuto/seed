@@ -14,15 +14,21 @@ type BehaviorEngine struct {
 	cave           *world.Cave
 	adjacencyGraph world.AdjacencyGraph
 	roomTypeReg    *world.RoomTypeRegistry
+	params         *BehaviorParams
 	behaviors      map[int]Behavior // beastID -> assigned behavior
 }
 
 // NewBehaviorEngine creates a BehaviorEngine with the given cave and adjacency graph.
-func NewBehaviorEngine(cave *world.Cave, adjacencyGraph world.AdjacencyGraph, roomTypeReg *world.RoomTypeRegistry) *BehaviorEngine {
+// If params is nil, DefaultBehaviorParams() is used.
+func NewBehaviorEngine(cave *world.Cave, adjacencyGraph world.AdjacencyGraph, roomTypeReg *world.RoomTypeRegistry, params *BehaviorParams) *BehaviorEngine {
+	if params == nil {
+		params = DefaultBehaviorParams()
+	}
 	return &BehaviorEngine{
 		cave:           cave,
 		adjacencyGraph: adjacencyGraph,
 		roomTypeReg:    roomTypeReg,
+		params:         params,
 		behaviors:      make(map[int]Behavior),
 	}
 }
@@ -39,12 +45,12 @@ func (be *BehaviorEngine) AssignBehavior(beast *Beast, behaviorType BehaviorType
 		b = &GuardBehavior{}
 	case Patrol:
 		adj := be.adjacencyGraph.Neighbors(beast.RoomID)
-		b = NewPatrolBehavior(beast.RoomID, adj, 0)
+		b = NewPatrolBehavior(beast.RoomID, adj, be.params.PatrolRestTicks)
 	case Chase:
-		b = NewChaseBehavior(0, 10)
+		b = NewChaseBehavior(0, be.params.ChaseTimeoutTicks)
 	case Flee:
 		roomTypeIDs := be.buildRoomTypeMap()
-		b = NewFleeBehavior(FleeHPThreshold, roomTypeIDs)
+		b = NewFleeBehavior(be.params.FleeHPThreshold, roomTypeIDs)
 	default:
 		b = &GuardBehavior{}
 	}
@@ -126,7 +132,7 @@ func (be *BehaviorEngine) Tick(beasts []*Beast, invaderPositions map[int][]int, 
 		if b.Type() == Patrol && action.Type == MoveToRoom {
 			// Check if moving toward an invader room.
 			if invaders, ok := invaderPositions[action.TargetRoomID]; ok && len(invaders) > 0 {
-				chase := NewChaseBehavior(invaders[0], 10)
+				chase := NewChaseBehavior(invaders[0], be.params.ChaseTimeoutTicks)
 				be.behaviors[beast.ID] = chase
 			}
 		}
@@ -246,9 +252,9 @@ func (be *BehaviorEngine) checkFleeTransition(beast *Beast) {
 	if b.Type() == Flee {
 		return
 	}
-	if ShouldFlee(beast, FleeHPThreshold) {
+	if ShouldFlee(beast, be.params.FleeHPThreshold) {
 		roomTypeIDs := be.buildRoomTypeMap()
-		be.behaviors[beast.ID] = NewFleeBehavior(FleeHPThreshold, roomTypeIDs)
+		be.behaviors[beast.ID] = NewFleeBehavior(be.params.FleeHPThreshold, roomTypeIDs)
 	}
 }
 

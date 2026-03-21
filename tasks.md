@@ -223,9 +223,9 @@
 
 ## Phase 3.5-D: 仙獣AI パラメータ外出し
 
-- [ ] `senju/behavior_params.go`: BehaviorParams 構造体（FleeHPThreshold float64, ChaseTimeoutTicks int, PatrolRestTicks int）。DefaultBehaviorParams()。LoadBehaviorParams(data []byte)
-- [ ] `senju/behavior_params_data.json`: デフォルト行動パラメータ（逃走HP閾値: 0.25, 追跡タイムアウト: 10ティック, 巡回時の部屋滞在: 3ティック）
-- [ ] `senju/behavior_params_test.go`: JSONロードテスト、デフォルト値テスト
+- [x] `senju/behavior_params.go`: BehaviorParams 構造体（FleeHPThreshold float64, ChaseTimeoutTicks int, PatrolRestTicks int）。DefaultBehaviorParams()。LoadBehaviorParams(data []byte)
+- [x] `senju/behavior_params_data.json`: デフォルト行動パラメータ（逃走HP閾値: 0.25, 追跡タイムアウト: 10ティック, 巡回時の部屋滞在: 3ティック）
+- [x] `senju/behavior_params_test.go`: JSONロードテスト、デフォルト値テスト
 
 ## Phase 3.5-E: ASCII可視化への行動レイヤー追加
 

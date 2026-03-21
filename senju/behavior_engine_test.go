@@ -90,7 +90,7 @@ func TestBehaviorEngine_AllGuard_NoInvaders_AllStay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Guard)
 	engine.AssignBehavior(b2, Guard)
 
@@ -118,7 +118,9 @@ func TestBehaviorEngine_Patrol_CyclesThroughRooms(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	// Use PatrolRestTicks=0 so patrol moves immediately each tick.
+	params := &BehaviorParams{FleeHPThreshold: 0.25, ChaseTimeoutTicks: 10, PatrolRestTicks: 0}
+	engine := NewBehaviorEngine(cave, ag, reg, params)
 	engine.AssignBehavior(b1, Patrol)
 
 	beasts := []*Beast{b1}
@@ -161,7 +163,7 @@ func TestBehaviorEngine_InvaderDetected_ChaseTransition(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Patrol)
 
 	beasts := []*Beast{b1}
@@ -200,7 +202,7 @@ func TestBehaviorEngine_HPLow_FleeTransition(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Guard)
 
 	beasts := []*Beast{b1}
@@ -240,7 +242,7 @@ func TestBehaviorEngine_MovementConflict_FirstByID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	// Both patrol toward room 2.
 	engine.AssignBehavior(b1, Patrol)
 	engine.AssignBehavior(b2, Patrol)
@@ -277,7 +279,9 @@ func TestBehaviorEngine_ApplyActions_MovesBeasts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	// Use PatrolRestTicks=0 so patrol moves immediately.
+	params := &BehaviorParams{FleeHPThreshold: 0.25, ChaseTimeoutTicks: 10, PatrolRestTicks: 0}
+	engine := NewBehaviorEngine(cave, ag, reg, params)
 	engine.AssignBehavior(b1, Patrol)
 
 	beasts := []*Beast{b1}
@@ -340,7 +344,7 @@ func TestBehaviorEngine_ChaseTimeout_RevertsToGuard(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	// Assign chase with short timeout.
 	chase := NewChaseBehavior(99, 2)
 	engine.SetBehavior(b1.ID, chase)
@@ -371,7 +375,7 @@ func TestBehaviorEngine_NilRoomChi(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Guard)
 
 	beasts := []*Beast{b1}
@@ -393,7 +397,7 @@ func TestBehaviorEngine_WithRoomChi(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Guard)
 
 	beasts := []*Beast{b1}
@@ -417,7 +421,7 @@ func TestBehaviorEngine_GuardAttacksInvader(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	engine := NewBehaviorEngine(cave, ag, reg)
+	engine := NewBehaviorEngine(cave, ag, reg, nil)
 	engine.AssignBehavior(b1, Guard)
 
 	beasts := []*Beast{b1}

@@ -1,0 +1,5 @@
+{
+  "flee_hp_threshold": 0.25,
+  "chase_timeout_ticks": 10,
+  "patrol_rest_ticks": 3
+}
