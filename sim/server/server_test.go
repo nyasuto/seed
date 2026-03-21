@@ -236,6 +236,63 @@ func (p *errorProvider) ProvideActions(_ scenario.GameSnapshot) ([]simulation.Pl
 func (p *errorProvider) OnTickComplete(_ scenario.GameSnapshot) {}
 func (p *errorProvider) OnGameEnd(_ simulation.RunResult)       {}
 
+func TestGameServer_CollectorCalledPerTick(t *testing.T) {
+	sc := loadTutorialScenario(t)
+
+	gs, err := NewGameServer(sc, 42)
+	if err != nil {
+		t.Fatalf("NewGameServer: %v", err)
+	}
+
+	mock := &mockProvider{ai: &noopAI{}}
+	result, err := gs.RunGame(mock)
+	if err != nil {
+		t.Fatalf("RunGame: %v", err)
+	}
+
+	// The collector should have been called once per tick
+	collector := gs.Collector()
+	summary := collector.OnGameEnd(&result)
+
+	if summary.TotalTicks != result.TickCount {
+		t.Errorf("summary.TotalTicks = %d, want %d", summary.TotalTicks, result.TickCount)
+	}
+	if summary.Result != result.Result.Status {
+		t.Errorf("summary.Result = %v, want %v", summary.Result, result.Result.Status)
+	}
+}
+
+func TestGameServer_CollectorSummaryStats(t *testing.T) {
+	sc := loadTutorialScenario(t)
+
+	gs, err := NewGameServer(sc, 42)
+	if err != nil {
+		t.Fatalf("NewGameServer: %v", err)
+	}
+
+	mock := &mockProvider{ai: &noopAI{}}
+	result, err := gs.RunGame(mock)
+	if err != nil {
+		t.Fatalf("RunGame: %v", err)
+	}
+
+	summary := gs.Collector().OnGameEnd(&result)
+
+	// Basic sanity checks: summary fields should be populated from the run
+	if summary.PeakChi != result.Statistics.PeakChi {
+		t.Errorf("PeakChi = %f, want %f", summary.PeakChi, result.Statistics.PeakChi)
+	}
+	if summary.FinalFengShui != result.Statistics.FinalFengShui {
+		t.Errorf("FinalFengShui = %f, want %f", summary.FinalFengShui, result.Statistics.FinalFengShui)
+	}
+	if summary.WavesDefeated != result.Statistics.WavesDefeated {
+		t.Errorf("WavesDefeated = %d, want %d", summary.WavesDefeated, result.Statistics.WavesDefeated)
+	}
+	if summary.DeficitTicks != result.Statistics.DeficitTicks {
+		t.Errorf("DeficitTicks = %d, want %d", summary.DeficitTicks, result.Statistics.DeficitTicks)
+	}
+}
+
 func TestGameServer_RunGame_Deterministic(t *testing.T) {
 	sc := loadTutorialScenario(t)
 

@@ -6,6 +6,7 @@ import (
 	"github.com/nyasuto/seed/core/scenario"
 	"github.com/nyasuto/seed/core/simulation"
 	"github.com/nyasuto/seed/core/types"
+	"github.com/nyasuto/seed/sim/metrics"
 )
 
 // defaultMaxTicks is the fallback when the scenario has no MaxTicks constraint.
@@ -15,9 +16,10 @@ const defaultMaxTicks = 10000
 // ActionProvider. It handles engine creation, the tick loop, and
 // statistics collection.
 type GameServer struct {
-	scenario *scenario.Scenario
-	seed     int64
-	engine   *simulation.SimulationEngine
+	scenario  *scenario.Scenario
+	seed      int64
+	engine    *simulation.SimulationEngine
+	collector *metrics.Collector
 }
 
 // NewGameServer creates a GameServer for the given scenario and RNG seed.
@@ -25,7 +27,7 @@ func NewGameServer(sc *scenario.Scenario, seed int64) (*GameServer, error) {
 	if sc == nil {
 		return nil, fmt.Errorf("scenario must not be nil")
 	}
-	return &GameServer{scenario: sc, seed: seed}, nil
+	return &GameServer{scenario: sc, seed: seed, collector: metrics.NewCollector()}, nil
 }
 
 // RunGame executes a full game using the provided ActionProvider.
@@ -77,6 +79,7 @@ func (gs *GameServer) runLoop(provider ActionProvider) (simulation.RunResult, er
 		}
 
 		postSnapshot := simulation.BuildSnapshot(engine.State)
+		gs.collector.OnTick(postSnapshot, actions)
 		provider.OnTickComplete(postSnapshot)
 
 		if result.Status != simulation.Running {
@@ -110,6 +113,11 @@ func (gs *GameServer) maxTicks() int {
 		return int(gs.scenario.Constraints.MaxTicks)
 	}
 	return defaultMaxTicks
+}
+
+// Collector returns the metrics Collector associated with this GameServer.
+func (gs *GameServer) Collector() *metrics.Collector {
+	return gs.collector
 }
 
 // buildStatistics collects RunStatistics from the engine's accumulated state.

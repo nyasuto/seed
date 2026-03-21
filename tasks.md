@@ -152,7 +152,7 @@ sim/server/ パッケージを作成する。
 **完了条件**:
 - リプレイ保存 → 再生が元実行と同一結果になるテスト
 
-- [ ] **Task 1-I: Metrics Collector スケルトン**
+- [x] **Task 1-I: Metrics Collector スケルトン**
 
 sim/metrics/ パッケージのスケルトンを作成する。
 
