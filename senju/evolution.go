@@ -1,6 +1,15 @@
 package senju
 
-import "github.com/ponpoko/chaosseed-core/types"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/ponpoko/chaosseed-core/types"
+)
+
+// ErrEvolutionTargetNotFound is returned when the target species of an
+// evolution path is not in the species registry.
+var ErrEvolutionTargetNotFound = errors.New("evolution target species not found")
 
 // EvolutionCondition defines the requirements for a beast to evolve.
 // All non-zero conditions must be met simultaneously.
@@ -35,4 +44,28 @@ type EvolutionPath struct {
 
 	// ChiCost is the amount of chi consumed from the economy pool to perform the evolution.
 	ChiCost float64
+}
+
+// Evolve performs the evolution of a beast along the given path.
+// It changes the beast's species, updates its element, and recalculates
+// stats based on the new species' base values while preserving the current level.
+// The beast's HP is fully restored after evolution.
+func Evolve(beast *Beast, path *EvolutionPath, speciesRegistry *SpeciesRegistry) error {
+	newSpecies, err := speciesRegistry.Get(path.ToSpeciesID)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrEvolutionTargetNotFound, path.ToSpeciesID)
+	}
+
+	beast.SpeciesID = newSpecies.ID
+	beast.Name = newSpecies.Name
+	beast.Element = newSpecies.Element
+
+	// Recalculate stats using the same formula as level-up (growth.go).
+	beast.MaxHP = newSpecies.BaseHP + (beast.Level-1)*2
+	beast.HP = beast.MaxHP
+	beast.ATK = newSpecies.BaseATK + (beast.Level-1)*1
+	beast.DEF = newSpecies.BaseDEF + (beast.Level-1)*1
+	beast.SPD = newSpecies.BaseSPD + (beast.Level-1)*1
+
+	return nil
 }
