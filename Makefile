@@ -1,4 +1,4 @@
-.PHONY: test test-race vet lint cover check clean
+.PHONY: test test-race vet lint cover check clean viz
 
 test:
 	go test ./...
@@ -17,6 +17,9 @@ cover:
 	go tool cover -html=coverage.out -o coverage.html
 
 check: vet lint test-race
+
+viz:
+	go run ./cmd/caveviz
 
 clean:
 	rm -f coverage.out coverage.html
