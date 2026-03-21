@@ -1,0 +1,62 @@
+[
+  {
+    "id": "suiryu",
+    "name": "翠龍",
+    "element": "Wood",
+    "base_hp": 120,
+    "base_atk": 30,
+    "base_def": 30,
+    "base_spd": 30,
+    "growth_rate": 1.0,
+    "max_beasts": 2,
+    "description": "木の気を纏うバランス型の龍。安定した成長を見せる"
+  },
+  {
+    "id": "enhou",
+    "name": "炎鳳",
+    "element": "Fire",
+    "base_hp": 90,
+    "base_atk": 45,
+    "base_def": 20,
+    "base_spd": 35,
+    "growth_rate": 1.1,
+    "max_beasts": 2,
+    "description": "炎を操る攻撃型の鳳凰。高い攻撃力で侵入者を焼き払う"
+  },
+  {
+    "id": "ganki",
+    "name": "岩亀",
+    "element": "Earth",
+    "base_hp": 150,
+    "base_atk": 20,
+    "base_def": 45,
+    "base_spd": 15,
+    "growth_rate": 0.9,
+    "max_beasts": 2,
+    "description": "大地の力を宿す防御型の亀。堅牢な守りで部屋を護る"
+  },
+  {
+    "id": "kinrou",
+    "name": "金狼",
+    "element": "Metal",
+    "base_hp": 100,
+    "base_atk": 35,
+    "base_def": 25,
+    "base_spd": 45,
+    "growth_rate": 1.05,
+    "max_beasts": 3,
+    "description": "金の気を帯びた速攻型の狼。素早い動きで敵を翻弄する"
+  },
+  {
+    "id": "suija",
+    "name": "水蛇",
+    "element": "Water",
+    "base_hp": 110,
+    "base_atk": 25,
+    "base_def": 35,
+    "base_spd": 25,
+    "growth_rate": 0.95,
+    "max_beasts": 2,
+    "description": "水の流れを操る回復型の蛇。周囲の気を穏やかに巡らせる"
+  }
+]

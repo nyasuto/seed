@@ -143,11 +143,11 @@
 
 ## Phase 3-A: 仙獣基本型定義（senju/）
 
-- [ ] `senju/doc.go`: パッケージドキュメント。仙獣の種族定義・配置・成長・行動AIを扱うパッケージであることを記述
-- [ ] `senju/species.go`: Species 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, GrowthRate float64, MaxBeasts int（この種族が1部屋に配置できる上限のヒント値）, Description string）
-- [ ] `senju/species_registry.go`: SpeciesRegistry（map管理）。LoadSpecies(data []byte) error（JSONから一括ロード）、Get(id string) (*Species, error)、All() []*Species
-- [ ] `senju/species_data.json`: 初期仙獣種族5種の定義（各五行属性に1種）。木: 翠龍（バランス型）、火: 炎鳳（攻撃型）、土: 岩亀（防御型）、金: 金狼（速度型）、水: 水蛇（回復型）。各種族に基本ステータスとGrowthRateを設定
-- [ ] `senju/species_test.go`: SpeciesRegistryのJSONロードテスト、全5種が取得できるテスト、存在しないIDのエラーテスト
+- [x] `senju/doc.go`: パッケージドキュメント。仙獣の種族定義・配置・成長・行動AIを扱うパッケージであることを記述
+- [x] `senju/species.go`: Species 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, GrowthRate float64, MaxBeasts int（この種族が1部屋に配置できる上限のヒント値）, Description string）
+- [x] `senju/species_registry.go`: SpeciesRegistry（map管理）。LoadSpecies(data []byte) error（JSONから一括ロード）、Get(id string) (*Species, error)、All() []*Species
+- [x] `senju/species_data.json`: 初期仙獣種族5種の定義（各五行属性に1種）。木: 翠龍（バランス型）、火: 炎鳳（攻撃型）、土: 岩亀（防御型）、金: 金狼（速度型）、水: 水蛇（回復型）。各種族に基本ステータスとGrowthRateを設定
+- [x] `senju/species_test.go`: SpeciesRegistryのJSONロードテスト、全5種が取得できるテスト、存在しないIDのエラーテスト
 
 ## Phase 3-B: 部屋の仙獣容量（world/ 拡張）
 
