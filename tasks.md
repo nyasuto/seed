@@ -302,7 +302,7 @@
 
 ## Phase 4-F: 侵入波管理（invasion/）
 
-- [ ] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
+- [x] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
 - [ ] `invasion/wave_generator.go`: WaveGenerator 構造体。NewWaveGenerator(classRegistry, rng)。GenerateWave(config WaveConfig, cave *world.Cave, tick types.Tick) *InvasionWave — 設定に基づいて侵入者グループを生成。洞窟の部屋構成から適切な Goal を割り当て（龍穴があれば DestroyCore が主、倉庫があれば盗賊を混ぜる）
 - [ ] `invasion/wave_schedule.go`: WaveSchedule 構造体（Waves []WaveConfig）。WaveConfig（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int）。LoadWaveSchedule(data []byte)。**注意: このスケジュールはPhase 6のシナリオシステムで上書きされる前提。Phase 4ではテスト用の固定スケジュールのみ**
 - [ ] `invasion/wave_schedule_data.json`: テスト用スケジュール（3波: tick 50/難易度1.0/2-3体, tick 150/難易度1.5/3-5体, tick 300/難易度2.0/5-7体）。D002の時間圧力を意識し、tick 50は「まだ構築が十分でない」タイミングを想定
