@@ -13,16 +13,24 @@ type Evaluator struct {
 	cave     *world.Cave
 	registry *world.RoomTypeRegistry
 	params   *ScoreParams
+	graph    world.AdjacencyGraph
 }
 
 // NewEvaluator creates a new Evaluator for the given cave, room type registry,
-// and scoring parameters.
+// and scoring parameters. The adjacency graph is built once at construction.
 func NewEvaluator(cave *world.Cave, registry *world.RoomTypeRegistry, params *ScoreParams) *Evaluator {
 	return &Evaluator{
 		cave:     cave,
 		registry: registry,
 		params:   params,
+		graph:    cave.BuildAdjacencyGraph(),
 	}
+}
+
+// RefreshGraph rebuilds the cached adjacency graph.
+// Call this after adding or removing rooms or corridors.
+func (ev *Evaluator) RefreshGraph() {
+	ev.graph = ev.cave.BuildAdjacencyGraph()
 }
 
 // EvaluateRoom calculates the feng shui score for a single room.
@@ -37,8 +45,7 @@ func (ev *Evaluator) EvaluateRoom(roomID int, engine *ChiFlowEngine) FengShuiSco
 	score.ChiScore = rc.Ratio() * ev.params.ChiRatioWeight
 
 	// 2. AdjacencyScore = sum of elemental bonuses/penalties from neighbors
-	graph := ev.cave.BuildAdjacencyGraph()
-	neighbors := graph.Neighbors(roomID)
+	neighbors := ev.graph.Neighbors(roomID)
 	for _, nid := range neighbors {
 		nrc, nok := engine.RoomChi[nid]
 		if !nok {
