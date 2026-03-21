@@ -6,6 +6,7 @@
 // Use --economy to display economy status overlay.
 // Use --scenario <file> to load a scenario JSON file and display its status.
 // Use --all to display all layers (standard + chi + beasts + ai).
+// Use --simulate <scenario.json> --seed <N> to run a scenario with SimpleAI and display each tick.
 package main
 
 import (
@@ -18,6 +19,7 @@ import (
 	"github.com/ponpoko/chaosseed-core/invasion"
 	"github.com/ponpoko/chaosseed-core/scenario"
 	"github.com/ponpoko/chaosseed-core/senju"
+	"github.com/ponpoko/chaosseed-core/simulation"
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
@@ -29,9 +31,16 @@ func main() {
 	invasionMode := flag.Bool("invasion", false, "display invasion overlay")
 	economyMode := flag.Bool("economy", false, "display economy status overlay")
 	scenarioFile := flag.String("scenario", "", "load scenario JSON file and display status")
+	simulateFile := flag.String("simulate", "", "run scenario JSON with SimpleAI and display each tick")
+	seed := flag.Int64("seed", 1, "RNG seed for --simulate mode")
 	battleMode := flag.Bool("battle", false, "display all layers (terrain + chi + beasts + invaders)")
 	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts + ai + economy)")
 	flag.Parse()
+
+	if *simulateFile != "" {
+		runSimulation(*simulateFile, *seed)
+		return
+	}
 
 	cave, err := buildDemoCave()
 	if err != nil {
@@ -298,6 +307,67 @@ func buildDemoWaves() []*invasion.InvasionWave {
 		Difficulty:  1.0,
 	}
 	return []*invasion.InvasionWave{wave}
+}
+
+// runSimulation loads a scenario JSON, creates a SimulationEngine with SimpleAI,
+// and steps through each tick, displaying the full status after every tick.
+func runSimulation(path string, seed int64) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Printf("error reading scenario file: %v\n", err)
+		return
+	}
+
+	sc, err := scenario.LoadScenario(data)
+	if err != nil {
+		fmt.Printf("error loading scenario: %v\n", err)
+		return
+	}
+
+	rng := types.NewCheckpointableRNG(seed)
+	engine, err := simulation.NewSimulationEngine(sc, rng)
+	if err != nil {
+		fmt.Printf("error creating engine: %v\n", err)
+		return
+	}
+
+	ai := simulation.NewSimpleAIPlayer(engine.State)
+
+	maxTicks := 10000
+	if sc.Constraints.MaxTicks > 0 {
+		maxTicks = int(sc.Constraints.MaxTicks)
+	}
+
+	fmt.Printf("Scenario: %s (seed=%d)\n", sc.Name, seed)
+	fmt.Println(simulation.RenderFullStatus(engine))
+
+	for tick := 0; tick < maxTicks; tick++ {
+		snapshot := simulation.BuildSnapshot(engine.State)
+		actions := ai.DecideActions(snapshot)
+		if actions == nil {
+			actions = []simulation.PlayerAction{simulation.NoAction{}}
+		}
+
+		result, err := engine.Step(actions)
+		if err != nil {
+			fmt.Printf("error at tick %d: %v\n", tick, err)
+			return
+		}
+
+		fmt.Printf("\033[2J\033[H") // clear screen
+		fmt.Printf("Scenario: %s (seed=%d)\n", sc.Name, seed)
+		fmt.Println(simulation.RenderFullStatus(engine))
+
+		if result.Status != simulation.Running {
+			if result.Status == simulation.Won {
+				fmt.Printf("=== VICTORY at tick %d ===\n", result.FinalTick)
+			} else {
+				fmt.Printf("=== DEFEATED at tick %d: %s ===\n", result.FinalTick, result.Reason)
+			}
+			return
+		}
+	}
+	fmt.Printf("=== TIMEOUT: max ticks (%d) reached ===\n", maxTicks)
 }
 
 // displayScenarioStatus loads a scenario JSON file and prints its status line
