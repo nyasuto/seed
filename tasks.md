@@ -697,7 +697,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [x] `simulation/replay.go`: Replay 構造体（Seed int64, ScenarioID string, Actions map[types.Tick][]PlayerAction）。RecordReplay(engine) *Replay — 実行中のアクション記録。PlayReplay(replay, scenario) GameResult — 記録されたアクションを再生
 - [x] `simulation/replay.go`: MarshalReplay / UnmarshalReplay — JSON保存/復元
-- [ ] `simulation/replay_test.go`: 記録→再生で同一GameResult テスト、リプレイのJSON往復テスト
+- [x] `simulation/replay_test.go`: 記録→再生で同一GameResult テスト、リプレイのJSON往復テスト
 
 ## Phase 7-F: AIプレイヤー（simulation/）
 

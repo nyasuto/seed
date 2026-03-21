@@ -169,7 +169,159 @@ func TestRecordReplay_PlayReplay_SameResult(t *testing.T) {
 		t.Fatalf("PlayReplay: %v", err)
 	}
 
-	if result1.FinalTick != result2.FinalTick {
-		t.Errorf("FinalTick: got %d, want %d", result2.FinalTick, result1.FinalTick)
+	assertGameResultEqual(t, result1, result2)
+}
+
+func TestRecordReplay_PlayReplay_WithWinCondition(t *testing.T) {
+	sc := minimalScenario()
+	sc.WinConditions = []scenario.ConditionDef{
+		{Type: "survive_until", Params: map[string]any{"ticks": float64(5)}},
+	}
+	rng := types.NewCheckpointableRNG(99)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	EnableRecording(engine)
+
+	result1, err := engine.Run(100, func(_ scenario.GameSnapshot) []PlayerAction {
+		return []PlayerAction{NoAction{}}
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result1.Status != Won {
+		t.Fatalf("expected Won status, got %v", result1.Status)
+	}
+
+	replay, err := RecordReplay(engine)
+	if err != nil {
+		t.Fatalf("RecordReplay: %v", err)
+	}
+
+	result2, err := PlayReplay(replay, sc)
+	if err != nil {
+		t.Fatalf("PlayReplay: %v", err)
+	}
+
+	assertGameResultEqual(t, result1, result2)
+}
+
+func TestRecordReplay_PlayReplay_MultipleRuns(t *testing.T) {
+	// Replaying the same replay multiple times should produce identical results.
+	sc := minimalScenario()
+	rng := types.NewCheckpointableRNG(7)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	EnableRecording(engine)
+
+	result1, err := engine.Run(10, func(_ scenario.GameSnapshot) []PlayerAction {
+		return []PlayerAction{NoAction{}}
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	replay, err := RecordReplay(engine)
+	if err != nil {
+		t.Fatalf("RecordReplay: %v", err)
+	}
+
+	for i := 0; i < 3; i++ {
+		result, err := PlayReplay(replay, sc)
+		if err != nil {
+			t.Fatalf("PlayReplay iteration %d: %v", i, err)
+		}
+		assertGameResultEqual(t, result1, result)
+	}
+}
+
+func TestMarshalReplay_RoundTrip_ThenPlay(t *testing.T) {
+	// Full round trip: record → marshal → unmarshal → play → same result.
+	sc := minimalScenario()
+	rng := types.NewCheckpointableRNG(123)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	EnableRecording(engine)
+
+	result1, err := engine.Run(8, func(_ scenario.GameSnapshot) []PlayerAction {
+		return []PlayerAction{NoAction{}}
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	replay, err := RecordReplay(engine)
+	if err != nil {
+		t.Fatalf("RecordReplay: %v", err)
+	}
+
+	data, err := MarshalReplay(replay)
+	if err != nil {
+		t.Fatalf("MarshalReplay: %v", err)
+	}
+
+	restored, err := UnmarshalReplay(data)
+	if err != nil {
+		t.Fatalf("UnmarshalReplay: %v", err)
+	}
+
+	// Verify replay metadata survived the round trip.
+	if restored.Seed != replay.Seed {
+		t.Errorf("Seed = %d, want %d", restored.Seed, replay.Seed)
+	}
+	if restored.ScenarioID != replay.ScenarioID {
+		t.Errorf("ScenarioID = %q, want %q", restored.ScenarioID, replay.ScenarioID)
+	}
+	if len(restored.Actions) != len(replay.Actions) {
+		t.Errorf("Actions count = %d, want %d", len(restored.Actions), len(replay.Actions))
+	}
+
+	result2, err := PlayReplay(restored, sc)
+	if err != nil {
+		t.Fatalf("PlayReplay: %v", err)
+	}
+
+	assertGameResultEqual(t, result1, result2)
+}
+
+func TestRecordReplay_NonCheckpointableRNG(t *testing.T) {
+	sc := minimalScenario()
+	// NewSeededRNG does not implement CheckpointableRNG.
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	_, err = RecordReplay(engine)
+	if err != ErrRNGNotCheckpointable {
+		t.Errorf("expected ErrRNGNotCheckpointable, got %v", err)
+	}
+}
+
+// assertGameResultEqual is a test helper that checks all fields of GameResult.
+func assertGameResultEqual(t *testing.T, want, got GameResult) {
+	t.Helper()
+	if got.Status != want.Status {
+		t.Errorf("Status: got %v, want %v", got.Status, want.Status)
+	}
+	if got.FinalTick != want.FinalTick {
+		t.Errorf("FinalTick: got %d, want %d", got.FinalTick, want.FinalTick)
+	}
+	if got.Reason != want.Reason {
+		t.Errorf("Reason: got %q, want %q", got.Reason, want.Reason)
 	}
 }
