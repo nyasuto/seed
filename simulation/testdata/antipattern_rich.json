@@ -1,0 +1,75 @@
+{
+  "id": "antipattern_rich",
+  "name": "アンチパターン：潤沢リソース",
+  "description": "D002検証用。StartingChiが極端に多く侵入波が弱い。リソースが潤沢で全部に投資でき、緊張感がないアンチパターン",
+  "difficulty": "easy",
+  "initial_state": {
+    "cave_width": 32,
+    "cave_height": 32,
+    "terrain_seed": 100,
+    "terrain_density": 0.05,
+    "prebuilt_rooms": [
+      {
+        "type_id": "dragon_hole",
+        "pos": {"x": 15, "y": 15},
+        "level": 1
+      }
+    ],
+    "dragon_veins": [
+      {
+        "source_pos": {"x": 15, "y": 15},
+        "element": "Wood",
+        "flow_rate": 2.0
+      },
+      {
+        "source_pos": {"x": 15, "y": 15},
+        "element": "Fire",
+        "flow_rate": 2.0
+      },
+      {
+        "source_pos": {"x": 15, "y": 15},
+        "element": "Earth",
+        "flow_rate": 2.0
+      }
+    ],
+    "starting_chi": 9999.0,
+    "starting_beasts": [
+      {
+        "species_id": "suiryu",
+        "room_index": 0
+      }
+    ]
+  },
+  "win_conditions": [
+    {"type": "defeat_all_waves"},
+    {"type": "fengshui_score", "params": {"threshold": 50.0}}
+  ],
+  "lose_conditions": [
+    {"type": "core_destroyed"}
+  ],
+  "wave_schedule": [
+    {
+      "trigger_tick": 300,
+      "difficulty": 0.1,
+      "min_invaders": 1,
+      "max_invaders": 1,
+      "preferred_classes": ["wood_ascetic"],
+      "preferred_goals": []
+    },
+    {
+      "trigger_tick": 600,
+      "difficulty": 0.2,
+      "min_invaders": 1,
+      "max_invaders": 2,
+      "preferred_classes": [],
+      "preferred_goals": []
+    }
+  ],
+  "events": [],
+  "constraints": {
+    "max_rooms": 20,
+    "max_beasts": 10,
+    "max_ticks": 800,
+    "forbidden_room_types": []
+  }
+}
