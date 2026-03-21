@@ -272,7 +272,7 @@ sim/adapter/human/ パッケージを作成する。
 - 早送り（ff 50）で50ティック分スキップされるテスト
 - OnTickComplete で戦闘ログが出力されるテスト
 
-- [ ] **Task 2-F: Human Mode — CLI統合とチェックポイント操作**
+- [x] **Task 2-F: Human Mode — CLI統合とチェックポイント操作**
 
 1. cmd/chaosseed-sim/main.go の `--human` フラグ実装
    - `--scenario` 引数でシナリオ指定

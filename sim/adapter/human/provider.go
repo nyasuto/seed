@@ -1,6 +1,7 @@
 package human
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/nyasuto/seed/core/scenario"
@@ -18,6 +19,23 @@ type ContextBuilder interface {
 	UnitCtx(snapshot scenario.GameSnapshot) UnitContext
 }
 
+// CheckpointOps provides checkpoint and replay operations to the HumanProvider.
+// The implementation is typically backed by a GameServer.
+type CheckpointOps interface {
+	// SaveCheckpoint saves the current game state to a file.
+	SaveCheckpoint(path string) error
+	// LoadCheckpoint loads a game state from a file.
+	// After a successful load, the caller should restart the game loop.
+	LoadCheckpoint(path string) error
+	// SaveReplay saves a replay of the current game to a file.
+	SaveReplay(path string) error
+}
+
+// ErrCheckpointLoaded is a sentinel error returned by ProvideActions when
+// the player loads a checkpoint. The game loop should catch this error,
+// and restart via ResumeGame.
+var ErrCheckpointLoaded = fmt.Errorf("checkpoint loaded")
+
 // HumanProvider implements server.ActionProvider for Human Mode.
 // It drives an interactive text menu each tick, displays tick results,
 // and shows game end summaries.
@@ -25,6 +43,10 @@ type HumanProvider struct {
 	ir         *InputReader
 	out        io.Writer
 	ctxBuilder ContextBuilder
+
+	// checkpointOps provides save/load/replay operations.
+	// May be nil if checkpoint operations are not available.
+	checkpointOps CheckpointOps
 
 	// fastForward tracks remaining fast-forward ticks. When > 0,
 	// ProvideActions returns NoAction without prompting the player.
@@ -46,6 +68,11 @@ func NewHumanProvider(ir *InputReader, out io.Writer, ctxBuilder ContextBuilder)
 		out:        out,
 		ctxBuilder: ctxBuilder,
 	}
+}
+
+// SetCheckpointOps sets the checkpoint operations handler.
+func (hp *HumanProvider) SetCheckpointOps(ops CheckpointOps) {
+	hp.checkpointOps = ops
 }
 
 // ProvideActions implements server.ActionProvider. During fast-forward it
@@ -140,9 +167,52 @@ func (hp *HumanProvider) handleChoice(choice MenuChoice, snapshot scenario.GameS
 		hp.fastForward = n - 1 // -1 because this tick also counts
 		return nil, true, nil
 
-	case ChoiceSave, ChoiceLoad, ChoiceReplay:
-		// Save/Load/Replay are handled by CLI integration (Task 2-F).
-		PrintMessage(hp.out, "この機能はまだ実装されていません。")
+	case ChoiceSave:
+		if hp.checkpointOps == nil {
+			PrintMessage(hp.out, "セーブ機能は利用できません。")
+			return nil, false, nil
+		}
+		path, err := hp.ir.ReadLine("セーブファイルパス> ")
+		if err != nil {
+			return nil, false, err
+		}
+		if err := hp.checkpointOps.SaveCheckpoint(path); err != nil {
+			PrintError(hp.out, fmt.Errorf("セーブ失敗: %w", err))
+		} else {
+			PrintMessage(hp.out, "セーブしました: "+path)
+		}
+		return nil, false, nil
+
+	case ChoiceLoad:
+		if hp.checkpointOps == nil {
+			PrintMessage(hp.out, "ロード機能は利用できません。")
+			return nil, false, nil
+		}
+		path, err := hp.ir.ReadLine("ロードファイルパス> ")
+		if err != nil {
+			return nil, false, err
+		}
+		if err := hp.checkpointOps.LoadCheckpoint(path); err != nil {
+			PrintError(hp.out, fmt.Errorf("ロード失敗: %w", err))
+			return nil, false, nil
+		}
+		PrintMessage(hp.out, "ロードしました: "+path)
+		return nil, false, ErrCheckpointLoaded
+
+	case ChoiceReplay:
+		if hp.checkpointOps == nil {
+			PrintMessage(hp.out, "リプレイ保存機能は利用できません。")
+			return nil, false, nil
+		}
+		path, err := hp.ir.ReadLine("リプレイファイルパス> ")
+		if err != nil {
+			return nil, false, err
+		}
+		if err := hp.checkpointOps.SaveReplay(path); err != nil {
+			PrintError(hp.out, fmt.Errorf("リプレイ保存失敗: %w", err))
+		} else {
+			PrintMessage(hp.out, "リプレイを保存しました: "+path)
+		}
 		return nil, false, nil
 
 	case ChoiceQuit:

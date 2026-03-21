@@ -1,11 +1,13 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/nyasuto/seed/core/scenario"
 	"github.com/nyasuto/seed/core/simulation"
 	"github.com/nyasuto/seed/core/types"
+	"github.com/nyasuto/seed/sim/adapter/human"
 	"github.com/nyasuto/seed/sim/metrics"
 )
 
@@ -32,6 +34,8 @@ func NewGameServer(sc *scenario.Scenario, seed int64) (*GameServer, error) {
 
 // RunGame executes a full game using the provided ActionProvider.
 // It creates a SimulationEngine, runs the tick loop, and returns the result.
+// If the provider loads a checkpoint (returns ErrCheckpointLoaded), the engine
+// is preserved so that the caller can call ResumeGame.
 func (gs *GameServer) RunGame(provider ActionProvider) (simulation.RunResult, error) {
 	rng := types.NewCheckpointableRNG(gs.seed)
 	engine, err := simulation.NewSimulationEngine(gs.scenario, rng)
@@ -41,20 +45,32 @@ func (gs *GameServer) RunGame(provider ActionProvider) (simulation.RunResult, er
 
 	gs.engine = engine
 	simulation.EnableRecording(engine)
-	defer func() { gs.engine = nil }()
 
-	return gs.runLoop(provider)
+	result, err := gs.runLoop(provider)
+	if err != nil && !errors.Is(err, human.ErrCheckpointLoaded) {
+		gs.engine = nil
+	} else if err == nil {
+		gs.engine = nil
+	}
+	return result, err
 }
 
 // ResumeGame continues a game from a previously loaded checkpoint.
-// Call LoadCheckpoint before calling this method.
+// Call LoadCheckpointFrom before calling this method.
+// If the provider loads another checkpoint (returns ErrCheckpointLoaded),
+// the engine is preserved for a subsequent ResumeGame call.
 func (gs *GameServer) ResumeGame(provider ActionProvider) (simulation.RunResult, error) {
 	if gs.engine == nil {
 		return simulation.RunResult{}, fmt.Errorf("no active engine; call LoadCheckpoint first")
 	}
-	defer func() { gs.engine = nil }()
 
-	return gs.runLoop(provider)
+	result, err := gs.runLoop(provider)
+	if err != nil && !errors.Is(err, human.ErrCheckpointLoaded) {
+		gs.engine = nil
+	} else if err == nil {
+		gs.engine = nil
+	}
+	return result, err
 }
 
 // runLoop drives the tick loop using the current engine.
@@ -113,6 +129,12 @@ func (gs *GameServer) maxTicks() int {
 		return int(gs.scenario.Constraints.MaxTicks)
 	}
 	return defaultMaxTicks
+}
+
+// Engine returns the current SimulationEngine, or nil if no game is active.
+// This is used by the ContextBuilder to access detailed game state.
+func (gs *GameServer) Engine() *simulation.SimulationEngine {
+	return gs.engine
 }
 
 // Collector returns the metrics Collector associated with this GameServer.

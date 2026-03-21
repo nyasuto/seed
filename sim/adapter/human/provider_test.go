@@ -2,6 +2,8 @@ package human
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -302,5 +304,155 @@ func TestHumanProvider_Quit_Cancelled(t *testing.T) {
 	}
 	if _, ok := actions[0].(simulation.NoAction); !ok {
 		t.Errorf("expected NoAction after cancelled quit, got %T", actions[0])
+	}
+}
+
+// stubCheckpointOps is a test double for CheckpointOps.
+type stubCheckpointOps struct {
+	saveCalled   bool
+	savePath     string
+	loadCalled   bool
+	loadPath     string
+	replayCalled bool
+	replayPath   string
+	saveErr      error
+	loadErr      error
+	replayErr    error
+}
+
+func (s *stubCheckpointOps) SaveCheckpoint(path string) error {
+	s.saveCalled = true
+	s.savePath = path
+	return s.saveErr
+}
+func (s *stubCheckpointOps) LoadCheckpoint(path string) error {
+	s.loadCalled = true
+	s.loadPath = path
+	return s.loadErr
+}
+func (s *stubCheckpointOps) SaveReplay(path string) error {
+	s.replayCalled = true
+	s.replayPath = path
+	return s.replayErr
+}
+
+func TestHumanProvider_Save(t *testing.T) {
+	// Select "s", enter path, then "5" (do nothing).
+	hp, out := newHumanProvider("s\n/tmp/test.json\n5\n")
+	ops := &stubCheckpointOps{}
+	hp.SetCheckpointOps(ops)
+	snap := testSnapshot(1)
+
+	actions, err := hp.ProvideActions(snap)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ops.saveCalled {
+		t.Error("expected SaveCheckpoint to be called")
+	}
+	if ops.savePath != "/tmp/test.json" {
+		t.Errorf("expected path /tmp/test.json, got %s", ops.savePath)
+	}
+	if _, ok := actions[0].(simulation.NoAction); !ok {
+		t.Errorf("expected NoAction after save, got %T", actions[0])
+	}
+	if !strings.Contains(out.String(), "セーブしました") {
+		t.Errorf("expected save confirmation, got: %s", out.String())
+	}
+}
+
+func TestHumanProvider_Save_Error(t *testing.T) {
+	hp, out := newHumanProvider("s\n/tmp/bad.json\n5\n")
+	ops := &stubCheckpointOps{saveErr: fmt.Errorf("disk full")}
+	hp.SetCheckpointOps(ops)
+	snap := testSnapshot(1)
+
+	_, err := hp.ProvideActions(snap)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "セーブ失敗") {
+		t.Errorf("expected error message, got: %s", out.String())
+	}
+}
+
+func TestHumanProvider_Load(t *testing.T) {
+	// Select "l", enter path.
+	hp, out := newHumanProvider("l\n/tmp/save.json\n")
+	ops := &stubCheckpointOps{}
+	hp.SetCheckpointOps(ops)
+	snap := testSnapshot(1)
+
+	_, err := hp.ProvideActions(snap)
+	if !errors.Is(err, ErrCheckpointLoaded) {
+		t.Errorf("expected ErrCheckpointLoaded, got: %v", err)
+	}
+	if !ops.loadCalled {
+		t.Error("expected LoadCheckpoint to be called")
+	}
+	if ops.loadPath != "/tmp/save.json" {
+		t.Errorf("expected path /tmp/save.json, got %s", ops.loadPath)
+	}
+	if !strings.Contains(out.String(), "ロードしました") {
+		t.Errorf("expected load confirmation, got: %s", out.String())
+	}
+}
+
+func TestHumanProvider_Load_Error(t *testing.T) {
+	hp, out := newHumanProvider("l\n/tmp/missing.json\n5\n")
+	ops := &stubCheckpointOps{loadErr: fmt.Errorf("file not found")}
+	hp.SetCheckpointOps(ops)
+	snap := testSnapshot(1)
+
+	actions, err := hp.ProvideActions(snap)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := actions[0].(simulation.NoAction); !ok {
+		t.Errorf("expected NoAction after load error, got %T", actions[0])
+	}
+	if !strings.Contains(out.String(), "ロード失敗") {
+		t.Errorf("expected error message, got: %s", out.String())
+	}
+}
+
+func TestHumanProvider_Replay(t *testing.T) {
+	hp, out := newHumanProvider("r\n/tmp/replay.json\n5\n")
+	ops := &stubCheckpointOps{}
+	hp.SetCheckpointOps(ops)
+	snap := testSnapshot(1)
+
+	actions, err := hp.ProvideActions(snap)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !ops.replayCalled {
+		t.Error("expected SaveReplay to be called")
+	}
+	if ops.replayPath != "/tmp/replay.json" {
+		t.Errorf("expected path /tmp/replay.json, got %s", ops.replayPath)
+	}
+	if _, ok := actions[0].(simulation.NoAction); !ok {
+		t.Errorf("expected NoAction after replay save, got %T", actions[0])
+	}
+	if !strings.Contains(out.String(), "リプレイを保存しました") {
+		t.Errorf("expected replay confirmation, got: %s", out.String())
+	}
+}
+
+func TestHumanProvider_Save_NoOps(t *testing.T) {
+	// Without checkpoint ops, should show unavailable message.
+	hp, out := newHumanProvider("s\n5\n")
+	snap := testSnapshot(1)
+
+	actions, err := hp.ProvideActions(snap)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := actions[0].(simulation.NoAction); !ok {
+		t.Errorf("expected NoAction, got %T", actions[0])
+	}
+	if !strings.Contains(out.String(), "利用できません") {
+		t.Errorf("expected unavailable message, got: %s", out.String())
 	}
 }
