@@ -77,10 +77,10 @@
 
 ## Phase 2-A: 風水基本型定義（fengshui/）
 
-- [ ] `fengshui/doc.go`: パッケージドキュメント。龍脈・気・風水評価を扱うパッケージであることを記述
-- [ ] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路。RoomsOnPath(cave) []int で龍脈経路上の部屋IDリストを返す
-- [ ] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, Element types.Element）。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド。ElementはRoomTypeから引き継ぐ（気の属性＝部屋の属性）
-- [ ] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値、ゼロ容量のエッジケース）
+- [x] `fengshui/doc.go`: パッケージドキュメント。龍脈・気・風水評価を扱うパッケージであることを記述
+- [x] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路。RoomsOnPath(cave) []int で龍脈経路上の部屋IDリストを返す
+- [x] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, Element types.Element）。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド。ElementはRoomTypeから引き継ぐ（気の属性＝部屋の属性）
+- [x] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値、ゼロ容量のエッジケース）
 
 ## Phase 2-B: 龍脈の経路計算と動的再計算（fengshui/）
 
