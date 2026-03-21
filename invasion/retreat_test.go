@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ponpoko/chaosseed-core/types"
+	"github.com/ponpoko/chaosseed-core/world"
 )
 
 func newTestRegistry(t *testing.T) *InvaderClassRegistry {
@@ -225,6 +226,189 @@ func TestRetreatEvaluator_PriorityOrder(t *testing.T) {
 	_, reason := eval.ShouldRetreat(inv, wave)
 	if reason != ReasonGoalComplete {
 		t.Errorf("expected GoalComplete to take priority, got %v", reason)
+	}
+}
+
+// makeRetreatCave creates a linear cave: Room1 -- Room2 -- Room3 -- Room4
+// Room 1 is the "entry" room. Connections: 1-2, 2-3, 3-4.
+func makeRetreatCave(t *testing.T) (*world.Cave, world.AdjacencyGraph) {
+	t.Helper()
+	cave, err := world.NewCave(20, 10)
+	if err != nil {
+		t.Fatalf("NewCave: %v", err)
+	}
+
+	_, err = cave.AddRoom("chi_chamber", types.Pos{X: 1, Y: 1}, 3, 3,
+		[]world.RoomEntrance{{Pos: types.Pos{X: 3, Y: 2}, Dir: types.East}})
+	if err != nil {
+		t.Fatalf("AddRoom 1: %v", err)
+	}
+
+	_, err = cave.AddRoom("chi_chamber", types.Pos{X: 6, Y: 1}, 3, 3,
+		[]world.RoomEntrance{
+			{Pos: types.Pos{X: 6, Y: 2}, Dir: types.West},
+			{Pos: types.Pos{X: 8, Y: 2}, Dir: types.East},
+		})
+	if err != nil {
+		t.Fatalf("AddRoom 2: %v", err)
+	}
+
+	_, err = cave.AddRoom("chi_chamber", types.Pos{X: 11, Y: 1}, 3, 3,
+		[]world.RoomEntrance{
+			{Pos: types.Pos{X: 11, Y: 2}, Dir: types.West},
+			{Pos: types.Pos{X: 13, Y: 2}, Dir: types.East},
+		})
+	if err != nil {
+		t.Fatalf("AddRoom 3: %v", err)
+	}
+
+	_, err = cave.AddRoom("chi_chamber", types.Pos{X: 16, Y: 1}, 3, 3,
+		[]world.RoomEntrance{{Pos: types.Pos{X: 16, Y: 2}, Dir: types.West}})
+	if err != nil {
+		t.Fatalf("AddRoom 4: %v", err)
+	}
+
+	if _, err := cave.ConnectRooms(1, 2); err != nil {
+		t.Fatalf("ConnectRooms 1-2: %v", err)
+	}
+	if _, err := cave.ConnectRooms(2, 3); err != nil {
+		t.Fatalf("ConnectRooms 2-3: %v", err)
+	}
+	if _, err := cave.ConnectRooms(3, 4); err != nil {
+		t.Fatalf("ConnectRooms 3-4: %v", err)
+	}
+
+	graph := cave.BuildAdjacencyGraph()
+	return cave, graph
+}
+
+func TestRetreatPathfinder_ReverseVisitOrder(t *testing.T) {
+	cave, graph := makeRetreatCave(t)
+	rp := NewRetreatPathfinder(cave, graph)
+
+	// Simulate invader that entered at room 1, visited 1→2→3→4
+	inv := &Invader{
+		ID:            1,
+		CurrentRoomID: 4,
+		Memory: &ExplorationMemory{
+			VisitedRooms:    map[int]types.Tick{1: 10, 2: 20, 3: 30, 4: 40},
+			KnownBeastRooms: make(map[int]bool),
+		},
+	}
+
+	path := rp.FindRetreatPath(inv)
+	expected := []int{4, 3, 2, 1}
+	if len(path) != len(expected) {
+		t.Fatalf("path length = %d, want %d; path = %v", len(path), len(expected), path)
+	}
+	for i, v := range expected {
+		if path[i] != v {
+			t.Errorf("path[%d] = %d, want %d; path = %v", i, path[i], v, path)
+		}
+	}
+}
+
+func TestRetreatPathfinder_AlreadyAtEntry(t *testing.T) {
+	cave, graph := makeRetreatCave(t)
+	rp := NewRetreatPathfinder(cave, graph)
+
+	inv := &Invader{
+		ID:            1,
+		CurrentRoomID: 1,
+		Memory: &ExplorationMemory{
+			VisitedRooms:    map[int]types.Tick{1: 10},
+			KnownBeastRooms: make(map[int]bool),
+		},
+	}
+
+	path := rp.FindRetreatPath(inv)
+	if len(path) != 1 || path[0] != 1 {
+		t.Errorf("expected [1], got %v", path)
+	}
+}
+
+func TestRetreatPathfinder_FallbackToBFS(t *testing.T) {
+	cave, graph := makeRetreatCave(t)
+	rp := NewRetreatPathfinder(cave, graph)
+
+	// Invader visited rooms 1 and 4 only (skipped 2 and 3 in memory).
+	// Memory-based path can't connect 4→1 directly, so BFS should kick in.
+	inv := &Invader{
+		ID:            1,
+		CurrentRoomID: 4,
+		Memory: &ExplorationMemory{
+			VisitedRooms:    map[int]types.Tick{1: 10, 4: 40},
+			KnownBeastRooms: make(map[int]bool),
+		},
+	}
+
+	path := rp.FindRetreatPath(inv)
+	// BFS shortest path: 4→3→2→1
+	if path == nil {
+		t.Fatal("expected non-nil path")
+	}
+	if path[0] != 4 {
+		t.Errorf("path should start at 4, got %d", path[0])
+	}
+	if path[len(path)-1] != 1 {
+		t.Errorf("path should end at 1, got %d", path[len(path)-1])
+	}
+	if len(path) != 4 {
+		t.Errorf("expected BFS path length 4, got %d; path = %v", len(path), path)
+	}
+}
+
+func TestRetreatPathfinder_PartialMemoryPath(t *testing.T) {
+	cave, graph := makeRetreatCave(t)
+	rp := NewRetreatPathfinder(cave, graph)
+
+	// Invader visited 1→2→3 but is at room 3. Should retrace 3→2→1.
+	inv := &Invader{
+		ID:            1,
+		CurrentRoomID: 3,
+		Memory: &ExplorationMemory{
+			VisitedRooms:    map[int]types.Tick{1: 10, 2: 20, 3: 30},
+			KnownBeastRooms: make(map[int]bool),
+		},
+	}
+
+	path := rp.FindRetreatPath(inv)
+	expected := []int{3, 2, 1}
+	if len(path) != len(expected) {
+		t.Fatalf("path = %v, want %v", path, expected)
+	}
+	for i, v := range expected {
+		if path[i] != v {
+			t.Errorf("path[%d] = %d, want %d", i, path[i], v)
+		}
+	}
+}
+
+func TestRetreatResult_Fields(t *testing.T) {
+	result := RetreatResult{
+		InvaderID: 42,
+		Reason:    ReasonGoalComplete,
+		StolenChi: 15.5,
+	}
+	if result.InvaderID != 42 {
+		t.Errorf("InvaderID = %d, want 42", result.InvaderID)
+	}
+	if result.Reason != ReasonGoalComplete {
+		t.Errorf("Reason = %v, want GoalComplete", result.Reason)
+	}
+	if result.StolenChi != 15.5 {
+		t.Errorf("StolenChi = %f, want 15.5", result.StolenChi)
+	}
+}
+
+func TestRetreatResult_ZeroStolenChi(t *testing.T) {
+	result := RetreatResult{
+		InvaderID: 1,
+		Reason:    ReasonLowHP,
+		StolenChi: 0,
+	}
+	if result.StolenChi != 0 {
+		t.Errorf("StolenChi = %f, want 0", result.StolenChi)
 	}
 }
 

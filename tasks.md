@@ -289,9 +289,9 @@
   1. HP が MaxHP × RetreatThreshold 以下 → 撤退
   2. 同一波の仲間が半数以上 Defeated → 撤退（士気崩壊）
   3. 目標達成済み（GoalAchieved）→ 撤退（戦利品を持って帰る）
-- [ ] `invasion/retreat.go`: RetreatPathfinder — 撤退時の経路。来た道を逆走して入口へ向かう。ExplorationMemoryの訪問順を逆順に辿る
-- [ ] `invasion/retreat.go`: RetreatResult 構造体（InvaderID int, Reason RetreatReason, StolenChi float64）。RetreatReason型（LowHP/MoraleBroken/GoalComplete）。盗賊がGoalCompleteで撤退する場合、StolenChi に奪った気の量をセット
-- [ ] `invasion/retreat_test.go`: HP低下撤退テスト、士気崩壊撤退テスト、目標達成撤退テスト、盗賊の気奪取テスト、撤退経路が来た道を逆走するテスト、入口到達で侵入者がマップから除去されるテスト
+- [x] `invasion/retreat.go`: RetreatPathfinder — 撤退時の経路。来た道を逆走して入口へ向かう。ExplorationMemoryの訪問順を逆順に辿る
+- [x] `invasion/retreat.go`: RetreatResult 構造体（InvaderID int, Reason RetreatReason, StolenChi float64）。RetreatReason型（LowHP/MoraleBroken/GoalComplete）。盗賊がGoalCompleteで撤退する場合、StolenChi に奪った気の量をセット
+- [x] `invasion/retreat_test.go`: HP低下撤退テスト、士気崩壊撤退テスト、目標達成撤退テスト、盗賊の気奪取テスト、撤退経路が来た道を逆走するテスト、入口到達で侵入者がマップから除去されるテスト
 
 ## Phase 4-E: 罠効果システム（invasion/）
 
