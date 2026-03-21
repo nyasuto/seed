@@ -7,7 +7,7 @@
 
 ## Go バージョン
 
-- Go 1.25 以上
+- Go 1.26 以上
 
 ## コーディング規約
 
@@ -63,6 +63,9 @@
 ## ビルドとテスト
 
 ```bash
+# 推奨: vet + lint + test-race を一括実行
+make check
+
 # テスト実行
 go test ./...
 
@@ -92,13 +95,13 @@ go tool cover -html=coverage.out
 ## コミット規約
 
 - 1タスク = 1コミット
-- メッセージ: `phase1-A: add Pos and Direction types`
-- フェーズ完了時にタグ: `v0.1.0`（Phase 1）, `v0.2.0`（Phase 2）...
+- Conventional Commits 形式（`feat:`, `fix:`, `ci:`, `refactor:`, `test:`, `docs:`）
+- リリース時にタグ: `v1.0.0`, `v1.1.0` ...（セマンティックバージョニング）
 
 ## やってはいけないこと
 
 - 外部ライブラリへの依存追加（標準ライブラリのみ）
 - グローバル変数の使用（テスト以外）
 - init() 関数の使用
-- interface{} / any の多用（型安全を保つ）
+- `any` の多用（型安全を保つ）
 - 未使用のコードを残す
