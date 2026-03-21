@@ -1,0 +1,308 @@
+package simulation
+
+import (
+	"testing"
+
+	"github.com/ponpoko/chaosseed-core/scenario"
+	"github.com/ponpoko/chaosseed-core/types"
+)
+
+// minimalScenario returns a Scenario with the minimum required configuration
+// for NewSimulationEngine to succeed.
+func minimalScenario() *scenario.Scenario {
+	return &scenario.Scenario{
+		ID:         "test_scenario",
+		Name:       "Test",
+		Difficulty: "easy",
+		InitialState: scenario.InitialState{
+			CaveWidth:      20,
+			CaveHeight:     20,
+			TerrainSeed:    42,
+			TerrainDensity: 0.0,
+			PrebuiltRooms: []scenario.RoomPlacement{
+				{TypeID: "dragon_hole", Pos: types.Pos{X: 5, Y: 5}, Level: 1},
+			},
+			StartingChi: 100.0,
+		},
+	}
+}
+
+func TestNewSimulationEngine_Minimal(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	if engine.State == nil {
+		t.Fatal("State is nil")
+	}
+	if engine.Executor == nil {
+		t.Fatal("Executor is nil")
+	}
+	if engine.State.Cave == nil {
+		t.Fatal("Cave is nil")
+	}
+	if engine.State.RNG == nil {
+		t.Fatal("RNG is nil")
+	}
+}
+
+func TestNewSimulationEngine_CaveSize(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	grid := engine.State.Cave.Grid
+	if grid.Width != 20 || grid.Height != 20 {
+		t.Errorf("cave size = %dx%d, want 20x20", grid.Width, grid.Height)
+	}
+}
+
+func TestNewSimulationEngine_PrebuiltRoom(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	rooms := engine.State.Cave.Rooms
+	if len(rooms) != 1 {
+		t.Fatalf("expected 1 room, got %d", len(rooms))
+	}
+	room := rooms[0]
+	if room.TypeID != "dragon_hole" {
+		t.Errorf("room TypeID = %q, want %q", room.TypeID, "dragon_hole")
+	}
+	if room.Level != 1 {
+		t.Errorf("room Level = %d, want 1", room.Level)
+	}
+	if room.CoreHP <= 0 {
+		t.Errorf("dragon_hole CoreHP = %d, want > 0", room.CoreHP)
+	}
+}
+
+func TestNewSimulationEngine_CoreHP(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	// Progress CoreHP should match the dragon hole room's CoreHP.
+	room := engine.State.Cave.Rooms[0]
+	if engine.State.Progress.CoreHP != room.CoreHP {
+		t.Errorf("Progress CoreHP = %d, want %d", engine.State.Progress.CoreHP, room.CoreHP)
+	}
+}
+
+func TestNewSimulationEngine_ChiPool(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	balance := engine.State.EconomyEngine.ChiPool.Balance()
+	if balance != 100.0 {
+		t.Errorf("chi balance = %.1f, want 100.0", balance)
+	}
+}
+
+func TestNewSimulationEngine_Registries(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	if engine.State.RoomTypeRegistry == nil {
+		t.Error("RoomTypeRegistry is nil")
+	}
+	if engine.State.SpeciesRegistry == nil {
+		t.Error("SpeciesRegistry is nil")
+	}
+	if engine.State.EvolutionRegistry == nil {
+		t.Error("EvolutionRegistry is nil")
+	}
+	if engine.State.InvaderClassRegistry == nil {
+		t.Error("InvaderClassRegistry is nil")
+	}
+}
+
+func TestNewSimulationEngine_SubsystemEngines(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	s := engine.State
+	if s.ChiFlowEngine == nil {
+		t.Error("ChiFlowEngine is nil")
+	}
+	if s.GrowthEngine == nil {
+		t.Error("GrowthEngine is nil")
+	}
+	if s.BehaviorEngine == nil {
+		t.Error("BehaviorEngine is nil")
+	}
+	if s.DefeatProcessor == nil {
+		t.Error("DefeatProcessor is nil")
+	}
+	if s.InvasionEngine == nil {
+		t.Error("InvasionEngine is nil")
+	}
+	if s.EconomyEngine == nil {
+		t.Error("EconomyEngine is nil")
+	}
+	if s.EventEngine == nil {
+		t.Error("EventEngine is nil")
+	}
+}
+
+func TestNewSimulationEngine_Progress(t *testing.T) {
+	sc := minimalScenario()
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	p := engine.State.Progress
+	if p.ScenarioID != "test_scenario" {
+		t.Errorf("ScenarioID = %q, want %q", p.ScenarioID, "test_scenario")
+	}
+	if p.CurrentTick != 0 {
+		t.Errorf("CurrentTick = %d, want 0", p.CurrentTick)
+	}
+}
+
+func TestNewSimulationEngine_WithDragonVeins(t *testing.T) {
+	sc := minimalScenario()
+	// Place the dragon vein source inside the dragon_hole room area.
+	sc.InitialState.DragonVeins = []scenario.DragonVeinPlacement{
+		{SourcePos: types.Pos{X: 6, Y: 6}, Element: types.Wood, FlowRate: 5.0},
+	}
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	if engine.State.ChiFlowEngine == nil {
+		t.Fatal("ChiFlowEngine is nil")
+	}
+}
+
+func TestNewSimulationEngine_WithStartingBeasts(t *testing.T) {
+	sc := minimalScenario()
+	sc.InitialState.StartingBeasts = []scenario.BeastPlacement{
+		{SpeciesID: "suiryu", RoomIndex: 0},
+	}
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	if len(engine.State.Beasts) != 1 {
+		t.Fatalf("expected 1 beast, got %d", len(engine.State.Beasts))
+	}
+	beast := engine.State.Beasts[0]
+	if beast.ID != 1 {
+		t.Errorf("beast ID = %d, want 1", beast.ID)
+	}
+	if engine.State.NextBeastID != 2 {
+		t.Errorf("NextBeastID = %d, want 2", engine.State.NextBeastID)
+	}
+}
+
+func TestNewSimulationEngine_InvalidRoomType(t *testing.T) {
+	sc := minimalScenario()
+	sc.InitialState.PrebuiltRooms = []scenario.RoomPlacement{
+		{TypeID: "nonexistent_room", Pos: types.Pos{X: 5, Y: 5}, Level: 1},
+	}
+	rng := types.NewSeededRNG(1)
+
+	_, err := NewSimulationEngine(sc, rng)
+	if err == nil {
+		t.Fatal("expected error for invalid room type")
+	}
+}
+
+func TestNewSimulationEngine_InvalidBeastSpecies(t *testing.T) {
+	sc := minimalScenario()
+	sc.InitialState.StartingBeasts = []scenario.BeastPlacement{
+		{SpeciesID: "nonexistent_species", RoomIndex: -1},
+	}
+	rng := types.NewSeededRNG(1)
+
+	_, err := NewSimulationEngine(sc, rng)
+	if err == nil {
+		t.Fatal("expected error for invalid beast species")
+	}
+}
+
+func TestNewSimulationEngine_DefaultLevel(t *testing.T) {
+	sc := minimalScenario()
+	// Level 0 should default to 1.
+	sc.InitialState.PrebuiltRooms[0].Level = 0
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	room := engine.State.Cave.Rooms[0]
+	if room.Level != 1 {
+		t.Errorf("room Level = %d, want 1 (default)", room.Level)
+	}
+}
+
+func TestNewSimulationEngine_Deterministic(t *testing.T) {
+	sc := minimalScenario()
+	sc.InitialState.DragonVeins = []scenario.DragonVeinPlacement{
+		{SourcePos: types.Pos{X: 6, Y: 6}, Element: types.Fire, FlowRate: 3.0},
+	}
+
+	e1, err := NewSimulationEngine(sc, types.NewSeededRNG(99))
+	if err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	e2, err := NewSimulationEngine(sc, types.NewSeededRNG(99))
+	if err != nil {
+		t.Fatalf("second: %v", err)
+	}
+
+	// Same scenario + same RNG seed → same CoreHP.
+	if e1.State.Progress.CoreHP != e2.State.Progress.CoreHP {
+		t.Errorf("CoreHP mismatch: %d vs %d", e1.State.Progress.CoreHP, e2.State.Progress.CoreHP)
+	}
+	// Same chi balance.
+	b1 := e1.State.EconomyEngine.ChiPool.Balance()
+	b2 := e2.State.EconomyEngine.ChiPool.Balance()
+	if b1 != b2 {
+		t.Errorf("chi balance mismatch: %.1f vs %.1f", b1, b2)
+	}
+}
