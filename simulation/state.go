@@ -75,6 +75,9 @@ type GameState struct {
 	// SpeciesRegistry holds all available beast species definitions.
 	SpeciesRegistry *senju.SpeciesRegistry
 
+	// EvolutionRegistry holds all beast evolution paths.
+	EvolutionRegistry *senju.EvolutionRegistry
+
 	// InvasionEngine orchestrates invader pathfinding, combat, and retreat.
 	InvasionEngine *invasion.InvasionEngine
 

@@ -1,7 +1,24 @@
 package simulation
 
 import (
+	"errors"
+	"fmt"
+
+	"github.com/ponpoko/chaosseed-core/senju"
 	"github.com/ponpoko/chaosseed-core/types"
+	"github.com/ponpoko/chaosseed-core/world"
+)
+
+// Errors returned by ValidateAction.
+var (
+	// ErrUnknownAction is returned when the action type is not recognized.
+	ErrUnknownAction = errors.New("unknown action type")
+	// ErrRoomTypeNotFound is returned when the room type ID is not registered.
+	ErrRoomTypeNotFound = errors.New("room type not found")
+	// ErrBeastNotFound is returned when a beast ID is not found in the game state.
+	ErrBeastNotFound = errors.New("beast not found")
+	// ErrNoEvolutionPath is returned when no evolution path is available for a beast.
+	ErrNoEvolutionPath = errors.New("no evolution path available")
 )
 
 // PlayerAction is the interface that all player actions must implement.
@@ -91,3 +108,167 @@ type NoAction struct{}
 
 // ActionType returns the action type identifier.
 func (a NoAction) ActionType() string { return "no_action" }
+
+// ValidateAction checks whether a player action can be executed against the
+// current game state without modifying anything. It returns nil if the action
+// is valid, or a descriptive error explaining why it cannot be performed.
+func ValidateAction(action PlayerAction, state *GameState) error {
+	switch a := action.(type) {
+	case DigRoomAction:
+		return validateDigRoom(a, state)
+	case DigCorridorAction:
+		return validateDigCorridor(a, state)
+	case PlaceBeastAction:
+		return validatePlaceBeast(a, state)
+	case UpgradeRoomAction:
+		return validateUpgradeRoom(a, state)
+	case SummonBeastAction:
+		return validateSummonBeast(a, state)
+	case EvolveBeastAction:
+		return validateEvolveBeast(a, state)
+	case NoAction:
+		return nil
+	default:
+		return fmt.Errorf("%w: %s", ErrUnknownAction, action.ActionType())
+	}
+}
+
+func validateDigRoom(a DigRoomAction, state *GameState) error {
+	// Check room type exists.
+	if _, err := state.RoomTypeRegistry.Get(a.RoomTypeID); err != nil {
+		return fmt.Errorf("%w: %s", ErrRoomTypeNotFound, a.RoomTypeID)
+	}
+
+	// Check placement is valid (no overlap, within bounds).
+	tempRoom := &world.Room{
+		Pos:    a.Pos,
+		Width:  a.Width,
+		Height: a.Height,
+	}
+	if !world.CanPlaceRoom(state.Cave.Grid, tempRoom) {
+		return fmt.Errorf("cannot place room at (%d,%d) size %dx%d", a.Pos.X, a.Pos.Y, a.Width, a.Height)
+	}
+
+	// Check cost affordability.
+	cost := state.EconomyEngine.Construction.CalcRoomCost(a.RoomTypeID)
+	if !state.EconomyEngine.ChiPool.CanAfford(cost) {
+		return fmt.Errorf("insufficient chi: need %.1f, have %.1f", cost, state.EconomyEngine.ChiPool.Balance())
+	}
+
+	return nil
+}
+
+func validateDigCorridor(a DigCorridorAction, state *GameState) error {
+	// Check both rooms exist.
+	room1 := state.Cave.RoomByID(a.FromRoomID)
+	if room1 == nil {
+		return fmt.Errorf("from room %d: %w", a.FromRoomID, world.ErrRoomNotFound)
+	}
+	room2 := state.Cave.RoomByID(a.ToRoomID)
+	if room2 == nil {
+		return fmt.Errorf("to room %d: %w", a.ToRoomID, world.ErrRoomNotFound)
+	}
+
+	// Check both rooms have entrances.
+	if len(room1.Entrances) == 0 {
+		return fmt.Errorf("from room %d: %w", a.FromRoomID, world.ErrNoEntrance)
+	}
+	if len(room2.Entrances) == 0 {
+		return fmt.Errorf("to room %d: %w", a.ToRoomID, world.ErrNoEntrance)
+	}
+
+	// Cost check requires knowing the path length, which we can't determine
+	// without actually pathfinding. We defer the full cost check to ApplyAction.
+	return nil
+}
+
+func validatePlaceBeast(a PlaceBeastAction, state *GameState) error {
+	// Find the beast by species ID among unassigned beasts.
+	found := false
+	for _, b := range state.Beasts {
+		if b.SpeciesID == a.SpeciesID && b.RoomID == 0 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("no unassigned beast with species %s", a.SpeciesID)
+	}
+
+	// Check room exists.
+	room := state.Cave.RoomByID(a.RoomID)
+	if room == nil {
+		return fmt.Errorf("room %d: %w", a.RoomID, world.ErrRoomNotFound)
+	}
+
+	// Check room type allows beasts and has capacity.
+	rt, err := state.RoomTypeRegistry.Get(room.TypeID)
+	if err != nil {
+		return fmt.Errorf("room type %s: %w", room.TypeID, ErrRoomTypeNotFound)
+	}
+	if !room.HasBeastCapacity(rt) {
+		return fmt.Errorf("room %d is at beast capacity", a.RoomID)
+	}
+
+	return nil
+}
+
+func validateUpgradeRoom(a UpgradeRoomAction, state *GameState) error {
+	// Check room exists.
+	room := state.Cave.RoomByID(a.RoomID)
+	if room == nil {
+		return fmt.Errorf("room %d: %w", a.RoomID, world.ErrRoomNotFound)
+	}
+
+	// Check cost affordability.
+	cost := state.EconomyEngine.Construction.CalcUpgradeCost(room.TypeID, room.Level)
+	if cost <= 0 {
+		return fmt.Errorf("cannot upgrade room type %s", room.TypeID)
+	}
+	if !state.EconomyEngine.ChiPool.CanAfford(cost) {
+		return fmt.Errorf("insufficient chi: need %.1f, have %.1f", cost, state.EconomyEngine.ChiPool.Balance())
+	}
+
+	return nil
+}
+
+func validateSummonBeast(a SummonBeastAction, state *GameState) error {
+	// Check element cost exists.
+	cost := state.EconomyEngine.Beast.CalcSummonCost(a.Element)
+	if cost <= 0 {
+		return fmt.Errorf("unknown element for summoning: %v", a.Element)
+	}
+
+	// Check cost affordability.
+	if !state.EconomyEngine.ChiPool.CanAfford(cost) {
+		return fmt.Errorf("insufficient chi: need %.1f, have %.1f", cost, state.EconomyEngine.ChiPool.Balance())
+	}
+
+	return nil
+}
+
+func validateEvolveBeast(a EvolveBeastAction, state *GameState) error {
+	// Find the beast.
+	var beast *senju.Beast
+	for _, b := range state.Beasts {
+		if b.ID == a.BeastID {
+			beast = b
+			break
+		}
+	}
+	if beast == nil {
+		return fmt.Errorf("beast %d: %w", a.BeastID, ErrBeastNotFound)
+	}
+
+	// Check evolution registry exists and has paths.
+	if state.EvolutionRegistry == nil {
+		return fmt.Errorf("beast %d: %w", a.BeastID, ErrNoEvolutionPath)
+	}
+
+	paths := state.EvolutionRegistry.GetPaths(beast.SpeciesID)
+	if len(paths) == 0 {
+		return fmt.Errorf("beast %d (species %s): %w", a.BeastID, beast.SpeciesID, ErrNoEvolutionPath)
+	}
+
+	return nil
+}
