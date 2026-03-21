@@ -4,16 +4,19 @@
 // Use --invasion to display invader overlay.
 // Use --battle to display all layers (terrain + chi + beasts + invaders).
 // Use --economy to display economy status overlay.
+// Use --scenario <file> to load a scenario JSON file and display its status.
 // Use --all to display all layers (standard + chi + beasts + ai).
 package main
 
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/ponpoko/chaosseed-core/economy"
 	"github.com/ponpoko/chaosseed-core/fengshui"
 	"github.com/ponpoko/chaosseed-core/invasion"
+	"github.com/ponpoko/chaosseed-core/scenario"
 	"github.com/ponpoko/chaosseed-core/senju"
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
@@ -25,6 +28,7 @@ func main() {
 	aiMode := flag.Bool("ai", false, "display beast behavior state overlay")
 	invasionMode := flag.Bool("invasion", false, "display invasion overlay")
 	economyMode := flag.Bool("economy", false, "display economy status overlay")
+	scenarioFile := flag.String("scenario", "", "load scenario JSON file and display status")
 	battleMode := flag.Bool("battle", false, "display all layers (terrain + chi + beasts + invaders)")
 	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts + ai + economy)")
 	flag.Parse()
@@ -32,6 +36,11 @@ func main() {
 	cave, err := buildDemoCave()
 	if err != nil {
 		fmt.Printf("error building demo cave: %v\n", err)
+		return
+	}
+
+	if *scenarioFile != "" {
+		displayScenarioStatus(*scenarioFile)
 		return
 	}
 
@@ -289,4 +298,38 @@ func buildDemoWaves() []*invasion.InvasionWave {
 		Difficulty:  1.0,
 	}
 	return []*invasion.InvasionWave{wave}
+}
+
+// displayScenarioStatus loads a scenario JSON file and prints its status line
+// along with basic scenario information.
+func displayScenarioStatus(path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Printf("error reading scenario file: %v\n", err)
+		return
+	}
+
+	sc, err := scenario.LoadScenario(data)
+	if err != nil {
+		fmt.Printf("error loading scenario: %v\n", err)
+		return
+	}
+
+	// Create initial progress (tick 0, no waves completed).
+	prog := &scenario.ScenarioProgress{
+		ScenarioID:  sc.ID,
+		CurrentTick: 0,
+		CoreHP:      100,
+	}
+
+	// Create a snapshot reflecting the initial state.
+	snap := scenario.GameSnapshot{
+		Tick:       0,
+		CoreHP:     100,
+		TotalWaves: len(sc.WaveSchedule),
+	}
+
+	fmt.Printf("Scenario: %s (%s)\n", sc.Name, sc.ID)
+	fmt.Printf("Description: %s\n", sc.Description)
+	fmt.Println(scenario.RenderScenarioStatus(sc, prog, snap))
 }

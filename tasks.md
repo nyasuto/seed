@@ -622,7 +622,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-K: ASCII可視化
 
 - [x] `scenario/ascii.go`: RenderScenarioStatus(scenario, progress, snapshot) string — `[standard | Tick 150/500 | Waves 2/5 | Core HP 85/100 | Win: FengShui 45/80]` 形式
-- [ ] `cmd/caveviz/main.go` 更新: `--scenario <file>` でシナリオファイルを読み込み、ステータス表示
+- [x] `cmd/caveviz/main.go` 更新: `--scenario <file>` でシナリオファイルを読み込み、ステータス表示
 
 ## Phase 6-L: 統合検証
 
