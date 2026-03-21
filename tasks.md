@@ -669,7 +669,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-C: メインループ（simulation/）
 
-- [ ] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
+- [x] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
 - [ ] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
 - [ ] `simulation/engine.go`: NewSimulationEngine(scenario, rng) — InitialStateからGameState構築（地形適用、初期部屋配置、初期仙獣配置、龍脈生成、ChiPool初期化）
 - [ ] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
@@ -742,6 +742,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 - [ ] `simulation/ascii.go`: RenderFullStatus(engine) string — 全レイヤー統合のステータス表示（地形+気+仙獣+侵入者+経済+シナリオ進行を1画面に）
 - [ ] `cmd/caveviz/main.go` 更新: `--simulate <scenario.json> --seed <N>` でシナリオ自動実行＋毎ティック表示
+- [ ] `make check` で品質を確認、必要に応じて修正
 
 ## Phase 7-K: 統合検証
 

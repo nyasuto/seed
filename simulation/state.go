@@ -107,4 +107,11 @@ type GameState struct {
 
 	// NextWaveID is the auto-incrementing ID counter for new invasion waves.
 	NextWaveID int
+
+	// ScoreParams holds feng shui scoring parameters for cave evaluation.
+	ScoreParams *fengshui.ScoreParams
+
+	// ConsecutiveDeficitTicks tracks how many consecutive ticks the economy
+	// has been in deficit. Reset to 0 when the tick has no deficit.
+	ConsecutiveDeficitTicks int
 }
