@@ -205,10 +205,10 @@
 
 ## Phase 3.5-B: 巡回と追跡AI（senju/）
 
-- [ ] `senju/behavior_patrol.go`: PatrolBehavior — 巡回。隣接部屋を順番に移動する。巡回経路は配置部屋を起点に隣接グラフから生成。侵入者を発見したらChaseに遷移
-- [ ] `senju/behavior_chase.go`: ChaseBehavior — 追跡。発見した侵入者の方向へ隣接部屋を移動。侵入者と同じ部屋に入ったらAttack。一定ティック追跡して見失ったらPatrolに戻る
-- [ ] `senju/behavior_flee.go`: FleeBehavior — 逃走。HPが一定割合（25%）以下になったら発動。侵入者から最も遠い隣接部屋へ移動。回復室に到達したら回復状態（Recovering）に遷移
-- [ ] `senju/behavior_test.go`: Patrol の巡回経路テスト、Chase の追跡方向テスト、Flee のHP閾値判定テスト、Flee が回復室を目指すテスト
+- [x] `senju/behavior_patrol.go`: PatrolBehavior — 巡回。隣接部屋を順番に移動する。巡回経路は配置部屋を起点に隣接グラフから生成。侵入者を発見したらChaseに遷移
+- [x] `senju/behavior_chase.go`: ChaseBehavior — 追跡。発見した侵入者の方向へ隣接部屋を移動。侵入者と同じ部屋に入ったらAttack。一定ティック追跡して見失ったらPatrolに戻る
+- [x] `senju/behavior_flee.go`: FleeBehavior — 逃走。HPが一定割合（25%）以下になったら発動。侵入者から最も遠い隣接部屋へ移動。回復室に到達したら回復状態（Recovering）に遷移
+- [x] `senju/behavior_test.go`: Patrol の巡回経路テスト、Chase の追跡方向テスト、Flee のHP閾値判定テスト、Flee が回復室を目指すテスト
 
 ## Phase 3.5-C: 行動エンジン（senju/）
 
