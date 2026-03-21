@@ -252,7 +252,7 @@
 - [x] `invasion/goal.go`: GoalType 型（DestroyCore/HuntBeasts/StealTreasure）。Goal インターフェース — TargetRoomID(cave, invader, memory) int で目標部屋IDを返す、IsAchieved(cave, invader) bool で目標達成判定
 - [x] `invasion/goal_destroy_core.go`: DestroyCoreGoal — 龍穴（コア部屋）を目指す。TargetRoomID は龍穴の部屋IDを返す。到達して一定ティック滞在で達成
 - [x] `invasion/goal_hunt_beasts.go`: HuntBeastsGoal — 仙獣がいる部屋を目指す。最寄りの仙獣配置部屋をターゲット。仙獣を一定数撃破で達成
-- [ ] `invasion/goal_steal_treasure.go`: StealTreasureGoal — 倉庫部屋を目指す。到達で達成（気を奪って撤退）
+- [x] `invasion/goal_steal_treasure.go`: StealTreasureGoal — 倉庫部屋を目指す。到達で達成（気を奪って撤退）
 - [ ] `invasion/invader.go`: Invader 構造体（ID int, ClassID string, Name string, Element types.Element, Level int, HP int, MaxHP int, ATK int, DEF int, SPD int, CurrentRoomID int, Goal Goal, Memory *ExplorationMemory, State InvaderState, SlowTicks int, EntryTick types.Tick, StayTicks int）。InvaderState 型（Advancing/Fighting/Retreating/Defeated/GoalAchieved）。NewInvader(id, class, level, goal, entryRoomID, tick) *Invader
 - [ ] `invasion/invader_test.go`: InvaderClassRegistryのJSONロードテスト、レベルスケーリングテスト、GoalType別の目標部屋決定テスト
 
