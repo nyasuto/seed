@@ -271,7 +271,7 @@
 
 - [x] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
 - [x] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
-- [ ] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi *fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
+- [x] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi *fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
   1. 仙獣の実効ステータス = beast.CalcCombatStats(roomChi)
   2. 素早さ比較で先攻/後攻決定（同値はRNG）
   3. 先攻側のダメージ計算: ATK × ATKMultiplier - 相手DEF × DEFReduction（MinDamage保証）
@@ -279,9 +279,9 @@
   5. クリティカル判定（RNG経由）
   6. 先攻ダメージ適用 → 後攻が生存していれば後攻の攻撃 → ダメージ適用
   7. 結果を返す
-- [ ] `invasion/combat.go`: CombatRoundResult 構造体（BeastDamageTaken int, InvaderDamageTaken int, BeastHP int, InvaderHP int, IsBeastDefeated bool, IsInvaderDefeated bool, WasBeastCritical bool, WasInvaderCritical bool, FirstAttacker string）
-- [ ] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi *fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
-- [ ] `invasion/combat_test.go`: 基本ダメージ計算テスト、先攻/後攻テスト、属性有利/不利テスト、クリティカルテスト（FixedRNG）、MinDamage保証テスト、複数対複数のマッチングテスト
+- [x] `invasion/combat.go`: CombatRoundResult 構造体（BeastDamageTaken int, InvaderDamageTaken int, BeastHP int, InvaderHP int, IsBeastDefeated bool, IsInvaderDefeated bool, WasBeastCritical bool, WasInvaderCritical bool, FirstAttacker string）
+- [x] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi *fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
+- [x] `invasion/combat_test.go`: 基本ダメージ計算テスト、先攻/後攻テスト、属性有利/不利テスト、クリティカルテスト（FixedRNG）、MinDamage保証テスト、複数対複数のマッチングテスト
 
 ## Phase 4-D: 撤退ロジック（invasion/）
 
