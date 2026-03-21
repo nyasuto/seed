@@ -310,8 +310,8 @@
 
 ## Phase 4-G: 侵入ティックエンジン（invasion/）
 
-- [ ] `invasion/engine.go`: InvasionEngine 構造体（CombatEngine, Pathfinder, RetreatEvaluator, TrapEffects, cave, adjacencyGraph, rng）。NewInvasionEngine(cave, adjacencyGraph, combatParams, rng)
-- [ ] `invasion/engine.go`: InvasionEngine.Tick(currentTick, waves, beasts, rooms, roomTypes, roomChi) []InvasionEvent — 1ティック分の侵入処理:
+- [x] `invasion/engine.go`: InvasionEngine 構造体（CombatEngine, Pathfinder, RetreatEvaluator, TrapEffects, cave, adjacencyGraph, rng）。NewInvasionEngine(cave, adjacencyGraph, combatParams, rng)
+- [x] `invasion/engine.go`: InvasionEngine.Tick(currentTick, waves, beasts, rooms, roomTypes, roomChi) []InvasionEvent — 1ティック分の侵入処理:
   1. TriggerTick に到達した Pending 波を Active に → WaveStarted イベント
   2. 各侵入者の ExplorationMemory を更新（現在の部屋の情報を記録）
   3. 撤退判定: ShouldRetreat が true なら State を Retreating に → InvaderRetreating イベント
@@ -323,15 +323,15 @@
   9. HP 0 以下の侵入者を Defeated に → InvaderDefeated イベント（RewardChi を記録）
   10. HP 0 以下の仙獣を処理 → BeastDefeated イベント
   11. 全侵入者が Defeated/Retreating/GoalAchieved なら波を Completed/Failed に → WaveCompleted/WaveFailed イベント
-- [ ] `invasion/engine.go`: InvasionEvent 構造体（Type InvasionEventType, Tick types.Tick, WaveID int, InvaderID int, BeastID int, RoomID int, Damage int, RewardChi float64, StolenChi float64, Details string）。InvasionEventType:
+- [x] `invasion/engine.go`: InvasionEvent 構造体（Type InvasionEventType, Tick types.Tick, WaveID int, InvaderID int, BeastID int, RoomID int, Damage int, RewardChi float64, StolenChi float64, Details string）。InvasionEventType:
   - WaveStarted / WaveCompleted / WaveFailed
   - InvaderMoved / InvaderDefeated / InvaderRetreating / InvaderEscaped
   - CombatOccurred / BeastDefeated / TrapTriggered
   - GoalAchieved（侵入者が目標達成 → ゲーム的にはピンチ）
-- [ ] `invasion/engine.go`: InvasionEngine.BuildInvaderPositions(waves) map[int][]int — アクティブな Advancing/Fighting 侵入者の位置マップ。senju.BehaviorEngine.Tick に渡す用
-- [ ] `invasion/engine.go`: InvasionEngine.CollectRewards(events []InvasionEvent) float64 — InvaderDefeated イベントからRewardChiの合計を算出。Phase 5 の経済システムに渡すインターフェース
-- [ ] `invasion/engine.go`: InvasionEngine.CollectStolenChi(events []InvasionEvent) float64 — InvaderEscaped イベントからStolenChiの合計を算出。盗賊が持ち逃げした気の量。Phase 5 で ChiPool から減算する
-- [ ] `invasion/engine_test.go`: 波のアクティベーションテスト、目標指向移動テスト（龍穴へ向かう）、探索移動テスト（未知の部屋を探索）、戦闘マッチングテスト（同部屋の仙獣vs侵入者）、罠効果テスト、撤退判定→撤退経路テスト、HP低下撤退テスト、士気崩壊撤退テスト、目標達成→撤退テスト、波完了判定テスト、RewardChi集計テスト、StolenChi集計テスト、スロー効果による移動スキップテスト、BeastDefeatedイベント生成テスト
+- [x] `invasion/engine.go`: InvasionEngine.BuildInvaderPositions(waves) map[int][]int — アクティブな Advancing/Fighting 侵入者の位置マップ。senju.BehaviorEngine.Tick に渡す用
+- [x] `invasion/engine.go`: InvasionEngine.CollectRewards(events []InvasionEvent) float64 — InvaderDefeated イベントからRewardChiの合計を算出。Phase 5 の経済システムに渡すインターフェース
+- [x] `invasion/engine.go`: InvasionEngine.CollectStolenChi(events []InvasionEvent) float64 — InvaderEscaped イベントからStolenChiの合計を算出。盗賊が持ち逃げした気の量。Phase 5 で ChiPool から減算する
+- [x] `invasion/engine_test.go`: 波のアクティベーションテスト、目標指向移動テスト（龍穴へ向かう）、探索移動テスト（未知の部屋を探索）、戦闘マッチングテスト（同部屋の仙獣vs侵入者）、罠効果テスト、撤退判定→撤退経路テスト、HP低下撤退テスト、士気崩壊撤退テスト、目標達成→撤退テスト、波完了判定テスト、RewardChi集計テスト、StolenChi集計テスト、スロー効果による移動スキップテスト、BeastDefeatedイベント生成テスト
 
 ## Phase 4-H: シリアライズ（invasion/）
 
