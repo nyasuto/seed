@@ -381,7 +381,7 @@
 
 ## Phase 5-A: 経済基本型定義（economy/）
 
-- [ ] `economy/doc.go`: パッケージドキュメント。気の経済リソース管理を扱うパッケージ。ChiFlowEngine（部屋レベルの物理的な気）とChiPool（プレイヤーの経済リソース）は別レイヤーであることを明記
+- [x] `economy/doc.go`: パッケージドキュメント。気の経済リソース管理を扱うパッケージ。ChiFlowEngine（部屋レベルの物理的な気）とChiPool（プレイヤーの経済リソース）は別レイヤーであることを明記
 - [ ] `economy/chi_pool.go`: ChiPool 構造体（Current float64, Cap float64, History []ChiTransaction）。Deposit(amount, txType, reason, tick) / Withdraw(amount, txType, reason, tick) error。Balance() float64。CanAfford(amount) bool。Cap はChiPoolの上限（蓄気室の数とレベルで決まる、Phase 5-C で計算）
 - [ ] `economy/chi_pool.go`: ChiTransaction 構造体（Tick types.Tick, Amount float64, Type TransactionType, Reason string, BalanceAfter float64）。TransactionType 型（Supply/RoomMaintenance/BeastMaintenance/TrapMaintenance/Reward/Theft/Construction/BeastSummon/RoomUpgrade/Deficit）
 - [ ] `economy/chi_pool.go`: ChiPool.Withdraw で残高不足の場合は引き落とせる分だけ引き落とし、不足分を error で返す（残高はゼロ止まり、マイナスにはしない）
