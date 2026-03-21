@@ -259,13 +259,13 @@
 ## Phase 4-B: 目標指向の経路探索（invasion/）
 
 - [x] `invasion/exploration_memory.go`: ExplorationMemory 構造体（VisitedRooms map[int]types.Tick, KnownBeastRooms map[int]bool, KnownCoreRoom int, KnownTreasureRooms []int）。Visit(roomID, tick) で訪問記録。仙獣や特殊部屋の発見も記録
-- [ ] `invasion/pathfinder.go`: Pathfinder 構造体（cave, adjacencyGraph）。FindPath(from int, to int) []int — A*ベースの最短経路（部屋IDの列）。ただし未訪問部屋は「存在するかもしれない」として探索的に進む
-- [ ] `invasion/pathfinder.go`: FindNextRoom(invader, cave, adjacencyGraph) int — 侵入者の次の移動先を決定:
+- [x] `invasion/pathfinder.go`: Pathfinder 構造体（cave, adjacencyGraph）。FindPath(from int, to int) []int — BFSベースの最短経路（部屋IDの列）。ただし未訪問部屋は「存在するかもしれない」として探索的に進む
+- [x] `invasion/pathfinder.go`: FindNextRoom(invader, cave, adjacencyGraph) int — 侵入者の次の移動先を決定:
   1. 目標部屋が既知なら最短経路で移動
   2. 目標部屋が未知なら未訪問の隣接部屋を優先探索
   3. 全隣接部屋が訪問済みなら、未訪問部屋に最も近い方向へバックトラック
   4. 完全探索済みならランダム移動（RNG経由）
-- [ ] `invasion/pathfinder_test.go`: 龍穴既知時の最短経路テスト、未知時の探索優先テスト、バックトラックテスト、盗賊が倉庫を目指すテスト、武闘家が仙獣部屋を目指すテスト
+- [x] `invasion/pathfinder_test.go`: 龍穴既知時の最短経路テスト、未知時の探索優先テスト、バックトラックテスト、盗賊が倉庫を目指すテスト、武闘家が仙獣部屋を目指すテスト
 
 ## Phase 4-C: 戦闘解決システム（invasion/）
 
