@@ -1,756 +1,610 @@
-# tasks.md — chaosseed-core
+# chaosseed-sim tasks.md
 
-<!-- Phase: 7 (simulation/) — 統合シミュレーション -->
+> Ralph Loop 用タスクファイル。1イテレーション1タスク。
+> 上から順に消化する。各タスクの完了条件をすべて満たしてから次に進む。
+> タスク完了時にチェックボックスを [x] にする。
+
+---
 
 ## Phase 0: プロジェクト初期化
 
-- [x] `go mod init github.com/ponpoko/chaosseed-core` でモジュール初期化
-- [x] ディレクトリ構造を作成: `types/`, `world/`, `testutil/`, `docs/`
-- [x] PRD を `docs/PRD.md` に配置（参照用コピー）
+- [ ] **Task 0-A: モノレポ構成の確認とsimスケルトン**
 
-## Phase 0-B: エコシステム整備
+モノレポ構成（go.work + core/ + sim/）が存在するか確認する。
+存在しない場合は以下を実施する：
+1. ルートに go.work を作成（`use ./core ./sim`）
+2. sim/ ディレクトリ作成
+3. sim/go.mod 初期化（`module github.com/ponpoko/chaosseed/sim`、core を require）
+4. `go work sync` で整合確認
 
-- [x] `.gitignore` 作成: バイナリ(`*.exe`,`*.out`), カバレッジ(`coverage.out`,`coverage.html`), ログ(`logs/`), IDE設定(`.idea/`,`.vscode/`), OS生成ファイル(`.DS_Store`)
-- [x] `LICENSE` 作成: MIT License、著作者名とYearを記入
-- [x] `README.md` 作成: プロジェクト概要、ビルド方法（`go test ./...`）、アーキテクチャ図（テキストベースのディレクトリツリー）、ライセンス表記。最小限でよい、Phase進行に合わせて育てる
-- [x] `Makefile` 作成: ターゲット `test`(`go test ./...`), `test-race`(`go test -race ./...`), `vet`(`go vet ./...`), `lint`(`golangci-lint run`), `cover`(カバレッジHTML生成), `check`(`vet` + `lint` + `test-race` を順に実行), `clean`(生成物削除)
-- [x] `.golangci.yml` 作成: 有効linter — `govet`, `errcheck`, `staticcheck`, `unused`, `gosimple`, `ineffassign`, `typecheck`。タイムアウト3分。`testdata/` を除外
-- [x] `.github/workflows/ci.yml` 作成: on push/PR → Go setup → `make check` 実行。Go バージョンは matrix で 1.22.x。runs-on ubuntu-latest
-- [x] `.github/workflows/coverage.yml` 作成: on push to main → カバレッジ計測 → 80%未満で warning（fail はしない、初期は厳しすぎるので）
-- [x] `CHANGELOG.md` 作成: Keep a Changelog 形式、`## [Unreleased]` セクションのみで開始
+存在する場合はそのまま次へ。
 
-## Phase 1-A: 共有型定義（types/）
+その後：
+1. sim/cmd/chaosseed-sim/main.go のスケルトン作成（`--human`, `--ai`, `--batch`, `--balance`, `--version` フラグのパース、未実装モードは "not implemented" で終了）
+2. sim/docs/ に PRD.md を配置（PRD_chaosseed-sim.md の内容）
 
-- [x] `types/pos.go`: Pos 構造体（X, Y int）、Add/Sub/Distance メソッド、Neighbors() で上下左右の隣接Posを返す
-- [x] `types/direction.go`: Direction 型（North/South/East/West）、Opposite() メソッド、Delta() で移動量Posを返す
-- [x] `types/element.go`: Element 型（Wood/Fire/Earth/Metal/Water）、String() メソッド
-- [x] `types/element_relation.go`: Generates(from, to) bool（相生判定: 木→火→土→金→水→木）、Overcomes(from, to) bool（相克判定: 木→土→水→火→金→木）
-- [x] `types/rng.go`: RNG インターフェース定義（Intn, Float64）、NewSeededRNG(seed int64) で deterministic な実装を返す
-- [x] `types/tick.go`: Tick 型（uint64）の定義
-- [x] `types/types_test.go`: 相生・相克の全組み合わせテスト、Pos演算テスト、Direction.Opposite テスト
+**完了条件**:
+- `go work sync` が成功
+- `cd sim && go build ./...` が成功
+- `cd sim && go vet ./...` が成功
+- `chaosseed-sim --version` がバージョン文字列を出力
+- `chaosseed-sim --human` が "not implemented" で終了
 
-## Phase 1-B: グリッドとセル管理（world/）
+- [ ] **Task 0-B: sim用Makefileとプロジェクト基盤**
 
-- [x] `world/cell.go`: CellType 定義（Rock/Corridor/RoomFloor/Entrance）、Cell 構造体（Type, RoomID（部屋の一部なら所属ID, それ以外は0））
-- [x] `world/grid.go`: Grid 構造体（Width, Height int, cells [][]Cell）、NewGrid(w, h) コンストラクタ、At(pos)/Set(pos, cell) メソッド、InBounds(pos) bool
-- [x] `world/grid_test.go`: グリッド生成、範囲外アクセスのエラー、セル読み書きのテスト
+1. sim/Makefile 作成（ターゲット: build, test, lint, vet, clean）
+2. ルートMakefile 作成（core と sim を両方ビルド・テスト）
+3. sim/.golangci.yml 作成（core と同じルールセット）
+4. sim/README.md 作成（プロジェクト概要、ビルド方法、使い方の骨子）
 
-## Phase 1-C: 部屋の定義と配置（world/）
-
-- [x] `world/room_type.go`: RoomType 構造体（ID string, Name string, Element types.Element, BaseChiCapacity int, Description string）、RoomTypeRegistry（map管理、JSONから一括ロード）
-- [x] `world/room_type_data.json`: 初期部屋タイプ6種の定義（龍穴/蓄気室/仙獣部屋/罠部屋/回復室/倉庫）
-- [x] `world/room.go`: Room 構造体（ID int, TypeID string, Pos types.Pos, Width int, Height int, Level int, Entrances []RoomEntrance）、RoomEntrance（Pos types.Pos, Dir types.Direction）
-- [x] `world/room_placement.go`: CanPlaceRoom(grid, room) bool（範囲内チェック、重複チェック、岩盤上のみ）、PlaceRoom(grid, room) error（セルをRoomFloorに書き換え、RoomIDをセット）
-- [x] `world/room_test.go`: 正常配置テスト、範囲外配置の拒否テスト、重複配置の拒否テスト、RoomTypeRegistryのJSONロードテスト
-
-## Phase 1-D: 通路の生成（world/）
-
-- [x] `world/corridor.go`: Corridor 構造体（ID int, FromRoomID int, ToRoomID int, Path []types.Pos）
-- [x] `world/corridor_builder.go`: BuildCorridor(grid, fromPos, toPos) (Corridor, error) — BFSベースで岩盤を掘って最短経路を生成。既存の通路/部屋床は通過可、他部屋の内部は回避
-- [x] `world/corridor_builder_test.go`: 隣接部屋間の直線通路テスト、障害物を迂回する通路テスト、到達不能ケースのエラーテスト
-
-## Phase 1-E: 洞窟全体の管理（world/）
-
-- [x] `world/cave.go`: Cave 構造体（Grid, Rooms []Room, Corridors []Corridor, nextRoomID/nextCorridorID の自動採番）、NewCave(w, h) コンストラクタ
-- [x] `world/cave_ops.go`: Cave.AddRoom(roomType, pos, w, h) (Room, error) — バリデーション→配置→登録を一括実行。Cave.ConnectRooms(roomID1, roomID2) (Corridor, error) — 最寄りの入口同士を通路接続
-- [x] `world/adjacency.go`: AdjacencyGraph 構造体（部屋IDをノード、通路をエッジとするグラフ）、Cave.BuildAdjacencyGraph() AdjacencyGraph、Neighbors(roomID) []int、PathExists(from, to) bool（BFS）
-- [x] `world/cave_test.go`: Cave生成→部屋2つ追加→通路接続→隣接グラフ確認の結合テスト
-
-## Phase 1-F: シリアライズ（world/）
-
-- [x] `world/serialization.go`: Cave.MarshalJSON() ([]byte, error)、UnmarshalCave(data []byte) (\*Cave, error) — Grid全セル + Rooms + Corridors の完全保存/復元
-- [x] `world/serialization_test.go`: 部屋と通路を含むCaveを保存→復元→元と等価であることを検証。空のCaveの保存/復元テスト
-
-## Phase 1-G: 統合検証
-
-- [x] `world/integration_test.go`: 中規模マップ（32x32）に部屋5つ配置→全接続→風水フェーズへの受け渡し用データ構造が正しく取れることを確認
-- [x] testutil に `testutil/rng.go` を作成: FixedRNG（常に同じ値を返すモックRNG）と NewTestRNG(seed) ヘルパー
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 1 完了。tasks.md の Phase 2 タスクを追記する（PRD Phase 2 を参照して fengshui/ のタスクを展開）
-
-## Phase 1-H: ASCII可視化ツール（world確認用）
-
-- [x] `cmd/caveviz/main.go` 作成: ハードコードでCaveを生成（部屋3〜4個＋通路接続）し、ASCIIグリッドを標準出力に表示。凡例: `██`=岩盤, `..`=通路, `[]`=部屋床, `><`=入口, 部屋IDを部屋内に表示
-- [x] `world/ascii.go`: Cave.RenderASCII() string メソッド。Gridの各セルを文字にマッピング。部屋内にはRoomIDを1桁で表示（10以上はA,B,C...）
-- [x] `world/ascii_test.go`: 小さなCave（8x8）でRenderASCIIの出力が期待文字列と一致するテスト
-- [x] Makefileに `viz` ターゲット追加: `go run ./cmd/caveviz`
-
-## Phase 2-A: 風水基本型定義（fengshui/）
-
-- [x] `fengshui/doc.go`: パッケージドキュメント。龍脈・気・風水評価を扱うパッケージであることを記述
-- [x] `fengshui/dragon_vein.go`: DragonVein 構造体（ID int, SourcePos types.Pos, Element types.Element, FlowRate float64, Path []types.Pos）。龍脈は洞窟の入口から内部へ気を運ぶ経路。RoomsOnPath(cave) []int で龍脈経路上の部屋IDリストを返す
-- [x] `fengshui/chi.go`: RoomChi 構造体（RoomID int, Current float64, Capacity float64, Element types.Element）。IsFull() bool, IsEmpty() bool, Ratio() float64 メソッド。ElementはRoomTypeから引き継ぐ（気の属性＝部屋の属性）
-- [x] `fengshui/chi_test.go`: RoomChi の基本メソッドテスト（IsFull/IsEmpty/Ratio の境界値、ゼロ容量のエッジケース）
-
-## Phase 2-B: 龍脈の経路計算と動的再計算（fengshui/）
-
-- [x] `fengshui/dragon_vein_builder.go`: BuildDragonVein(cave, sourcePos, element, flowRate) (\*DragonVein, error) — 入口から通路・部屋床を通る経路をBFSで計算。岩盤は通過不可
-- [x] `fengshui/dragon_vein_builder.go`: RebuildDragonVein(cave, existingVein) (\*DragonVein, error) — 既存龍脈をCaveの現在の地形で再計算。部屋追加/通路掘削で経路が変化する。元のSourcePos/Element/FlowRateは維持
-- [x] `fengshui/dragon_vein_test.go`: 龍脈が入口から部屋に到達するテスト、到達不能ケースのエラーテスト、部屋追加後にRebuildで経路が伸びることのテスト、通路がない部屋には到達しないテスト
-
-## Phase 2-C: 気の蓄積・伝播モデル（fengshui/）
-
-- [x] `fengshui/flow_params.go`: FlowParams 構造体（GeneratesMultiplier float64, OvercomesMultiplier float64, SameElementMultiplier float64, NeutralMultiplier float64, BaseDecayRate float64）。DefaultFlowParams() で初期値を返す。JSON読み込み対応: LoadFlowParams(path) (\*FlowParams, error)
-- [x] `fengshui/flow_params_data.json`: デフォルトパラメータ定義（相生: 1.3, 相克: 0.6, 同属性: 1.1, 中立: 1.0, 基本減衰率: 0.02）
-- [x] `fengshui/chi_flow.go`: ChiFlowEngine 構造体（Veins []DragonVein, RoomChi map[int]*RoomChi, Params *FlowParams, cave \*world.Cave）。NewChiFlowEngine(cave, veins, registry, params) で初期化。Tick() で1ティック分の気の流れを計算:
-  1. 龍脈上の各部屋にFlowRate分の気を供給（龍脈のElementと部屋のElementの相性でFlowRateに倍率適用）
-  2. 隣接部屋間の気の伝播: 気が多い部屋→少ない部屋へ差分の一定割合が移動。移動量に相生/相克の倍率を適用
-  3. 全部屋に基本減衰（BaseDecayRate）を適用
-  4. Capacityクランプ（0〜Capacity）
-- [x] `fengshui/chi_flow.go`: ChiFlowEngine.OnCaveChanged(cave) — Cave変更時に龍脈を全再計算し、新しい部屋のRoomChiを追加。差分更新の最適化は後回し（DECISIONS.mdに記録）
-- [x] `fengshui/chi_flow_test.go`:
-  - 龍脈上の部屋への気の供給テスト
-  - 龍脈Elementと部屋Elementが相生のとき供給量が増えるテスト
-  - 龍脈Elementと部屋Elementが相克のとき供給量が減るテスト
-  - 隣接部屋間の気の伝播テスト（高→低へ流れる）
-  - 隣接部屋間の相生/相克倍率テスト
-  - 基本減衰テスト
-  - Capacityクランプテスト（上限・下限）
-  - 龍脈上にない部屋には直接供給されないテスト
-  - 10ティック経過後に定常状態に近づくテスト
-  - OnCaveChanged: 部屋追加後に新部屋が気の計算に含まれるテスト
-
-## Phase 2-D: 風水評価スコア（fengshui/）
-
-- [x] `fengshui/score_params.go`: ScoreParams 構造体（GeneratesBonus float64, OvercomesPenalty float64, SameElementBonus float64, DragonVeinBonus float64, ChiRatioWeight float64）。DefaultScoreParams() で初期値。JSON読み込み対応: LoadScoreParams(path)
-- [x] `fengshui/score_params_data.json`: デフォルトスコアパラメータ（相生: +20, 相克: -15, 同属性: +5, 龍脈接続: +30, 気充填率ウェイト: 100）
-- [x] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, ChiScore float64, AdjacencyScore float64, DragonVeinScore float64, Total float64）。内訳を保持
-- [x] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave, registry, params) で生成。EvaluateRoom(roomID, flowEngine) FengShuiScore — 個別部屋のスコア算出。EvaluateAll(flowEngine) []FengShuiScore — 全部屋一括。CaveTotal(flowEngine) float64 — 洞窟全体の風水スコア合計。スコアリング:
-  1. ChiScore = 部屋の気充填率 × ChiRatioWeight
-  2. AdjacencyScore = 隣接部屋との五行相性ボーナス/ペナルティの合計（Paramsから取得）
-  3. DragonVeinScore = 龍脈に接続されていれば DragonVeinBonus
-  4. Total = ChiScore + AdjacencyScore + DragonVeinScore
-- [x] `fengshui/evaluator_test.go`: 単独部屋のスコアテスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト、パラメータ変更がスコアに反映されるテスト
-
-## Phase 2-E: 風水シリアライズ（fengshui/）
-
-- [x] `fengshui/serialization.go`: ChiFlowEngine.MarshalJSON() / UnmarshalChiFlowEngine(data, cave, registry, params) — 龍脈・各部屋の気の状態を保存/復元。龍脈のPathは保存するが、復元時にcaveとの整合性を検証
-- [x] `fengshui/serialization_test.go`: 保存→復元→等価検証テスト、空の状態の保存/復元テスト
-
-## Phase 2-F: ASCII可視化への風水レイヤー追加
-
-- [x] `fengshui/ascii.go`: RenderChiOverlay(cave, flowEngine) string — Caveの ASCII表示に気の充填率をオーバーレイ。充填率に応じて部屋内の表示を変える（0%: `__`, 1-33%: `░░`, 34-66%: `▒▒`, 67-99%: `▓▓`, 100%: `██`）。龍脈の経路を `~~` で表示
-- [x] `cmd/caveviz/main.go` 更新: 風水レイヤー付き表示を追加。コマンドライン引数 `--chi` で切り替え
-- [x] `fengshui/ascii_test.go`: 小さなCaveで風水オーバーレイの出力テスト
-
-## Phase 2-G: 統合検証
-
-- [x] `fengshui/integration_test.go`: 中規模Cave（32x32）に部屋5つ配置（意図的に相生ペアと相克ペアを含む）→龍脈2本設定→20ティックシミュレーション→相生ペアの部屋は気が多く、相克ペアは少ないことを検証→風水スコアが配置に応じて正しく変動することを検証
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 2 完了。DECISIONS.md に差分更新を後回しにした判断を記録。次フェーズのタスクドラフトを `tasks_phase3_draft.md` として生成。プロジェクトルートに `PHASE_COMPLETE` ファイルを作成し、以下を記載: (1) 実装した内容の要約, (2) 未解決の課題や技術的負債, (3) 次フェーズへの申し送り事項, (4) LESSONS.md から特に重要な知見。**tasks.md には新しい未完了タスクを追加しない**（Ralph Loopは未完了タスク消滅により自動停止する。次フェーズのタスク作成はチャットでのレビューを経て行う）
-
-# Phase 3 & 3.5 タスク（Phase 2-G 以降に配置）
-
-## Phase 3-A: 仙獣基本型定義（senju/）
-
-- [x] `senju/doc.go`: パッケージドキュメント。仙獣の種族定義・配置・成長・行動AIを扱うパッケージであることを記述
-- [x] `senju/species.go`: Species 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, GrowthRate float64, MaxBeasts int（この種族が1部屋に配置できる上限のヒント値）, Description string）
-- [x] `senju/species_registry.go`: SpeciesRegistry（map管理）。LoadSpecies(data []byte) error（JSONから一括ロード）、Get(id string) (*Species, error)、All() []*Species
-- [x] `senju/species_data.json`: 初期仙獣種族5種の定義（各五行属性に1種）。木: 翠龍（バランス型）、火: 炎鳳（攻撃型）、土: 岩亀（防御型）、金: 金狼（速度型）、水: 水蛇（回復型）。各種族に基本ステータスとGrowthRateを設定
-- [x] `senju/species_test.go`: SpeciesRegistryのJSONロードテスト、全5種が取得できるテスト、存在しないIDのエラーテスト
-
-## Phase 3-B: 部屋の仙獣容量（world/ 拡張）
-
-- [x] `world/room_type.go` 拡張: RoomType に `MaxBeasts int` フィールドを追加（仙獣部屋: 3, 龍穴: 1, 罠部屋: 2, その他: 0）
-- [x] `world/room_type_data.json` 更新: 全部屋タイプに MaxBeasts 値を追加
-- [x] `world/room.go` 拡張: Room に `BeastIDs []int` フィールドを追加。BeastCount() int、HasBeastCapacity(roomType) bool メソッド
-- [x] `world/room_test.go` 追加: BeastCapacity 関連テスト（容量内追加OK、容量超過NG、仙獣配置不可の部屋タイプNG）
-
-## Phase 3-C: 仙獣インスタンスと配置（senju/）
-
-- [x] `senju/beast.go`: Beast 構造体（ID int, SpeciesID string, Name string, Element types.Element, RoomID int, Level int, EXP int, HP int, MaxHP int, ATK int, DEF int, SPD int, BornTick types.Tick, State BeastState）。BeastState 型（Idle/Patrolling/Chasing/Fighting/Recovering）。NewBeast(id, species, tick) \*Beast で基本ステータスをSpeciesから初期化
-- [x] `senju/combat_stats.go`: CombatStats 構造体（HP int, ATK int, DEF int, SPD int）。Beast.CalcCombatStats(roomChi \*fengshui.RoomChi) CombatStats — 基本ステータスに属性相性バフを適用した実効戦闘ステータスを返す。相生部屋: ATK/DEF/SPD ×1.3、同属性: ×1.1、中立: ×1.0、相克: ×0.7
-- [x] `senju/affinity.go`: RoomAffinity(beastElement, roomElement types.Element) float64 — 仙獣と部屋の属性相性倍率を返す。GrowthAffinity(beastElement, roomElement types.Element) float64 — 成長速度への倍率（RoomAffinityと同じ値だが将来独立調整できるよう分離）
-- [x] `senju/placement.go`: PlaceBeast(beast, room, roomType) error — 配置可能判定（部屋存在、MaxBeasts未達、仙獣配置可能な部屋タイプ）→配置実行（beast.RoomID設定、room.BeastIDs追加）。RemoveBeast(beast, room) error — 除去。MoveBeast(beast, fromRoom, toRoom, toRoomType) error — 部屋間移動
-- [x] `senju/placement_test.go`: 正常配置テスト、容量超過拒否テスト、配置不可部屋タイプ拒否テスト、移動テスト、CalcCombatStatsの相性倍率テスト
-
-## Phase 3-D: 成長システム（senju/）
-
-- [x] `senju/growth_params.go`: GrowthParams 構造体（BaseEXPPerTick int, LevelUpThreshold func(level int) int をJSON対応のため LevelUpBase int + LevelUpPerLevel int に分解、ChiConsumptionPerTick float64, MaxLevel int）。DefaultGrowthParams()。LoadGrowthParams(data []byte) (\*GrowthParams, error)
-- [x] `senju/growth_params_data.json`: デフォルト成長パラメータ（基本EXP/tick: 10, レベルアップ基礎値: 100, レベルアップ係数: 50, 気消費/tick: 2.0, 最大レベル: 50）。レベルアップ必要EXP = LevelUpBase + LevelUpPerLevel × currentLevel
-- [x] `senju/growth.go`: GrowthEngine 構造体。NewGrowthEngine(params, speciesRegistry)。Tick(beasts []*Beast, roomChi map[int]*fengshui.RoomChi, rooms map[int]\*world.Room) []GrowthEvent — 1ティック分の成長処理:
-  1. 各仙獣の部屋の RoomChi から ChiConsumptionPerTick 分の気を消費試行
-  2. 気が足りなければ GrowthEvent{Type: ChiStarved} を返して成長スキップ
-  3. BaseEXPPerTick × GrowthAffinity × Species.GrowthRate のEXPを獲得
-  4. EXP が LevelUpThreshold に到達したらレベルアップ → GrowthEvent{Type: LevelUp}
-  5. MaxLevel クランプ
-- [x] `senju/growth.go`: GrowthEvent 構造体（BeastID int, Type GrowthEventType, OldLevel int, NewLevel int, EXPGained int）。GrowthEventType: EXPGained/LevelUp/ChiStarved
-- [x] `senju/growth_test.go`: 基本成長（1ティックでEXP獲得）テスト、気不足で成長停止テスト、レベルアップテスト、属性相性による成長速度変化テスト、MaxLevelクランプテスト、気の実消費量がRoomChiに反映されるテスト、GrowthEvent生成テスト
-
-## Phase 3-E: 仙獣シリアライズ（senju/）
-
-- [x] `senju/serialization.go`: MarshalBeasts(beasts []*Beast) ([]byte, error) / UnmarshalBeasts(data []byte, speciesRegistry) ([]*Beast, error) — 全仙獣の状態を保存/復元。SpeciesIDからElementやName等を復元
-- [x] `senju/serialization_test.go`: 保存→復元→等価検証テスト、空リストの保存/復元テスト、存在しないSpeciesIDのエラーハンドリングテスト
-
-## Phase 3-F: ASCII可視化への仙獣レイヤー追加
-
-- [x] `senju/ascii.go`: RenderBeastOverlay(cave, beasts) string — CaveのASCII表示に仙獣の配置をオーバーレイ。部屋内に仙獣の属性を示す文字を表示（木:W, 火:F, 土:E, 金:M, 水:A）。仙獣数が2以上の部屋は数字+属性（例: `2F`）
-- [x] `cmd/caveviz/main.go` 更新: `--beasts` フラグで仙獣レイヤー表示。`--all` で全レイヤー（通常+気+仙獣）を重ねて表示
-- [x] `senju/ascii_test.go`: 小さなCaveで仙獣オーバーレイの出力テスト
-
-## Phase 3-G: 統合検証
-
-- [x] `senju/integration_test.go`: Cave（部屋3つ、属性: 木/火/水）+ ChiFlowEngine（気供給あり）+ 仙獣3体（翠龍を木部屋、炎鳳を火部屋、水蛇を土部屋（相克））を配置→30ティック成長シミュレーション→相性のよい木・火部屋の仙獣はレベルが高く、相克の水蛇はレベルが低いことを検証→気の消費がRoomChiに反映されていることを検証→CalcCombatStatsが配置部屋に応じて変動することを検証
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 3 完了。DECISIONS.md 更新、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase3_5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+**完了条件**:
+- `make build` が sim バイナリを生成
+- `make test` が（まだテストはないが）エラーなく完了
+- `make vet` がクリーン
+- ルートの `make all` で core と sim が両方ビルド・テストされる
 
 ---
 
-## Phase 3.5-A: 行動パターン定義（senju/）
-
-- [x] `senju/behavior.go`: BehaviorType 型（Guard/Patrol/Chase/Flee）。Behavior インターフェース — DecideAction(beast, context BehaviorContext) Action。BehaviorContext 構造体（Beast の現在位置、部屋情報、隣接部屋の仙獣/侵入者情報、RoomChi）
-- [x] `senju/action.go`: Action 構造体（Type ActionType, TargetRoomID int, TargetBeastID int）。ActionType 型（Stay/MoveToRoom/Attack/Retreat）。仙獣が1ティックで取れる行動を表現
-- [x] `senju/behavior_guard.go`: GuardBehavior — 定点防衛。自分の配置部屋に留まる。侵入者が同じ部屋にいればAttack、いなければStay。最もシンプルなAI
-- [x] `senju/behavior_guard_test.go`: 侵入者なし→Stay、侵入者あり→Attack のテスト
-
-## Phase 3.5-B: 巡回と追跡AI（senju/）
-
-- [x] `senju/behavior_patrol.go`: PatrolBehavior — 巡回。隣接部屋を順番に移動する。巡回経路は配置部屋を起点に隣接グラフから生成。侵入者を発見したらChaseに遷移
-- [x] `senju/behavior_chase.go`: ChaseBehavior — 追跡。発見した侵入者の方向へ隣接部屋を移動。侵入者と同じ部屋に入ったらAttack。一定ティック追跡して見失ったらPatrolに戻る
-- [x] `senju/behavior_flee.go`: FleeBehavior — 逃走。HPが一定割合（25%）以下になったら発動。侵入者から最も遠い隣接部屋へ移動。回復室に到達したら回復状態（Recovering）に遷移
-- [x] `senju/behavior_test.go`: Patrol の巡回経路テスト、Chase の追跡方向テスト、Flee のHP閾値判定テスト、Flee が回復室を目指すテスト
-
-## Phase 3.5-C: 行動エンジン（senju/）
-
-- [x] `senju/behavior_engine.go`: BehaviorEngine 構造体。NewBehaviorEngine(cave, adjacencyGraph)。AssignBehavior(beast, behaviorType) — 仙獣に行動パターンを割り当て。Tick(beasts, invaderPositions map[int][]int, roomChi) []BeastAction — 全仙獣の行動を1ティック分一括決定:
-  1. 各仙獣の現在Behaviorに基づいてDecideAction呼び出し
-  2. HP閾値チェック → Flee への自動遷移
-  3. 行動の衝突解決（同じ部屋への移動は先着順）
-  4. BeastAction リストを返す（実際の移動・攻撃の適用は呼び出し側）
-- [x] `senju/behavior_engine.go`: BeastAction 構造体（BeastID int, Action Action, PreviousRoomID int, ResultingState BeastState）。行動の結果を記録
-- [x] `senju/behavior_engine.go`: ApplyActions(beasts, rooms, actions) error — BeastAction リストを適用して仙獣の位置・状態を更新
-- [x] `senju/behavior_engine_test.go`: 全仙獣Guard→侵入者なしで全員Stay テスト、Patrol仙獣が隣接部屋を巡回するテスト、侵入者発見→Chase遷移テスト、HP低下→Flee遷移テスト、行動の衝突解決テスト
-
-## Phase 3.5-D: 仙獣AI パラメータ外出し
-
-- [x] `senju/behavior_params.go`: BehaviorParams 構造体（FleeHPThreshold float64, ChaseTimeoutTicks int, PatrolRestTicks int）。DefaultBehaviorParams()。LoadBehaviorParams(data []byte)
-- [x] `senju/behavior_params_data.json`: デフォルト行動パラメータ（逃走HP閾値: 0.25, 追跡タイムアウト: 10ティック, 巡回時の部屋滞在: 3ティック）
-- [x] `senju/behavior_params_test.go`: JSONロードテスト、デフォルト値テスト
-
-## Phase 3.5-E: ASCII可視化への行動レイヤー追加
-
-- [x] `senju/ascii.go` 更新: 仙獣の行動状態を表示に反映。Guard: `[G]`, Patrol: `[P]`, Chase: `[!]`, Flee: `[←]`, Recovering: `[+]`。侵入者位置のプレースホルダー表示（`??` — Phase 4で本実装）
-- [x] `cmd/caveviz/main.go` 更新: `--ai` フラグで行動状態レイヤー表示
-
-## Phase 3.5-F: 統合検証
-
-- [x] `senju/ai_integration_test.go`: Cave（部屋5つ、通路接続）+ 仙獣3体（Guard×1, Patrol×1, Chase×1）+ 疑似侵入者位置（map[int][]int で手動設定）→20ティック行動シミュレーション→Guard仙獣は配置部屋に留まることを検証→Patrol仙獣は複数部屋を巡回することを検証→侵入者位置を設定するとChase仙獣が追跡方向に移動することを検証→HP低下でFleeに遷移することを検証
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 3.5 完了。DECISIONS.md 更新、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase4_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
-
-# Phase 4 改訂版 — 侵入システム（invasion/）
-
-> PRD Phase 4: 侵入者の生成、目標指向の経路探索、戦闘解決。
-> D002準拠: 時間圧力の基盤をこのフェーズで構築する。シナリオレベルの調整はPhase 6で行う。
-
-## Phase 4-A: 侵入者基本型定義（invasion/）
-
-- [x] `invasion/doc.go`: パッケージドキュメント。侵入者の種族定義・目標指向AI・経路探索・戦闘解決・侵入波管理を扱うパッケージであることを記述
-- [x] `invasion/invader_class.go`: InvaderClass 構造体（ID string, Name string, Element types.Element, BaseHP int, BaseATK int, BaseDEF int, BaseSPD int, RewardChi float64, PreferredGoal GoalType, RetreatThreshold float64, Description string）。InvaderClassRegistry（map管理、JSONから一括ロード）
-- [x] `invasion/invader_class_data.json`: 初期侵入者クラス5種の定義。木: 木行の修行者（バランス型, 龍穴破壊を目指す, 撤退閾値0.3）、火: 火行の武闘家（攻撃型, 仙獣狩りを目指す, 撤退閾値0.15）、土: 土行の鎧武者（防御型, 龍穴破壊を目指す, 撤退閾値0.4）、金: 金行の盗賊（速度型, 宝物奪取を目指す, 撤退閾値0.5）、水: 水行の道士（回復型, 龍穴破壊を目指す, 撤退閾値0.25）
-- [x] `invasion/goal.go`: GoalType 型（DestroyCore/HuntBeasts/StealTreasure）。Goal インターフェース — TargetRoomID(cave, invader, memory) int で目標部屋IDを返す、IsAchieved(cave, invader) bool で目標達成判定
-- [x] `invasion/goal_destroy_core.go`: DestroyCoreGoal — 龍穴（コア部屋）を目指す。TargetRoomID は龍穴の部屋IDを返す。到達して一定ティック滞在で達成
-- [x] `invasion/goal_hunt_beasts.go`: HuntBeastsGoal — 仙獣がいる部屋を目指す。最寄りの仙獣配置部屋をターゲット。仙獣を一定数撃破で達成
-- [x] `invasion/goal_steal_treasure.go`: StealTreasureGoal — 倉庫部屋を目指す。到達で達成（気を奪って撤退）
-- [x] `invasion/invader.go`: Invader 構造体（ID int, ClassID string, Name string, Element types.Element, Level int, HP int, MaxHP int, ATK int, DEF int, SPD int, CurrentRoomID int, Goal Goal, Memory *ExplorationMemory, State InvaderState, SlowTicks int, EntryTick types.Tick, StayTicks int）。InvaderState 型（Advancing/Fighting/Retreating/Defeated/GoalAchieved）。NewInvader(id, class, level, goal, entryRoomID, tick) *Invader
-- [x] `invasion/invader_test.go`: InvaderClassRegistryのJSONロードテスト、レベルスケーリングテスト、GoalType別の目標部屋決定テスト
-
-## Phase 4-B: 目標指向の経路探索（invasion/）
-
-- [x] `invasion/exploration_memory.go`: ExplorationMemory 構造体（VisitedRooms map[int]types.Tick, KnownBeastRooms map[int]bool, KnownCoreRoom int, KnownTreasureRooms []int）。Visit(roomID, tick) で訪問記録。仙獣や特殊部屋の発見も記録
-- [x] `invasion/pathfinder.go`: Pathfinder 構造体（cave, adjacencyGraph）。FindPath(from int, to int) []int — BFSベースの最短経路（部屋IDの列）。ただし未訪問部屋は「存在するかもしれない」として探索的に進む
-- [x] `invasion/pathfinder.go`: FindNextRoom(invader, cave, adjacencyGraph) int — 侵入者の次の移動先を決定:
-  1. 目標部屋が既知なら最短経路で移動
-  2. 目標部屋が未知なら未訪問の隣接部屋を優先探索
-  3. 全隣接部屋が訪問済みなら、未訪問部屋に最も近い方向へバックトラック
-  4. 完全探索済みならランダム移動（RNG経由）
-- [x] `invasion/pathfinder_test.go`: 龍穴既知時の最短経路テスト、未知時の探索優先テスト、バックトラックテスト、盗賊が倉庫を目指すテスト、武闘家が仙獣部屋を目指すテスト
-
-## Phase 4-C: 戦闘解決システム（invasion/）
-
-- [x] `invasion/combat_params.go`: CombatParams 構造体（ATKMultiplier float64, DEFReduction float64, ElementAdvantage float64, ElementDisadvantage float64, MinDamage int, CriticalChance float64, CriticalMultiplier float64, TrapDamageBase int, TrapElementMultiplier float64）。DefaultCombatParams()。LoadCombatParams(data []byte)
-- [x] `invasion/combat_params_data.json`: デフォルト戦闘パラメータ（ATK倍率: 1.0, DEF減算率: 0.5, 属性有利: 1.5, 属性不利: 0.7, 最低ダメージ: 1, クリティカル率: 0.1, クリティカル倍率: 2.0, 罠基本ダメージ: 20, 罠属性倍率: 1.3）
-- [x] `invasion/combat.go`: CombatEngine 構造体。NewCombatEngine(params, rng)。ResolveCombatRound(beast *senju.Beast, invader *Invader, roomChi \*fengshui.RoomChi) CombatRoundResult — 1ラウンドの戦闘解決:
-  1. 仙獣の実効ステータス = beast.CalcCombatStats(roomChi)
-  2. 素早さ比較で先攻/後攻決定（同値はRNG）
-  3. 先攻側のダメージ計算: ATK × ATKMultiplier - 相手DEF × DEFReduction（MinDamage保証）
-  4. 属性相性倍率の適用（仙獣Element vs 侵入者Element、相生/相克で判定）
-  5. クリティカル判定（RNG経由）
-  6. 先攻ダメージ適用 → 後攻が生存していれば後攻の攻撃 → ダメージ適用
-  7. 結果を返す
-- [x] `invasion/combat.go`: CombatRoundResult 構造体（BeastDamageTaken int, InvaderDamageTaken int, BeastHP int, InvaderHP int, IsBeastDefeated bool, IsInvaderDefeated bool, WasBeastCritical bool, WasInvaderCritical bool, FirstAttacker string）
-- [x] `invasion/combat.go`: ResolveRoomCombat(beasts []*senju.Beast, invaders []*Invader, roomChi \*fengshui.RoomChi) []CombatRoundResult — 同じ部屋の全仙獣 vs 全侵入者のマッチング戦闘。マッチングルール: 素早さ順でペアリング、余った側はフリー。1ティック1ラウンド
-- [x] `invasion/combat_test.go`: 基本ダメージ計算テスト、先攻/後攻テスト、属性有利/不利テスト、クリティカルテスト（FixedRNG）、MinDamage保証テスト、複数対複数のマッチングテスト
-
-## Phase 4-D: 撤退ロジック（invasion/）
-
-- [x] `invasion/retreat.go`: RetreatEvaluator 構造体。ShouldRetreat(invader, wave) bool — 撤退判定:
-  1. HP が MaxHP × RetreatThreshold 以下 → 撤退
-  2. 同一波の仲間が半数以上 Defeated → 撤退（士気崩壊）
-  3. 目標達成済み（GoalAchieved）→ 撤退（戦利品を持って帰る）
-- [x] `invasion/retreat.go`: RetreatPathfinder — 撤退時の経路。来た道を逆走して入口へ向かう。ExplorationMemoryの訪問順を逆順に辿る
-- [x] `invasion/retreat.go`: RetreatResult 構造体（InvaderID int, Reason RetreatReason, StolenChi float64）。RetreatReason型（LowHP/MoraleBroken/GoalComplete）。盗賊がGoalCompleteで撤退する場合、StolenChi に奪った気の量をセット
-- [x] `invasion/retreat_test.go`: HP低下撤退テスト、士気崩壊撤退テスト、目標達成撤退テスト、盗賊の気奪取テスト、撤退経路が来た道を逆走するテスト、入口到達で侵入者がマップから除去されるテスト
-
-## Phase 4-E: 罠効果システム（invasion/）
-
-- [x] `invasion/trap.go`: TrapEffect 構造体（RoomID int, Element types.Element, DamagePerTrigger int, SlowTicks int）。BuildTrapEffects(cave, rooms, roomTypes) []TrapEffect — 罠部屋からTrapEffectリストを構築。罠部屋のElementを罠のElementとする
-- [x] `invasion/trap.go`: ApplyTrap(invader, trap, params) TrapResult — 罠効果を侵入者に適用。ダメージ = TrapDamageBase × 属性相性倍率（罠Element vs 侵入者Element）。SlowTicks 中は移動を1ティック遅延
-- [x] `invasion/trap.go`: TrapResult 構造体（InvaderID int, Damage int, IsSlowed bool, SlowTicksApplied int）
-- [x] `invasion/trap_test.go`: 罠ダメージ計算テスト、属性相性倍率テスト、スロー効果テスト、罠部屋でない部屋は効果なしテスト、盗賊の罠回避率（将来拡張用のスタブ、現時点では全員同一処理）
-
-## Phase 4-F: 侵入波管理（invasion/）
-
-- [x] `invasion/wave.go`: InvasionWave 構造体（ID int, TriggerTick types.Tick, Invaders []\*Invader, State WaveState, Difficulty float64）。WaveState 型（Pending/Active/Completed/Failed）。IsActive(), IsCompleted(), AliveCount(), DefeatedCount() メソッド
-- [x] `invasion/wave_generator.go`: WaveGenerator 構造体。NewWaveGenerator(classRegistry, rng)。GenerateWave(config WaveConfig, cave *world.Cave, tick types.Tick) *InvasionWave — 設定に基づいて侵入者グループを生成。洞窟の部屋構成から適切な Goal を割り当て（龍穴があれば DestroyCore が主、倉庫があれば盗賊を混ぜる）
-- [x] `invasion/wave_schedule.go`: WaveSchedule 構造体（Waves []WaveConfig）。WaveConfig（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int）。LoadWaveSchedule(data []byte)。**注意: このスケジュールはPhase 6のシナリオシステムで上書きされる前提。Phase 4ではテスト用の固定スケジュールのみ**
-- [x] `invasion/wave_schedule_data.json`: テスト用スケジュール（3波: tick 50/難易度1.0/2-3体, tick 150/難易度1.5/3-5体, tick 300/難易度2.0/5-7体）。D002の時間圧力を意識し、tick 50は「まだ構築が十分でない」タイミングを想定
-- [x] `invasion/wave_test.go`: 波生成テスト、難易度スケーリングテスト、Goal割り当てテスト（龍穴あり/なしで変化）、WaveScheduleのJSONロードテスト、AliveCount/DefeatedCountテスト
-
-## Phase 4-G: 侵入ティックエンジン（invasion/）
-
-- [x] `invasion/engine.go`: InvasionEngine 構造体（CombatEngine, Pathfinder, RetreatEvaluator, TrapEffects, cave, adjacencyGraph, rng）。NewInvasionEngine(cave, adjacencyGraph, combatParams, rng)
-- [x] `invasion/engine.go`: InvasionEngine.Tick(currentTick, waves, beasts, rooms, roomTypes, roomChi) []InvasionEvent — 1ティック分の侵入処理:
-  1. TriggerTick に到達した Pending 波を Active に → WaveStarted イベント
-  2. 各侵入者の ExplorationMemory を更新（現在の部屋の情報を記録）
-  3. 撤退判定: ShouldRetreat が true なら State を Retreating に → InvaderRetreating イベント
-  4. Advancing 侵入者を移動: FindNextRoom で次の部屋へ → InvaderMoved イベント
-  5. Retreating 侵入者を撤退移動: RetreatPathfinder で入口方向へ → InvaderRetreating イベント。入口到達で除去
-  6. SlowTicks > 0 の侵入者は移動スキップ（SlowTicks 減算のみ）
-  7. 罠部屋にいる Advancing 侵入者に罠効果 → TrapTriggered イベント
-  8. 部屋ごとの戦闘マッチング: 同じ部屋の仙獣と侵入者を収集 → ResolveRoomCombat → CombatOccurred イベント
-  9. HP 0 以下の侵入者を Defeated に → InvaderDefeated イベント（RewardChi を記録）
-  10. HP 0 以下の仙獣を処理 → BeastDefeated イベント
-  11. 全侵入者が Defeated/Retreating/GoalAchieved なら波を Completed/Failed に → WaveCompleted/WaveFailed イベント
-- [x] `invasion/engine.go`: InvasionEvent 構造体（Type InvasionEventType, Tick types.Tick, WaveID int, InvaderID int, BeastID int, RoomID int, Damage int, RewardChi float64, StolenChi float64, Details string）。InvasionEventType:
-  - WaveStarted / WaveCompleted / WaveFailed
-  - InvaderMoved / InvaderDefeated / InvaderRetreating / InvaderEscaped
-  - CombatOccurred / BeastDefeated / TrapTriggered
-  - GoalAchieved（侵入者が目標達成 → ゲーム的にはピンチ）
-- [x] `invasion/engine.go`: InvasionEngine.BuildInvaderPositions(waves) map[int][]int — アクティブな Advancing/Fighting 侵入者の位置マップ。senju.BehaviorEngine.Tick に渡す用
-- [x] `invasion/engine.go`: InvasionEngine.CollectRewards(events []InvasionEvent) float64 — InvaderDefeated イベントからRewardChiの合計を算出。Phase 5 の経済システムに渡すインターフェース
-- [x] `invasion/engine.go`: InvasionEngine.CollectStolenChi(events []InvasionEvent) float64 — InvaderEscaped イベントからStolenChiの合計を算出。盗賊が持ち逃げした気の量。Phase 5 で ChiPool から減算する
-- [x] `invasion/engine_test.go`: 波のアクティベーションテスト、目標指向移動テスト（龍穴へ向かう）、探索移動テスト（未知の部屋を探索）、戦闘マッチングテスト（同部屋の仙獣vs侵入者）、罠効果テスト、撤退判定→撤退経路テスト、HP低下撤退テスト、士気崩壊撤退テスト、目標達成→撤退テスト、波完了判定テスト、RewardChi集計テスト、StolenChi集計テスト、スロー効果による移動スキップテスト、BeastDefeatedイベント生成テスト
-
-## Phase 4-H: シリアライズ（invasion/）
-
-- [x] `invasion/serialization.go`: MarshalInvasionState(waves []*InvasionWave) ([]byte, error) / UnmarshalInvasionState(data []byte, classRegistry) ([]*InvasionWave, error) — 全侵入波の状態を保存/復元。ExplorationMemory、Goal状態を含む
-- [x] `invasion/serialization_test.go`: 保存→復元→等価検証テスト、途中状態（Advancing+Retreating混在）の保存/復元テスト、空リストの保存/復元テスト
-
-## Phase 4-I: ASCII可視化への侵入レイヤー追加
-
-- [x] `invasion/ascii.go`: RenderInvasionOverlay(cave, waves) string — CaveのASCII表示に侵入者をオーバーレイ。Advancing: `>>`, Fighting: `XX`, Retreating: `<<`, 目標達成: `$$`。複数侵入者がいる部屋は人数表示（例: `3>>`）
-- [x] `cmd/caveviz/main.go` 更新: `--invasion` フラグで侵入レイヤー表示。`--battle` フラグで全レイヤー（地形+気+仙獣+侵入者）を重ねて戦況表示
-- [x] `invasion/ascii_test.go`: 各State の表示テスト、複数侵入者の人数表示テスト
-
-## Phase 4-J: 統合検証
-
-- [x] `invasion/integration_test.go`: 以下のシナリオで50ティックのフルシミュレーション:
-  - Cave: 部屋6つ（龍穴×1、仙獣部屋×2、罠部屋×1、蓄気室×1、倉庫×1）、全接続
-  - ChiFlowEngine: 龍脈1本、気供給あり
-  - 仙獣: 3体（Guard×1を龍穴前、Patrol×1を巡回、Chase×1を仙獣部屋）
-  - 侵入波: 1波（修行者×2が龍穴を目指す、盗賊×1が倉庫を目指す）
-  - 検証項目:
-    - 修行者が龍穴方向に移動すること
-    - 盗賊が倉庫方向に移動すること
-    - 罠部屋通過でダメージを受けること
-    - Guard仙獣が龍穴前で迎撃すること
-    - Chase仙獣が侵入者を追跡すること
-    - HP低下した侵入者が撤退すること
-    - 士気崩壊による撤退が発生すること
-    - 波完了時にRewardChiが集計されること
-    - 全過程がInvasionEventログとして記録されること
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 4 完了。DECISIONS.md 更新（D002時間圧力のPhase 4段階の実装メモ、戦闘マッチングルールの判断記録）、PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase5_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
-
-# Phase 5 改訂版 — 経済システム（economy/）
-
-> PRD Phase 5: リソースの収支管理、建設コスト。
-> D002準拠: 原則3「トレードオフの連続」をこのフェーズで構造的に実装する。気の総量は常に不足する設計。
-
-## 設計方針メモ（DECISIONS.md D009 として記録すること）
-
-**ChiPool と ChiFlowEngine の関係:**
-
-- ChiFlowEngine（Phase 2）= 各部屋の気のシミュレーション層。龍脈→部屋→隣接伝播→減衰。部屋レベルの物理的な気の流れ
-- ChiPool（Phase 5）= プレイヤーの経済リソースとしての気。建設・召喚・強化に使う「通貨」
-- SupplyCalculator が毎ティック、ChiFlowEngine の状態（全部屋の気の充填率と風水スコア）を読み取り、ChiPool への供給量に変換する
-- 仙獣の成長消費（D003: RoomChi.Current を直接減算）は部屋レベルの物理消費。ChiPool からの引き落としではない
-- MaintenanceCalculator の BeastMaintenancePerTick は ChiPool からの経済的維持コスト。D003 の物理消費とは別レイヤー
-- つまり仙獣は「部屋の気を食べて成長する（物理層）」と同時に「存在するだけでChiPoolから維持費がかかる（経済層）」の二重構造
-
-## Phase 5-A: 経済基本型定義（economy/）
-
-- [x] `economy/doc.go`: パッケージドキュメント。気の経済リソース管理を扱うパッケージ。ChiFlowEngine（部屋レベルの物理的な気）とChiPool（プレイヤーの経済リソース）は別レイヤーであることを明記
-- [x] `economy/chi_pool.go`: ChiPool 構造体（Current float64, Cap float64, History []ChiTransaction）。Deposit(amount, txType, reason, tick) / Withdraw(amount, txType, reason, tick) error。Balance() float64。CanAfford(amount) bool。Cap はChiPoolの上限（蓄気室の数とレベルで決まる、Phase 5-C で計算）
-- [x] `economy/chi_pool.go`: ChiTransaction 構造体（Tick types.Tick, Amount float64, Type TransactionType, Reason string, BalanceAfter float64）。TransactionType 型（Supply/RoomMaintenance/BeastMaintenance/TrapMaintenance/Reward/Theft/Construction/BeastSummon/RoomUpgrade/Deficit）
-- [x] `economy/chi_pool.go`: ChiPool.Withdraw で残高不足の場合は引き落とせる分だけ引き落とし、不足分を error で返す（残高はゼロ止まり、マイナスにはしない）
-- [x] `economy/chi_pool_test.go`: Deposit/Withdraw テスト、残高不足時の部分引き落としテスト、Cap超過時のクランプテスト、トランザクション履歴テスト、BalanceAfter の正確性テスト
-
-## Phase 5-B: 気の供給計算（economy/）
-
-- [x] `economy/supply_params.go`: SupplyParams 構造体（BaseSupplyPerVein float64, FengShuiMinMultiplier float64, FengShuiMaxMultiplier float64, ChiRatioSupplyWeight float64）。DefaultSupplyParams()。LoadSupplyParams(data []byte)
-- [x] `economy/supply_params_data.json`: デフォルト供給パラメータ（龍脈基本供給: 5.0, 風水最低倍率: 0.8, 風水最高倍率: 1.3, 気充填率ウェイト: 0.5）
-- [x] `economy/supply.go`: SupplyCalculator 構造体。NewSupplyCalculator(params)。CalcTickSupply(veins []fengshui.DragonVein, roomChis map[int]\*fengshui.RoomChi, caveScore float64) float64 — 1ティック分の供給量:
-  1. 基本供給 = 龍脈本数 × BaseSupplyPerVein
-  2. 充填率ボーナス = 全部屋の平均気充填率 × ChiRatioSupplyWeight
-  3. 風水倍率 = caveScore を FengShuiMinMultiplier〜FengShuiMaxMultiplier に線形マッピング
-  4. 最終供給 = (基本供給 + 充填率ボーナス) × 風水倍率
-- [x] `economy/supply_test.go`: 龍脈なしで供給0テスト、龍脈複数の合算テスト、風水スコアによるボーナス/ペナルティテスト、気充填率が低いと供給も下がるテスト
-
-## Phase 5-C: 維持コストモデル（economy/）
-
-- [x] `economy/cost_params.go`: CostParams 構造体（RoomMaintenancePerTick map[string]float64, BeastMaintenancePerTick float64, TrapMaintenancePerTick float64, ChiPoolCapPerStorageRoom float64, ChiPoolCapPerStorageLevel float64, ChiPoolBaseCap float64）。DefaultCostParams()。LoadCostParams(data []byte)
-- [x] `economy/cost_params_data.json`: デフォルトコストパラメータ。部屋維持（龍穴: 0.5, 蓄気室: 0.1, 仙獣部屋: 0.2, 罠部屋: 0.4, 回復室: 0.3, 倉庫: 0.1）、仙獣経済維持: 0.3/tick、罠維持: 0.2/tick、ChiPool上限（基礎: 100.0, 蓄気室1つあたり: +50.0, 蓄気室レベルあたり: +20.0）
-- [x] `economy/maintenance.go`: MaintenanceCalculator 構造体。CalcTickMaintenance(rooms, beasts, traps, params) MaintenanceBreakdown — 1ティック分の維持コスト。MaintenanceBreakdown 構造体（RoomCost float64, BeastCost float64, TrapCost float64, Total float64）で内訳を返す
-- [x] `economy/maintenance.go`: CalcChiPoolCap(rooms, roomTypes, params) float64 — 蓄気室の数とレベルからChiPoolの上限を算出。蓄気室がなければ基礎値のみ
-- [x] `economy/maintenance_test.go`: 部屋0で維持コスト0テスト、部屋タイプ別コストテスト、仙獣追加で維持コスト増加テスト、ChiPoolCap計算テスト（蓄気室あり/なし/レベルアップ）
-
-## Phase 5-D: 赤字処理（economy/）
-
-- [x] `economy/deficit.go`: DeficitProcessor 構造体。ProcessDeficit(chiPool, maintenance MaintenanceBreakdown, tick) DeficitResult — 維持コストがChiPool残高を超える場合の処理:
-  1. 引き落とせる分は引き落とす（ChiPool残高ゼロまで）
-  2. 不足額を DeficitResult.Shortage に記録
-  3. 不足額に応じたペナルティを決定:
-     - 軽度赤字（不足 < 維持コストの30%）: 仙獣の成長速度が半減（GrowthPenalty: 0.5）
-     - 中度赤字（不足 30-70%）: 仙獣成長停止 + 部屋の気容量が一時的に減少（CapacityPenalty: 0.8）
-     - 重度赤字（不足 > 70%）: 仙獣が衰弱（HP減少）+ 罠が機能停止（TrapDisabled: true）
-- [x] `economy/deficit.go`: DeficitResult 構造体（Shortage float64, Severity DeficitSeverity, GrowthPenalty float64, CapacityPenalty float64, TrapDisabled bool, BeastHPDrain int）。DeficitSeverity 型（None/Mild/Moderate/Severe）
-- [x] `economy/deficit_params.go`: DeficitParams 構造体（MildThreshold float64, ModerateThreshold float64, MildGrowthPenalty float64, ModerateCapacityPenalty float64, SevereHPDrain int, SevereTrapDisable bool）。DefaultDeficitParams()。LoadDeficitParams(data []byte)
-- [x] `economy/deficit_params_data.json`: デフォルト赤字パラメータ（軽度閾値: 0.3, 中度閾値: 0.7, 軽度成長ペナルティ: 0.5, 中度容量ペナルティ: 0.8, 重度HP減少: 5, 重度罠停止: true）
-- [x] `economy/deficit_test.go`: 赤字なしテスト、軽度赤字ペナルティテスト、中度赤字ペナルティテスト、重度赤字ペナルティテスト、赤字からの回復テスト（次ティックで供給が維持を上回ればペナルティ解除）
-
-## Phase 5-E: 建設コストモデル（economy/）
-
-- [x] `economy/construction.go`: ConstructionCost 構造体（RoomCost map[string]float64, CorridorCostPerCell float64, RoomUpgradeCostBase map[string]float64, RoomUpgradeCostPerLevel float64）。DefaultConstructionCost()。LoadConstructionCost(data []byte)
-- [x] `economy/construction_data.json`: デフォルト建設コスト。部屋建設（龍穴: 50.0, 蓄気室: 20.0, 仙獣部屋: 15.0, 罠部屋: 25.0, 回復室: 20.0, 倉庫: 10.0）、通路: 2.0/セル、部屋強化基本コスト（タイプ別）、レベルごとの追加コスト: 10.0
-- [x] `economy/construction.go`: CalcRoomCost(roomTypeID) float64。CalcCorridorCost(pathLength) float64。CalcUpgradeCost(roomTypeID, currentLevel) float64。すべて ConstructionCost から読み取り
-- [x] `economy/construction_test.go`: 部屋建設コストテスト、通路コストテスト、部屋強化コストのレベルスケーリングテスト
-
-## Phase 5-F: 仙獣コストモデル（economy/）
-
-- [x] `economy/beast_cost.go`: BeastCost 構造体（SummonCostByElement map[types.Element]float64）。DefaultBeastCost()。LoadBeastCost(data []byte)
-- [x] `economy/beast_cost_data.json`: デフォルト仙獣コスト。召喚（木: 30.0, 火: 35.0, 土: 25.0, 金: 40.0, 水: 30.0）。進化コストはPhase 5では未実装（進化システム自体が延期中）
-- [x] `economy/beast_cost.go`: CalcSummonCost(element) float64
-- [x] `economy/beast_cost_test.go`: 属性別召喚コストテスト
-
-## Phase 5-G: 侵入報酬と損失（economy/）
-
-- [x] `economy/invasion_economy.go`: InvasionEconomyProcessor 構造体。ProcessInvasionEvents(events []invasion.InvasionEvent, chiPool \*ChiPool, tick types.Tick) InvasionEconomySummary:
-  1. InvaderDefeated イベントから RewardChi を集計 → ChiPool に Deposit（TransactionType: Reward）
-  2. InvaderEscaped イベントから StolenChi を集計 → ChiPool から Withdraw（TransactionType: Theft）
-  3. BeastDefeated イベントを記録（復活コストは将来拡張）
-- [x] `economy/invasion_economy.go`: InvasionEconomySummary 構造体（RewardChi float64, StolenChi float64, NetChi float64, BeastsLost int）
-- [x] `economy/invasion_economy_test.go`: 侵入者撃破で報酬獲得テスト、盗賊逃走で気損失テスト、報酬と損失の差し引きテスト、複数イベントの集計テスト
-
-## Phase 5-H: 経済ティックエンジン（economy/）
-
-- [x] `economy/engine.go`: EconomyEngine 構造体（ChiPool, SupplyCalculator, MaintenanceCalculator, DeficitProcessor, ConstructionCost, BeastCost, CostParams）。NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
-- [x] `economy/engine.go`: EconomyEngine.Tick(tick, veins, roomChis, caveScore, rooms, roomTypes, beasts, traps) EconomyTickResult — 1ティック分の経済処理:
-  1. ChiPoolCapを再計算（蓄気室の状態変化に対応）
-  2. 気供給を計算して ChiPool に Deposit
-  3. 維持コストを計算
-  4. 赤字処理（DeficitProcessor）
-  5. 赤字でなければ維持コストをChiPoolから Withdraw
-  6. 収支バランスを記録
-- [x] `economy/engine.go`: EconomyTickResult 構造体（Tick types.Tick, Supply float64, Maintenance MaintenanceBreakdown, DeficitResult DeficitResult, Balance float64, ChiPoolCap float64）
-- [x] `economy/engine.go`: EconomyEngine.TryBuildRoom(roomTypeID, tick) (float64, error) — 建設可否判定 → コスト引き落とし → トランザクション記録。返り値はコスト額。CanAfford チェック含む
-- [x] `economy/engine.go`: EconomyEngine.TrySummonBeast(element, tick) (float64, error) — 召喚可否判定 → コスト引き落とし
-- [x] `economy/engine.go`: EconomyEngine.TryUpgradeRoom(roomTypeID, currentLevel, tick) (float64, error) — 強化可否判定 → コスト引き落とし
-- [x] `economy/engine.go`: EconomyEngine.TryDigCorridor(pathLength, tick) (float64, error) — 通路掘削コスト引き落とし
-- [x] `economy/engine_test.go`: 供給→維持の収支テスト、赤字でペナルティ発生テスト、建設成功テスト、残高不足で建設失敗テスト、召喚成功テスト、強化成功テスト、通路掘削コストテスト、TryXxx の返り値がトランザクションと整合するテスト
-
-## Phase 5-I: シリアライズ（economy/）
-
-- [x] `economy/serialization.go`: MarshalEconomyState(engine) ([]byte, error) / UnmarshalEconomyState(data []byte, params各種) (\*EconomyEngine, error) — ChiPool（残高+Cap）+ トランザクション履歴の保存/復元
-- [x] `economy/serialization_test.go`: 保存→復元→等価検証テスト、トランザクション履歴込みの保存/復元テスト
-
-## Phase 5-J: 経済バランス検証
-
-- [x] `economy/balance_test.go`: D002原則3「リソースが常に不足」の構造的検証。標準構成（部屋6つ、仙獣3体、罠1つ、龍脈1本）で200ティックの経済シミュレーション:
-  - 供給に対する維持コスト比率が高いこと（具体的閾値はパラメータ依存なので固定値アサーションはしない。代わりに「毎ティック黒字」にはならないことを検証）
-  - 部屋1つ建設すると一時的に残高が大きく減ること
-  - 建設後に残高回復に要するティック数が「次の侵入波までの間隔」より長いこと（＝建設直後は脆弱）
-  - 200ティック時点で全部屋レベルMAX + 全仙獣レベルMAXに到達しないこと
-  - 赤字→ペナルティ→供給回復のサイクルが発生すること
-- [x] `economy/balance_test.go`: パラメータ感度テスト。供給量を2倍にしたとき「常に黒字」にならないか、維持コストを半分にしたとき「トレードオフが消滅しないか」を検証。D002のアンチパターン検出用
-
-## Phase 5-K: ASCII可視化への経済レイヤー追加
-
-- [x] `economy/ascii.go`: RenderEconomyStatus(engine) string — ChiPool残高、毎ティック収支、赤字状態をテキスト表示。`[Chi: 45.2/150.0 | +5.0 -3.8 = +1.2/tick | OK]` のようなワンライン形式
-- [x] `cmd/caveviz/main.go` 更新: `--economy` フラグで経済ステータス表示。画面上部にオーバーレイ
-
-## Phase 5-L: 統合検証
-
-- [x] `economy/integration_test.go`: Cave + ChiFlowEngine + 仙獣 + 侵入波 + 経済エンジンの80ティックフルシミュレーション:
-  - 気供給が毎ティック ChiPool に入ること
-  - 維持コストが毎ティック引き落とされること
-  - 侵入波の撃退報酬が ChiPool に加算されること
-  - 盗賊逃走の損失が ChiPool から減算されること
-  - 赤字時にDeficitResultのペナルティが正しく設定されること
-  - 建設実行でChiPool残高が減り、トランザクションが記録されること
-  - ChiPoolCapが蓄気室レベルに連動すること
-  - 全トランザクション履歴がシリアライズ/デシリアライズで保持されること
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 5 完了。DECISIONS.md にD009（ChiPool/ChiFlowEngine二層構造）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase6_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
-
-# Phase 6 改訂版 — シナリオシステム（scenario/）+ 延期タスク消化
-
-> PRD Phase 6: ゲームの進行管理、イベント、勝利条件。
-> D002準拠: 3原則（不完全性の強制・時間圧力・トレードオフの連続）をシナリオレベルで統合する。
-> 延期タスクの消化: 仙獣進化・敗北処理を先に実装し、scenario本体に合流させる。
-
-## 設計方針メモ（DECISIONS.md D010, D011 として記録すること）
-
-**D010: 龍穴のHP導入**
-龍穴（コア部屋）にHP概念を追加する。侵入者の DestroyCoreGoal は「龍穴に到達して攻撃し、HPを0にする」で達成。一定ティック滞在ではなく攻撃ベースにすることで、仙獣による防衛の意味が増す（侵入者を殴って追い返せば龍穴HPは減らない）。CoreHP はRoomType定義にBaseCoreHP として追加し、部屋レベルで上昇。
-
-**D011: イベントはコマンドパターン**
-EventAction は MutableGameState を直接操作しない。代わりに EventCommand（SpawnWaveCommand, ModifyChiCommand 等）を返し、simulation層が適用する。これにより：
-
-- イベント実行の順序が明確
-- リプレイ時にイベントコマンドを再適用するだけで再現可能
-- イベントの副作用がログに残る
+## Phase 1: core修正 + Game Server
+
+- [ ] **Task 1-A: core修正 — MaxRooms制約チェック追加**
+
+core/simulation/action.go の validateDigRoom に GameConstraints.MaxRooms チェックを追加する。
+現在の部屋数が MaxRooms 以上なら DigRoom アクションを拒否する。
+
+1. validateDigRoom に MaxRooms チェック追加
+2. エラーメッセージ: "max rooms reached: %d/%d"
+3. SimpleAI が MaxRooms に達した場合に DigRoom を試行しないよう修正
+
+**完了条件**:
+- MaxRooms=5 のシナリオで 5部屋建設後に DigRoom が拒否されるテスト
+- SimpleAI が MaxRooms 制約を尊重するテスト
+- 既存テストが全パス
+
+- [ ] **Task 1-B: core修正 — SimpleAIコリドー戦略**
+
+core/simulation/ai_simple.go の SimpleAI に、新部屋建設後に隣接部屋への通路を掘るロジックを追加する。
+
+1. SimpleAI の Decide メソッドで DigRoom 後の次ティックに DigCorridor を発行
+2. 対象: 新部屋と既存の隣接部屋の間（龍穴からの気の伝播経路を確保）
+3. 通路が掘れない場合（壁、距離等）はスキップ
+
+**完了条件**:
+- SimpleAI が部屋建設後に通路を掘ることを確認するテスト
+- 通路経由で気が新部屋に伝播することを確認するテスト（ChiFlowEngine.Tick 後に新部屋の RoomChi.Current > 0）
+- 既存テストが全パス
+
+- [ ] **Task 1-C: core修正 — CalcTickSupply caveScore正規化**
+
+core/economy/supply.go の CalcTickSupply で CaveTotal を正規化する。
+
+1. CaveTotal を MaxPossibleChi（全部屋のMaxChi合計）で割り、0.0〜1.0 にクランプ
+2. MaxPossibleChi が 0 の場合（部屋なし）は caveScore = 0.0
+3. 正規化によりJSON外出しのパラメータ調整がスケール非依存になる
+
+**完了条件**:
+- caveScore が 0.0〜1.0 の範囲に収まるテスト
+- 部屋数を増やしても供給量が指数的に膨らまないテスト（線形またはサブリニア）
+- 既存テストの期待値を正規化後の値に更新し、全パス
+
+- [ ] **Task 1-D: core v1.1.0 タグ + DECISIONS.md更新**
+
+1. Task 1-A〜1-C の修正が core の全テストをパスすることを確認
+2. DECISIONS.md に以下を追記:
+   - D014: MaxRooms制約のバリデーション追加（RESOLVED）
+   - D015: SimpleAIコリドー戦略（RESOLVED）
+   - D016: caveScore正規化（RESOLVED）
+3. core に v1.1.0 タグを打つ準備（タグ打ち自体はチャットで確認後に実施）
+
+**完了条件**:
+- `cd core && go test ./... -count=1` 全パス
+- `cd core && go vet ./...` クリーン
+- DECISIONS.md に D014, D015, D016 が記載
+
+- [ ] **Task 1-E: Game Server — ActionProviderインターフェースとGameServer構造体**
+
+sim/server/ パッケージを作成する。
+
+1. server/provider.go: ActionProvider インターフェース定義
+   ```go
+   type ActionProvider interface {
+       ProvideActions(snapshot *simulation.GameSnapshot) ([]simulation.PlayerAction, error)
+       OnTickComplete(snapshot *simulation.GameSnapshot)
+       OnGameEnd(result *simulation.RunResult)
+   }
+   ```
+2. server/server.go: GameServer 構造体
+   ```go
+   type GameServer struct { ... }
+   func NewGameServer(scenario *scenario.ScenarioDef, seed int64) (*GameServer, error)
+   func (gs *GameServer) RunGame(provider ActionProvider) (*simulation.RunResult, error)
+   ```
+3. GameServer.RunGame は内部で core の SimulationRunner.Run を呼び、ActionProvider をブリッジする
+
+**完了条件**:
+- GameServer が NewGameServer → RunGame の流れでゲームを1ゲーム完走するテスト（core の SimpleAI をラップした ActionProvider で）
+- ActionProvider の各メソッドが適切なタイミングで呼ばれることを検証するモックテスト
+
+- [ ] **Task 1-F: Game Server — セッション管理とチェックポイント**
+
+1. server/session.go: セッションライフサイクル管理
+   - LoadScenario(path string) でシナリオJSON読み込み
+   - 組み込みシナリオ（"tutorial", "standard"）のサポート
+   - SaveCheckpoint(path string) / LoadCheckpoint(path string)
+   - SaveReplay(path string) / LoadReplay(path string)
+2. GameServer にチェックポイント・リプレイの操作を委譲するメソッド追加
+
+**完了条件**:
+- シナリオJSONファイルの読み込み → ゲーム開始テスト
+- 組み込みシナリオ名（"tutorial"）での読み込みテスト
+- チェックポイント保存 → 復元 → 続行が元実行と同一結果になるテスト
+- リプレイ保存 → 再生が元実行と同一結果になるテスト
+
+- [ ] **Task 1-G: Metrics Collector スケルトン**
+
+sim/metrics/ パッケージのスケルトンを作成する。
+
+1. metrics/collector.go: Collector 構造体と基本インターフェース
+   ```go
+   type Collector struct { ... }
+   func NewCollector() *Collector
+   func (c *Collector) OnTick(snapshot *simulation.GameSnapshot, actions []simulation.PlayerAction)
+   func (c *Collector) OnGameEnd(result *simulation.RunResult) *GameSummary
+   ```
+2. metrics/summary.go: GameSummary 構造体（勝敗、総ティック数、建設部屋数、最終CoreHP等の基本統計）
+3. GameServer に Collector を組み込み、毎ティック OnTick を呼ぶ
+
+**完了条件**:
+- Collector が GameServer 経由でティックごとに呼ばれるテスト
+- GameSummary に基本統計が正しく集計されるテスト（1ゲーム完走後）
+- `go vet ./...` クリーン
+
+- [ ] **Task 1-H: Phase 1 統合テストと完了**
+
+1. GameServer + SimpleAI(ActionProviderラップ) + Collector で1ゲーム完走の統合テスト
+2. チュートリアルシナリオと標準シナリオの両方で完走確認
+3. GameSummary の出力を確認（勝敗、ティック数等が妥当な値か）
+4. DECISIONS.md 棚卸し — Phase 1 で生まれた設計判断があれば追記
+5. LESSONS.md — Phase 1 の知見追記
+
+**完了条件**:
+- 統合テスト2件（tutorial, standard）がパス
+- `cd sim && go test ./... -count=1 -race` 全パス
+- `cd sim && go vet ./...` クリーン
+- PHASE_COMPLETE_1.md 生成
 
 ---
 
-## Phase 6-A: 延期タスク消化 — 仙獣進化（senju/ 拡張）
+## Phase 2: Human Mode（対話メニュー）
 
-- [x] `senju/evolution.go`: EvolutionCondition 構造体（MinLevel int, RequiredRoomElement types.Element（ゼロ値は条件なし）, MinChiRatio float64（部屋の気充填率条件））
-- [x] `senju/evolution.go`: EvolutionPath 構造体（FromSpeciesID string, ToSpeciesID string, Condition EvolutionCondition, ChiCost float64（経済層からの進化コスト））
-- [x] `senju/evolution_registry.go`: EvolutionRegistry（EvolutionPath のリスト管理、JSONロード）。GetPaths(speciesID string) []EvolutionPath。CheckEvolution(beast, roomChi, chiPoolBalance) \*EvolutionPath — 条件を満たす進化先を返す（nil=条件未達）
-- [x] `senju/evolution.go`: Evolve(beast, path, speciesRegistry) error — 進化実行（SpeciesID変更、ステータス再計算、レベル維持）
-- [x] `senju/evolution_data.json`: 初期進化経路（各基本種族に1段階の進化先。翠龍Lv15→蒼龍、炎鳳Lv15→朱雀、岩亀Lv20→玄武、金狼Lv15→白虎、水蛇Lv15→青龍）
-- [x] `senju/species_data.json` 更新: 進化後の5種族のステータスを追加
-- [x] `senju/evolution_test.go`: 進化条件チェックテスト（レベル/部屋属性/気充填率/コスト）、進化実行テスト、条件未達テスト、進化後ステータス変更テスト
+- [ ] **Task 2-A: ASCII描画の拡張**
 
-## Phase 6-B: 延期タスク消化 — 仙獣敗北後処理（senju/ 拡張）
+sim/render/ パッケージを作成する。
 
-- [x] `senju/beast.go` 更新: BeastState に Stunned を追加（既存: Idle/Patrolling/Chasing/Fighting/Recovering/Fleeing）
-- [x] `senju/defeat.go`: DefeatProcessor 構造体。ProcessDefeat(beast, tick) DefeatResult:
-  - HP 0以下の仙獣を Stunned 状態に遷移
-  - StunnedDuration ティック後に自動復活（HP = MaxHP × 0.3、レベル -1（最低1））
-  - Stunned中は行動不可・戦闘不可
-- [x] `senju/defeat.go`: DefeatResult 構造体（BeastID int, NewState BeastState, RevivalTick types.Tick, LevelPenalty int, RevivalHP int）
-- [x] `senju/defeat_params.go`: DefeatParams 構造体（StunnedDuration int, RevivalHPRatio float64, LevelPenalty int）。DefaultDefeatParams()。LoadDefeatParams(data []byte)
-- [x] `senju/defeat_params_data.json`: デフォルト（気絶期間: 20ティック、復活HP比率: 0.3、レベルペナルティ: 1）
-- [x] `senju/behavior_engine.go` 更新: Stunned 状態の仙獣を行動決定からスキップ
-- [x] `senju/defeat_test.go`: 敗北→Stunned遷移テスト、StunnedDuration後の復活テスト、復活後ステータス（HP・レベル）テスト、Stunned中は行動スキップされるテスト、レベル1で敗北してもレベル0にならないテスト
-- [x] `make check` で品質を確認、必要に応じて修正
+1. render/ascii.go: core の caveviz/RenderFullStatus をベースに拡張
+   - ANSIカラーコード対応（属性ごとの色: 火=赤, 水=青, 木=緑, 金=黄, 土=茶）
+   - 仙獣の状態表示（名前、Lv、行動状態）
+   - 侵入者の位置・状態表示
+   - 経済情報（ChiPool残量、供給量/ティック、維持コスト/ティック）
+   - CoreHP バー表示
+2. render/format.go: 共通フォーマット関数（HP バー、プログレスバー、カラー出力）
 
-## Phase 6-C: world/ 拡張 — 地形バリエーション
+**完了条件**:
+- テスト用の GameSnapshot を渡して期待通りの ASCII 文字列が生成されるテスト
+- ANSIカラーが正しく出力されるテスト（エスケープシーケンスの検証）
+- ターミナル幅80文字以内に収まるレイアウト
 
-- [x] `world/cell.go` 更新: CellType に HardRock（掘削不可岩盤）、Water（地下水脈、掘削不可）を追加
-- [x] `world/room_placement.go` 更新: CanPlaceRoom で HardRock/Water セルへの配置を拒否
-- [x] `world/corridor_builder.go` 更新: BuildCorridor で HardRock/Water を回避（通過不可）
-- [x] `world/room_type.go` 更新: RoomType に BaseCoreHP int を追加（龍穴のみ非ゼロ値、D010）。CoreHPAtLevel(level) int メソッド
-- [x] `world/room_type_data.json` 更新: 龍穴に BaseCoreHP: 100 を追加、他は 0
-- [x] `world/room.go` 更新: Room に CoreHP int フィールドを追加（龍穴のみ使用）
-- [x] `world/terrain_test.go`: HardRock/Water セルへの部屋配置拒否テスト、HardRock/Water を迂回する通路テスト、HardRock/Water で到達不能な場合のエラーテスト、CoreHP の初期化テスト
+- [ ] **Task 2-B: Human Mode — メインメニューとアクション選択**
 
-## Phase 6-D: シナリオ基本型定義（scenario/）
+sim/adapter/human/ パッケージを作成する。
 
-- [x] `scenario/doc.go`: パッケージドキュメント。シナリオ定義（「何をするか」のみ）を管理。実行（「どう動かすか」）はPhase 7のsimulationが担当
-- [x] `scenario/scenario.go`: Scenario 構造体（ID string, Name string, Description string, Difficulty string, InitialState InitialState, WinConditions []ConditionDef, LoseConditions []ConditionDef, WaveSchedule []WaveScheduleEntry, Events []EventDef, Constraints GameConstraints）
-- [x] `scenario/initial_state.go`: InitialState 構造体（CaveWidth int, CaveHeight int, TerrainSeed int64, TerrainDensity float64, PrebuiltRooms []RoomPlacement, DragonVeins []DragonVeinPlacement, StartingChi float64, StartingBeasts []BeastPlacement）。RoomPlacement/DragonVeinPlacement/BeastPlacement の定義
-- [x] `scenario/constraints.go`: GameConstraints 構造体（MaxRooms int, MaxBeasts int, MaxTicks types.Tick, ForbiddenRoomTypes []string）
-- [x] `scenario/scenario_test.go`: 構造体の基本テスト
+1. adapter/human/menu.go: メインメニュー表示と入力受付
+   - 1. 部屋を掘る → サブメニューへ
+   - 2. 通路を掘る → サブメニューへ
+   - 3. 仙獣を召喚する → サブメニューへ
+   - 4. 部屋をアップグレードする → サブメニューへ
+   - 5. 何もしない（1ティック進める）
+   - 6. 早送り（Nティック）→ ティック数入力
+   - s. セーブ / l. ロード / r. リプレイ保存 / q. 終了
+2. adapter/human/input.go: 入力ヘルパー（数字入力、Yes/No、座標入力）
+3. 無効入力時のエラー表示と再入力ループ
 
-## Phase 6-E: 勝利/敗北条件（scenario/）
+**完了条件**:
+- io.Reader からスクリプト化された入力を渡してメニュー遷移をテスト
+- 無効入力（範囲外の数字、非数値文字列）でエラー表示後に再入力になるテスト
 
-- [x] `scenario/condition.go`: ConditionDef 構造体（Type string, Params map[string]any）。JSON で定義される条件のデータ形式
-- [x] `scenario/condition.go`: ConditionEvaluator インターフェース（Evaluate(snapshot GameSnapshot) bool）。GameSnapshot 構造体（Tick, CoreHP, ChiPoolBalance, BeastCount, AliveBeasts, DefeatedWaves, TotalWaves, CaveFengShuiScore, ConsecutiveDeficitTicks）— 読み取り専用のスナップショット
-- [x] `scenario/conditions.go`: 具体的な条件実装をファクトリパターンで生成。NewCondition(def ConditionDef) (ConditionEvaluator, error):
-  - "survive_until": 指定ティックまで CoreHP > 0
-  - "defeat_all_waves": 全波 Completed
-  - "fengshui_score": 風水スコア >= 閾値
-  - "chi_pool": ChiPool残高 >= 閾値
-  - "core_destroyed"（敗北）: CoreHP <= 0
-  - "all_beasts_defeated"（敗北）: AliveBeasts == 0
-  - "bankrupt"（敗北）: ConsecutiveDeficitTicks >= 閾値
-- [x] `scenario/condition_test.go`: 各条件タイプの Evaluate テスト、不正な Type のエラーテスト
+- [ ] **Task 2-C: Human Mode — サブメニュー（部屋掘削・通路・召喚・アップグレード）**
 
-## Phase 6-F: イベントシステム（scenario/）
+1. adapter/human/submenu.go: 各アクションのサブメニュー
+   - 部屋を掘る: 座標入力 → 属性選択（fire/water/wood/metal/earth） → PlayerAction生成
+   - 通路を掘る: 始点部屋ID → 終点部屋ID → PlayerAction生成
+   - 仙獣を召喚する: 部屋ID → 種族選択 → PlayerAction生成
+   - 部屋をアップグレードする: 部屋ID → PlayerAction生成
+2. 各サブメニューで valid_actions に基づく選択肢の動的生成
+   - 建設不可セルは表示しない、コスト不足の場合は警告表示
+3. "戻る" 操作でメインメニューに復帰
 
-- [x] `scenario/event.go`: EventDef 構造体（ID string, Condition ConditionDef, Commands []CommandDef, OneShot bool）。CommandDef 構造体（Type string, Params map[string]any）
-- [x] `scenario/command.go`: EventCommand インターフェース（Execute() string で説明文を返すのみ。実際の適用はsimulation層）。具体的なコマンド:
-  - SpawnWaveCommand: 追加侵入波の定義を返す
-  - ModifyChiCommand: ChiPool への加算/減算額を返す
-  - ModifyConstraintCommand: 制約変更内容を返す
-  - MessageCommand: 通知メッセージを返す
-- [x] `scenario/command.go`: NewCommand(def CommandDef) (EventCommand, error) — ファクトリ
-- [x] `scenario/event_engine.go`: EventEngine 構造体。Tick(snapshot GameSnapshot, events []EventDef) []EventCommand — 条件を評価し、発火したイベントのコマンドリストを返す。OneShot管理（FiredEventsのSet）。コマンドの適用はsimulation層が行う（D011）
-- [x] `scenario/event_test.go`: OneShot 1回実行テスト、条件未達で発火しないテスト、複数イベント同時発火テスト、FiredEventsの永続管理テスト
+**完了条件**:
+- 各サブメニューからPlayerActionが正しく生成されるテスト（4種類）
+- コスト不足時に警告が表示されるテスト
+- "戻る" でメインメニューに戻るテスト
 
-## Phase 6-G: 動的侵入波スケジュール（scenario/）
+- [ ] **Task 2-D: Human Mode — ActionProvider実装とティック結果表示**
 
-- [x] `scenario/wave_schedule.go`: WaveScheduleEntry 構造体（TriggerTick types.Tick, Difficulty float64, MinInvaders int, MaxInvaders int, PreferredClasses []string, PreferredGoals []string）
-- [x] `scenario/wave_schedule.go`: WaveScheduleBuilder 構造体。BuildSchedule(entries []WaveScheduleEntry, rng) []invasion.WaveConfig — シナリオ定義からPhase 4のWaveConfigに変換
-- [x] `scenario/wave_schedule.go`: CalcFirstWaveTiming(initialState InitialState, constructionCosts economy.ConstructionCost) types.Tick — D002「時間圧力」のヘルパー。StartingChi と最安部屋コストから「最低限の構築に必要なティック数」を概算し、その途中のティックを返す。シナリオ設計の参考値
-- [x] `scenario/wave_schedule_test.go`: スケジュール変換テスト、CalcFirstWaveTiming が構築完了前を返すテスト
+1. adapter/human/provider.go: ActionProvider インターフェース実装
+   - ProvideActions: メニュー表示 → 入力受付 → PlayerAction返却
+   - OnTickComplete: ティック結果のサマリー表示（戦闘発生、経済変化、イベント通知）
+   - OnGameEnd: 勝敗結果とGameSummaryの表示
+2. adapter/human/display.go: ティック結果の表示ロジック
+   - 戦闘が発生した場合: 部屋ごとの戦闘結果（ダメージ、倒した/倒された）
+   - 侵入波が到達した場合: 波の情報（敵数、種類）
+   - CoreHPが減少した場合: 警告表示
+   - 仙獣が成長/進化した場合: 通知
+3. 早送り中は描画スキップ（完了後にサマリー表示）
 
-## Phase 6-H: 地形テンプレート生成（scenario/）
+**完了条件**:
+- スクリプト入力で1ゲーム完走するE2Eテスト（wait連打でゲーム終了まで進む）
+- 早送り（ff 50）で50ティック分スキップされるテスト
+- OnTickComplete で戦闘ログが出力されるテスト
 
-- [x] `scenario/terrain.go`: TerrainGenerator 構造体。GenerateTerrain(width, height int, density float64, rng types.RNG) []TerrainZone — ランダムに掘削不可ゾーンを生成。TerrainZone 構造体（Pos types.Pos, Width int, Height int, Type world.CellType）
-- [x] `scenario/terrain.go`: ApplyTerrain(cave \*world.Cave, zones []TerrainZone) error — CaveにHardRock/Waterゾーンを配置。配置後にPrebuiltRooms との重複チェック
-- [x] `scenario/terrain.go`: ValidateTerrain(cave \*world.Cave, prebuiltRooms []RoomPlacement) error — 地形適用後も全PrebuiltRoomsが配置可能であり、入口から龍穴まで経路が存在することを検証。D002: 0点（詰み）を防ぐ
-- [x] `scenario/terrain_test.go`: テンプレート適用テスト、掘削不可ゾーンに部屋配置が拒否されるテスト、決定論テスト（同一seed→同一地形）、ValidateTerrain が詰み地形を検出するテスト
+- [ ] **Task 2-E: Human Mode — CLI統合とチェックポイント操作**
 
-## Phase 6-I: シナリオローダーとバリデーション（scenario/）
+1. cmd/chaosseed-sim/main.go の `--human` フラグ実装
+   - `--scenario` 引数でシナリオ指定
+   - `--scenario tutorial` で組み込みチュートリアル
+2. Human Mode のセーブ/ロード統合
+   - 's' キー → ファイルパス入力 → チェックポイント保存
+   - 'l' キー → ファイルパス入力 → チェックポイント復元 → ゲーム再開
+   - 'r' キー → ファイルパス入力 → リプレイ保存
+3. 'q' キーで確認ダイアログ → 終了
 
-- [x] `scenario/loader.go`: LoadScenario(data []byte) (\*Scenario, error) — JSONからシナリオ全体をロード
-- [x] `scenario/loader.go`: ValidateScenario(s \*Scenario) []error — シナリオ整合性チェック:
-  - 勝利条件が少なくとも1つ存在
-  - 敗北条件が少なくとも1つ存在
-  - InitialState の部屋配置が Cave サイズ内
-  - WaveSchedule の TriggerTick が MaxTicks 以内
-  - 参照する RoomTypeID / SpeciesID / InvaderClassID が存在
-  - TerrainDensity が 0.0〜0.5 の範囲（0.5超は詰みやすい）
-  - PrebuiltRooms に龍穴が含まれる
-- [x] `scenario/testdata/tutorial.json`: チュートリアルシナリオ（小マップ16x16、HardRock少、弱い侵入波1つ、survive_until条件のみ、仙獣1体配置済み）
-- [x] `scenario/testdata/standard.json`: 標準シナリオ（中マップ32x32、HardRock中密度、5波、defeat_all_waves + fengshui_score の勝利条件、イベント2つ）
-- [x] `scenario/testdata/antipattern_rich.json`: D002アンチパターン検証用（StartingChi を極端に多く、侵入波を弱く設定。「リソースが潤沢で全部に投資できる」状態を再現。Phase 7でこのシナリオが面白くないことを検証する素材）
-- [x] `scenario/testdata/antipattern_impossible.json`: D002アンチパターン検証用（HardRock密度0.5、初波tick10、StartingChi極小。「0点（詰み）」に近い状態。ValidateTerrainが警告を出すことを確認）
-- [x] `scenario/loader_test.go`: JSONロードテスト、バリデーション全項目テスト、不正シナリオの拒否テスト、アンチパターンシナリオのロードテスト
+**完了条件**:
+- `chaosseed-sim --human --scenario tutorial` でゲームが起動するテスト
+- セーブ → 終了 → ロードでゲームが続行されるテスト
+- リプレイ保存 → `chaosseed-sim --replay` で再生されるテスト
 
-## Phase 6-J: シリアライズ（scenario/）
+- [ ] **Task 2-F: Phase 2 統合テストと完了**
 
-- [x] `scenario/progress.go`: ScenarioProgress 構造体（ScenarioID string, CurrentTick types.Tick, FiredEventIDs []string, WaveResults []WaveResult, CoreHP int）。WaveResult 構造体（WaveID int, Result string, CompletedTick types.Tick）
-- [x] `scenario/serialization.go`: MarshalProgress / UnmarshalProgress — 進行状況の保存/復元
-- [x] `scenario/serialization_test.go`: 保存→復元→等価検証テスト
+1. チュートリアルシナリオのスクリプト実行E2Eテスト
+   - 部屋掘る → 仙獣召喚 → wait × N → ゲーム終了 の一連の流れ
+2. 全サブメニューの遷移テスト
+3. ASCII描画の目視確認用スクリプト（手動確認用、テストではない）
+4. DECISIONS.md 棚卸し
+5. LESSONS.md 追記
 
-## Phase 6-K: ASCII可視化
+**完了条件**:
+- E2Eテストがパス
+- `cd sim && go test ./... -count=1 -race` 全パス
+- `cd sim && go vet ./...` クリーン
+- PHASE_COMPLETE_2.md 生成
 
-- [x] `scenario/ascii.go`: RenderScenarioStatus(scenario, progress, snapshot) string — `[standard | Tick 150/500 | Waves 2/5 | Core HP 85/100 | Win: FengShui 45/80]` 形式
-- [x] `cmd/caveviz/main.go` 更新: `--scenario <file>` でシナリオファイルを読み込み、ステータス表示
+---
 
-## Phase 6-L: 統合検証
+## Phase 3: AI Mode（JSON I/O）
 
-- [x] `scenario/integration_test.go`: チュートリアルシナリオのシミュレーション（手動でゲーム状態を進める）:
-  - シナリオロード → InitialState から Cave 構築 → 地形適用
-  - 地形バリデーション通過を確認
-  - WaveSchedule → WaveConfig 変換を確認
-  - 勝利条件・敗北条件の評価テスト（勝利可能/敗北可能の両方）
-  - イベント発火テスト（EventCommand が返り、直接状態変更しないことを確認、D011）
-  - 仙獣進化テスト（条件を手動で満たして進化発火）
-  - 仙獣敗北→Stunned→復活テスト
-  - CoreHP が侵入者攻撃で減少するテスト
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 6 完了。DECISIONS.md に D010（CoreHP）, D011（EventCommand パターン）を記録。PHASE_COMPLETE 更新、次フェーズドラフトを `tasks_phase7_draft.md` として生成。**tasks.md には新しい未完了タスクを追加しない**
+- [ ] **Task 3-A: AI Modeプロトコル定義**
 
-# Phase 7 改訂版 — 統合シミュレーション（simulation/）
+sim/adapter/ai/ パッケージを作成する。
 
-> PRD Phase 7: 全システム統合、ゲームループ、プレイヤーアクション、リプレイ。
-> D001: プロファイリングと差分更新の判断。
-> D002: 3原則の定量検証。
-> D011: EventCommand の適用。
+1. adapter/ai/protocol.go: メッセージ型定義
+   ```go
+   // サーバー → クライアント
+   type StateMessage struct {
+       Type         string                     `json:"type"`          // "state"
+       Tick         int                        `json:"tick"`
+       Snapshot     json.RawMessage            `json:"snapshot"`
+       ValidActions []ValidAction              `json:"valid_actions"`
+   }
+   type GameEndMessage struct {
+       Type    string                          `json:"type"`          // "game_end"
+       Result  string                          `json:"result"`        // "victory" | "defeat"
+       Summary json.RawMessage                 `json:"summary"`
+       Metrics json.RawMessage                 `json:"metrics"`
+   }
+   type ErrorMessage struct {
+       Type    string                          `json:"type"`          // "error"
+       Message string                          `json:"message"`
+   }
 
-## Phase 7-A: 基本型定義（simulation/）
+   // クライアント → サーバー
+   type ActionMessage struct {
+       Type    string                          `json:"type"`          // "action"
+       Actions []ActionDef                     `json:"actions"`
+   }
 
-- [x] `simulation/doc.go`: パッケージドキュメント
-- [x] `simulation/state.go`: GameState 構造体（全サブシステムのエンジン + Scenario + Progress + RNG を統合保持）
-- [x] `simulation/state.go`: GameStatus（Running/Won/Lost）、GameResult（Status, FinalTick, Reason）
-- [x] `simulation/action.go`: PlayerAction インターフェース。具体的なアクション:
-  - DigRoomAction（roomTypeID, pos, width, height）
-  - DigCorridorAction（fromRoomID, toRoomID）
-  - PlaceBeastAction（speciesID, roomID）
-  - UpgradeRoomAction（roomID）
-  - SummonBeastAction（element）
-  - EvolveBeastAction（beastID）
-  - NoAction（何もしない）
-- [x] `simulation/action.go`: ValidateAction(action, state) error — アクションの事前バリデーション（コスト足りるか、配置可能か等）
-- [x] `simulation/action.go`: ApplyAction(action, state) (ActionResult, error) — アクション実行。EconomyEngine.TryXxx を内部で呼ぶ。ActionResult（Success bool, Cost float64, Description string）
-- [x] `simulation/action_test.go`: 各アクション型のバリデーション・実行テスト、残高不足テスト、不正配置テスト
+   type ValidAction struct {
+       Kind   string                           `json:"kind"`          // "dig_room", "dig_corridor", ...
+       Params map[string]interface{}            `json:"params"`        // アクション固有のパラメータ
+   }
+   ```
+2. JSON Lines 形式: 1行1メッセージ、改行区切り
 
-## Phase 7-B: コマンド実行器（simulation/）
+**完了条件**:
+- 全メッセージ型の JSON シリアライズ/デシリアライズのラウンドトリップテスト
+- ValidAction が正しく生成されるテスト（建設可能座標、召喚可能種族等）
 
-- [x] `simulation/executor.go`: CommandExecutor。Apply(state, []EventCommand) error。各コマンド型を判別し状態変更を実行（SpawnWave/ModifyChi/ModifyConstraint/Message）
-- [x] `simulation/executor_test.go`: 各コマンド型の適用テスト
+- [ ] **Task 3-B: AI Mode — valid_actions生成とSnapshot変換**
 
-## Phase 7-C: メインループ（simulation/）
+1. adapter/ai/serializer.go:
+   - SnapshotToJSON: GameSnapshot を JSON に変換
+   - BuildValidActions: 現在のゲーム状態から実行可能なアクション一覧を生成
+     - dig_room: 建設可能な全座標と選択可能な属性
+     - dig_corridor: 接続可能な部屋ペア
+     - summon_beast: 配置可能な部屋と召喚可能な種族（コスト条件含む）
+     - upgrade_room: アップグレード可能な部屋（コスト条件含む）
+     - wait: 常に利用可能
+2. コスト不足のアクションは valid_actions に含めない（LLM の無駄な試行を防ぐ）
 
-- [x] `simulation/snapshot.go`: BuildSnapshot(state) GameSnapshot — 読み取り専用スナップショット構築
-- [x] `simulation/engine.go`: SimulationEngine 構造体（State, Executor, TickLog）
-- [x] `simulation/engine.go`: NewSimulationEngine(scenario, rng) — InitialStateからGameState構築（地形適用、初期部屋配置、初期仙獣配置、龍脈生成、ChiPool初期化）
-- [x] `simulation/engine.go`: Step(actions []PlayerAction) (GameResult, error) — 1ティック:
-  1. PlayerAction のバリデーション → 実行
-  2. ChiFlowEngine.Tick（気の供給・伝播・減衰）
-  3. GrowthEngine.Tick（仙獣成長、赤字ペナルティ適用）
-  4. DefeatProcessor（Stunned仙獣の復活チェック）
-  5. EvolutionEngine（進化条件チェック → 実行）
-  6. BehaviorEngine.Tick（仙獣行動AI）
-  7. InvasionEngine.Tick（侵入者移動・戦闘・CoreHPダメージ）
-  8. InvasionEconomyProcessor（報酬・損失のChiPool反映）
-  9. EconomyEngine.Tick（供給・維持・赤字処理）
-  10. EventEngine.Tick → CommandExecutor.Apply
-  11. 勝利/敗北条件評価
-  12. TickLog記録
-- [x] `simulation/engine.go`: Run(maxTicks, actionProvider func(GameSnapshot) []PlayerAction) GameResult — actionProviderで毎ティックのアクションを外部から注入。nil なら NoAction
-- [x] `simulation/engine_test.go`: 1ティック実行テスト、勝利到達テスト、敗北到達テスト、PlayerAction実行テスト、maxTicks制限テスト
+**完了条件**:
+- チュートリアルシナリオの初期状態から valid_actions が正しく生成されるテスト
+- ChiPool 不足時に召喚が valid_actions に含まれないテスト
+- MaxRooms 到達後に dig_room が valid_actions に含まれないテスト
 
-## Phase 7-D: スナップショットと巻き戻し（simulation/）
+- [ ] **Task 3-C: AI Mode — ActionProvider実装とエラーハンドリング**
 
-- [x] `simulation/checkpoint.go`: Checkpoint 構造体。CreateCheckpoint / RestoreCheckpoint
-- [x] `simulation/checkpoint_test.go`: 保存→復元→同一seed続行で結果一致テスト
+1. adapter/ai/provider.go: ActionProvider実装
+   - ProvideActions: StateMessage を stdout に書き出し → stdin から ActionMessage を読み取り → パース → バリデーション → PlayerAction変換
+   - OnTickComplete: 何もしない（AI Mode では StateMessage に全情報を含めるため）
+   - OnGameEnd: GameEndMessage を stdout に書き出し
+2. エラーハンドリング:
+   - 不正なJSON → ErrorMessage を返却 → 再度 StateMessage を送信して再入力待ち
+   - valid_actions にないアクション → ErrorMessage → 再入力待ち
+   - stdin がEOF → ゲームを "quit" で終了
+   - タイムアウト（`--timeout` フラグ）→ 自動 wait アクション
 
-## Phase 7-E: リプレイ（simulation/）
+**完了条件**:
+- パイプ経由で ActionMessage を送り、次の StateMessage を受け取るテスト
+- 不正JSON送信 → ErrorMessage 受信 → 再送信で正常続行するテスト
+- EOF → ゲーム終了のテスト
 
-- [x] `simulation/replay.go`: Replay 構造体（Seed int64, ScenarioID string, Actions map[types.Tick][]PlayerAction）。RecordReplay(engine) *Replay — 実行中のアクション記録。PlayReplay(replay, scenario) GameResult — 記録されたアクションを再生
-- [x] `simulation/replay.go`: MarshalReplay / UnmarshalReplay — JSON保存/復元
-- [x] `simulation/replay_test.go`: 記録→再生で同一GameResult テスト、リプレイのJSON往復テスト
+- [ ] **Task 3-D: AI Mode — CLI統合とE2Eテスト**
 
-## Phase 7-F: AIプレイヤー（simulation/）
+1. cmd/chaosseed-sim/main.go の `--ai` フラグ実装
+   - `--scenario` でシナリオ指定
+   - `--timeout` でアクション入力タイムアウト指定（デフォルト: なし）
+2. E2Eテスト: Go テストから chaosseed-sim プロセスをパイプで起動し、JSON Lines で対話して1ゲーム完走
+   - 全ティック wait で完走（最低限の動作確認）
+   - 数回の dig_room + summon_beast + wait で完走（基本戦略）
+3. adapter/ai/docs/PROTOCOL.md: AI Mode プロトコル仕様書
+   - LLMのプロンプトにそのまま含められる形式
+   - メッセージ型、valid_actions の使い方、エラー処理
 
-- [x] `simulation/ai_player.go`: AIPlayer インターフェース（DecideActions(snapshot GameSnapshot) []PlayerAction）
-- [x] `simulation/ai_player.go`: SimpleAIPlayer — 最低限の自動プレイヤー:
-  1. ChiPool に余裕があれば最安の部屋を建設
-  2. 仙獣部屋に空きがあれば召喚
-  3. 侵入波が来る前に龍穴前にGuard仙獣を配置
-  4. それ以外はNoAction
-- [x] `simulation/ai_player.go`: RandomAIPlayer — ランダムにアクションを選択（RNG経由）。バランステストで「何をしても破綻しないか」の検証用
-- [x] `simulation/ai_player_test.go`: SimpleAIがチュートリアルシナリオをクリアできるテスト、RandomAIが即座にクラッシュしないテスト
+**完了条件**:
+- `echo '...' | chaosseed-sim --ai --scenario tutorial` で動作するテスト
+- E2Eテスト2件（wait完走、基本戦略完走）がパス
+- PROTOCOL.md が存在し、プロトコルの全メッセージ型をカバー
 
-## Phase 7-G: D001 プロファイリング
+- [ ] **Task 3-E: Phase 3 統合テストと完了**
 
-- [x] `simulation/benchmark_test.go`: OnCaveChanged のベンチマーク。部屋数 5/10/20/50 でのティック実行時間を計測
-- [x] `simulation/benchmark_test.go`: 全体ティックのベンチマーク。標準シナリオ100ティックの実行時間を計測
-- [x] DECISIONS.md D001 を更新: ベンチマーク結果を記録し、差分更新が必要かどうかを判断
+1. AI Mode の全機能の統合テスト
+2. Human Mode との共存テスト（同一バイナリで `--human` と `--ai` が切り替え可能）
+3. DECISIONS.md 棚卸し
+4. LESSONS.md 追記
 
-## Phase 7-H: D002 定量検証
+**完了条件**:
+- `cd sim && go test ./... -count=1 -race` 全パス
+- `cd sim && go vet ./...` クリーン
+- PHASE_COMPLETE_3.md 生成
 
-- [x] `simulation/d002_test.go`: D002原則1（不完全性の強制）検証:
-  - 標準シナリオを異なる地形seed×10パターンで実行
-  - SimpleAIの最終風水スコアがseedごとに異なることを確認（最適配置が毎回変わる）
-- [x] `simulation/d002_test.go`: D002原則2（時間圧力）検証:
-  - 標準シナリオで侵入波到達時のSimpleAIの構築進捗を記録
-  - 侵入波の50%以上が「部屋数 < MaxRooms/2」の状態で到達すること
-- [x] `simulation/d002_test.go`: D002原則3（トレードオフの連続）検証:
-  - SimpleAIで標準シナリオを100回実行
-  - ゲームクリア時に「全部屋MAX + 全仙獣MAX」到達率が0%であること
-- [x] `simulation/d002_test.go`: アンチパターン検証:
-  - antipattern_rich シナリオでSimpleAIを実行し「常に黒字」になることを確認（これは面白くないシナリオであることの証拠）
-  - antipattern_impossible シナリオでSimpleAIを実行し即座に敗北することを確認
+---
 
-## Phase 7-I: CLIシミュレーター向けインターフェース（simulation/）
+## Phase 4: Batch Mode + 壊れるサイン検出
 
-- [x] `simulation/runner.go`: SimulationRunner。RunWithAI(scenarioJSON, seed, aiPlayer) RunResult。RunInteractive(scenarioJSON, seed, actionCh chan []PlayerAction, snapshotCh chan GameSnapshot) — チャネルベースの対話型実行
-- [x] `simulation/runner.go`: RunResult（GameResult, TickCount, Statistics）。RunStatistics（PeakChi, WavesDefeated, FinalFengShui, Evolutions, DamageDealt, DamageReceived, DeficitTicks）
-- [x] `simulation/runner.go`: BatchRun(scenarioJSON, seeds []int64, aiPlayer) []RunResult — 複数seedで一括実行。バランス調整用
-- [x] `simulation/runner_test.go`: RunWithAI テスト、BatchRun の決定論性テスト、RunStatistics の集計テスト
+- [ ] **Task 4-A: Metrics — 壊れるサイン検出メトリクス B01〜B05**
 
-## Phase 7-J: ASCII統合表示
+metrics/collector.go に以下のメトリクス収集ロジックを実装する。
 
-- [x] `simulation/ascii.go`: RenderFullStatus(engine) string — 全レイヤー統合のステータス表示（地形+気+仙獣+侵入者+経済+シナリオ進行を1画面に）
-- [x] `cmd/caveviz/main.go` 更新: `--simulate <scenario.json> --seed <N>` でシナリオ自動実行＋毎ティック表示
-- [x] `make check` で品質を確認、必要に応じて修正
+| ID | メトリクス | 収集タイミング |
+|---|---|---|
+| B01 | TicksBeforeFirstWave — 初波到達ティック | 初回侵入波到達時に記録 |
+| B02 | ActionsBeforeFirstWave — 初波前のPlayerAction数 | 初回侵入波到達時に記録 |
+| B03 | TerrainBlockRate — 地形制約による建設阻止率 | DigRoom失敗時に加算 |
+| B04 | ZeroBuildableRate — 建設可能セル極小ゲームの割合 | ゲーム開始時に判定 |
+| B05 | WaveOverlapRate — 建設中に侵入波が到達した割合 | 侵入波到達時に直前Nティックの建設有無を確認 |
 
-## Phase 7-K: 統合検証
+**完了条件**:
+- 各メトリクスが正しく収集されるユニットテスト（5件）
+- B01: 初波がtick 30で来るシナリオ → B01=30
+- B02: 初波前にDigRoom 3回 → B02=3
+- B03: 10回のDigRoom試行で3回地形阻止 → B03=0.3
+- B05: 侵入波到達の直前5ティック以内にDigRoomあり → overlap記録
 
-- [x] `simulation/integration_test.go`: チュートリアルシナリオでSimpleAIが勝利するエンドツーエンドテスト
-- [x] `simulation/integration_test.go`: 標準シナリオでSimpleAIが少なくとも3波は撃退できるテスト
-- [x] `simulation/integration_test.go`: 同一seed×2回実行で完全一致テスト（決定論性）
-- [x] `simulation/integration_test.go`: チェックポイント復元テスト（100tick→保存→復元→続行が元実行と一致）
-- [x] `simulation/integration_test.go`: リプレイ再生テスト（記録→再生で同一結果）
-- [x] `simulation/integration_test.go`: 大規模ストレステスト（64x64、部屋10、仙獣8、波10、1000tick以内完了）
-- [x] `go vet ./...` と `go test -race ./...` がクリーンに通ることを確認
-- [x] Phase 7 完了。DECISIONS.md 最終更新。CHANGELOG.md に全フェーズの記録。v1.0.0 タグ準備。PHASE_COMPLETE 作成。**chaosseed-core v1.0.0 リリース**
+- [ ] **Task 4-B: Metrics — 壊れるサイン検出メトリクス B06〜B09**
+
+| ID | メトリクス | 収集タイミング |
+|---|---|---|
+| B06 | StompRate — CoreHP80%以上残して勝利の割合 | ゲーム終了時に判定 |
+| B07 | EarlyWipeRate — 全ティック50%以内に敗北の割合 | ゲーム終了時に判定 |
+| B08 | PerfectionRate — 全部屋MaxLv到達ゲームの割合 | ゲーム終了時（勝利時のみ）に判定 |
+| B09 | AvgRoomLevelRatio — クリア時のLv平均/MaxLv | ゲーム終了時（勝利時のみ）に計算 |
+
+**完了条件**:
+- 各メトリクスが正しく収集されるユニットテスト（4件）
+- B06: CoreHP 90/100 で勝利 → stomp=true
+- B07: max_ticks=200 のシナリオで tick 80 に敗北 → early_wipe=true
+- B08: 全部屋Lv5/MaxLv5 で勝利 → perfection=true
+- B09: 3部屋でLv 2,3,4、MaxLv=5 → ratio=0.6
+
+- [ ] **Task 4-C: Metrics — 壊れるサイン検出メトリクス B10〜B11 + BreakageReport**
+
+| ID | メトリクス | 収集タイミング |
+|---|---|---|
+| B10 | LayoutEntropy — 異なるseed間の部屋配置エントロピー | バッチ完了後に全ゲームの配置を比較 |
+| B11 | ResourceSurplusRate — ゲーム後半でChiPool余剰のティック割合 | 毎ティック ChiPool/MaxObserved を追跡 |
+
+1. metrics/breakage.go:
+   - BreakageAlert 構造体（MetricID, BrokenSign, Value, Threshold, Direction）
+   - BreakageReport 構造体（Alerts, Clean）
+   - DetectBreakage() — 全メトリクスの閾値判定
+2. 閾値はD002テーブルから直接転記:
+   - B01: < シナリオ定義の最低猶予ティック
+   - B02: < 3
+   - B03: < 0.05
+   - B04: > 0.10
+   - B05: < 0.30
+   - B06: > 0.30
+   - B07: > 0.20
+   - B08: > 0.05
+   - B09: > 0.80
+   - B10: < 閾値（要シナリオ依存の調整）
+   - B11: > 0.50
+
+**完了条件**:
+- B10: 異なるseed 10個でのゲーム結果から配置エントロピーが計算されるテスト
+- B11: ChiPool が常に余裕あるゲーム → surplus_rate > 0.5 のテスト
+- DetectBreakage() が閾値違反のメトリクスだけをアラートに含めるテスト
+- アラート0件のケースで Clean に全IDが含まれるテスト
+
+- [ ] **Task 4-D: Batch Mode — 並列バッチ実行**
+
+sim/adapter/batch/ パッケージを作成する。
+
+1. adapter/batch/runner.go:
+   - BatchRunner 構造体（シナリオ、ゲーム数、AIタイプ、並列数）
+   - Run() → []GameSummary + BreakageReport
+   - goroutine プール（runtime.NumCPU() ベース）
+   - 進捗表示（stderr に "100/1000 games completed..." 形式）
+2. 各ゲームは独立したRNGシード（ベースシード + ゲーム番号）
+
+**完了条件**:
+- 100ゲームのバッチ実行が成功するテスト
+- 並列実行でも決定論性が保たれるテスト（同一ベースシード → 同一結果）
+- GameSummary が全ゲーム分集約されるテスト
+
+- [ ] **Task 4-E: Batch Mode — レポート生成とパラメータスイープ**
+
+1. metrics/report.go:
+   - GenerateJSON(summaries, breakageReport) → JSON文字列
+   - GenerateCSV(summaries) → CSV文字列
+   - 出力フォーマットはPRDセクション3.3のBatch Mode出力に準拠
+2. adapter/batch/sweep.go:
+   - パラメータスイープ実行（"key=v1,v2,v3" 形式のパース）
+   - シナリオJSONの指定パラメータを動的に書き換えてバッチ実行
+   - 各パラメータ値ごとの BreakageReport を比較出力
+
+**完了条件**:
+- JSON レポートが PRD のフォーマットに準拠するテスト
+- CSV レポートが生成されるテスト
+- パラメータスイープ "economy.supply_multiplier=0.5,1.0,2.0" で3回のバッチ実行が行われるテスト
+
+- [ ] **Task 4-F: Batch Mode — CLI統合とD002検証**
+
+1. cmd/chaosseed-sim/main.go の `--batch` フラグ実装
+   - `--scenario`, `--games`, `--ai`, `--output`, `--format`, `--sweep` オプション
+2. D002検証: core Phase 7-H の検証をBreakageReportで再現
+   - チュートリアルシナリオ × SimpleAI × 1,000ゲーム
+   - BreakageReport のアラートが0件であることを確認
+3. パフォーマンステスト: 1,000ゲーム × SimpleAI が5分以内
+
+**完了条件**:
+- `chaosseed-sim --batch --scenario tutorial --games 1000 --ai simple --output results.json` が成功
+- results.json の breakage_report.alerts が空配列
+- 1,000ゲームが5分以内に完了（テストでタイムアウト設定）
+
+- [ ] **Task 4-G: Phase 4 統合テストと完了**
+
+1. Batch Mode の全機能統合テスト
+2. Human Mode / AI Mode / Batch Mode の共存テスト
+3. DECISIONS.md 棚卸し
+4. LESSONS.md 追記
+
+**完了条件**:
+- `cd sim && go test ./... -count=1 -race` 全パス
+- `cd sim && go vet ./...` クリーン
+- PHASE_COMPLETE_4.md 生成
+
+---
+
+## Phase 5: バランス調整ダッシュボード
+
+- [ ] **Task 5-A: ダッシュボード — ベースライン実行と壊れるサイン表示**
+
+sim/balance/ パッケージを作成する。
+
+1. balance/dashboard.go:
+   - Dashboard 構造体（シナリオ、ゲーム数、AIタイプ）
+   - Run() — ベースラインのバッチ実行 → BreakageReport の整形表示
+   - 表示フォーマット: ✅/🔴 + メトリクスID + 名前 + 値 + 閾値
+2. stdin からの対話操作（スイープ実行の確認等）
+
+**完了条件**:
+- ダッシュボード表示が PRD セクション4 のフォーマットに準拠するテスト
+- アラート0件の場合に "No breakage detected" が表示されるテスト
+- アラートありの場合にメトリクスID + 壊れるサイン + 調整の方向が表示されるテスト
+
+- [ ] **Task 5-B: ダッシュボード — スイープ提案と比較**
+
+1. balance/suggest.go:
+   - SuggestSweep(alert BreakageAlert) → パラメータ名と値の候補
+   - D002テーブルの「調整の方向」に基づくルールベースの提案
+   - 例: B06(StompRate) → invasion.base_attack_power のスイープ提案
+2. balance/compare.go:
+   - CompareResults(baseline, sweepResults) → 比較表の文字列
+   - 新たなアラートが発生したパラメータ値には警告マーク
+   - "Best" 判定: アラート解消 + 新規アラートなし
+
+**完了条件**:
+- B06 アラートから invasion.base_attack_power のスイープが提案されるテスト
+- スイープ結果の比較表が生成されるテスト
+- 新規アラート発生時に警告が表示されるテスト
+
+- [ ] **Task 5-C: ダッシュボード — パラメータ適用とCLI統合**
+
+1. balance/apply.go:
+   - ApplyParameter(scenarioPath, key, value) — シナリオJSONの指定パラメータを書き換え
+   - バックアップファイルの自動生成（.bak）
+2. cmd/chaosseed-sim/main.go の `--balance` フラグ実装
+   - `--scenario`, `--games` オプション
+3. E2Eテスト: ダッシュボード起動 → スイープ → 適用 の一連の流れ
+
+**完了条件**:
+- `chaosseed-sim --balance --scenario tutorial --games 100` が起動するテスト
+- パラメータ適用後にシナリオJSONが更新されるテスト
+- バックアップファイルが生成されるテスト
+
+- [ ] **Task 5-D: Phase 5 統合テストと完了**
+
+1. ダッシュボードの全機能統合テスト
+2. 全モード（Human / AI / Batch / Balance）の共存テスト
+3. DECISIONS.md 棚卸し
+4. LESSONS.md 追記
+
+**完了条件**:
+- `cd sim && go test ./... -count=1 -race` 全パス
+- `cd sim && go vet ./...` クリーン
+- PHASE_COMPLETE_5.md 生成
+
+---
+
+## Phase 6: 統合検証 + リリース
+
+- [ ] **Task 6-A: 全モード統合テスト**
+
+1. Human Mode: スクリプト入力でチュートリアルシナリオ完走
+2. AI Mode: パイプ経由でチュートリアルシナリオ完走
+3. Batch Mode: 1,000ゲーム × SimpleAI → BreakageReport アラート0件
+4. Balance: ダッシュボード起動 → BreakageReport 表示
+5. リプレイ: Batch で記録 → `--replay` で再生 → 決定論性確認
+6. チェックポイント: Human Mode で保存 → `--checkpoint` で復元 → 続行
+7. `go test ./... -count=1 -race` 全パス（core + sim）
+8. `go vet ./...` クリーン（core + sim）
+
+**完了条件**:
+- 上記8項目すべてパス
+
+- [ ] **Task 6-B: ドキュメント更新とリリース準備**
+
+1. HANDOFF.md 更新
+   - sim の完了フェーズを追記
+   - アーキテクチャ（Game Server + 3アダプター）の記載
+   - Breakageメトリクス（B01〜B11）の記載
+   - 次のステップ（chaosseed-game）の更新
+2. DECISIONS.md 更新 — sim全フェーズで生まれた設計判断の最終棚卸し
+3. LESSONS.md 更新 — sim全フェーズの知見の最終追記
+4. sim/README.md の最終更新（全モードの使い方、プロトコル仕様へのリンク）
+5. v1.0.0 タグの準備
+
+**完了条件**:
+- HANDOFF.md, DECISIONS.md, LESSONS.md が最新
+- README.md が全モードをカバー
+- PHASE_COMPLETE_6.md 生成
