@@ -37,6 +37,13 @@
 - GameServer + Collector の統合テストでは、`LoadBuiltinScenario` で組み込みシナリオを直接読み込むのが最も簡潔。テスト用 JSON を手書きする `tutorialScenarioJSON()` パターンよりも、実際の組み込みシナリオを使うことで JSON 定義の正当性も同時に検証できる。
 - NoAction プロバイダーでも tutorial シナリオは survive_until 条件で勝利し、standard シナリオは defeat_all_waves で勝利する（仙獣が初期配置されているため）。AIの介入なしでもゲームが完走することの確認は、エンジンの堅牢性テストとして有用。
 
+## Phase 2: Human Mode
+
+- HumanProvider の E2E テストでは、スクリプト化された入力（`strings.NewReader`）を `InputReader` に渡すことで、対話的なメニュー遷移を自動化できる。ただし入力シーケンスはメニュー構造に強く依存するため、メニューの選択肢の順序（部屋タイプのアルファベット順ソートなど）を事前に把握する必要がある。
+- 早送り（FastForward）中にゲームが終了すると `OnTickComplete` の FF サマリーが表示されない。これは正常な動作（`OnGameEnd` が先に呼ばれる）だが、テストでは「早送り完了」メッセージの有無を条件にしないこと。
+- GameServer の runLoop は ActionProvider.OnTickComplete → 終了条件チェックの順なので、最終ティックの OnTickComplete は常に呼ばれる。ただし FF 中の場合、ffStartSnapshot のサマリーは表示されずに OnGameEnd に遷移する。
+- ASCII描画の目視確認テスト（`TestVisual_*`）は `-short` フラグでスキップ可能にしておくと CI で邪魔にならない。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。
