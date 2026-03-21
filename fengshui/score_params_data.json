@@ -1,0 +1,7 @@
+{
+  "generates_bonus": 20.0,
+  "overcomes_penalty": -15.0,
+  "same_element_bonus": 5.0,
+  "dragon_vein_bonus": 30.0,
+  "chi_ratio_weight": 100.0
+}

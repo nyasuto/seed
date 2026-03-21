@@ -112,15 +112,15 @@
 
 ## Phase 2-D: 風水評価スコア（fengshui/）
 
-- [ ] `fengshui/score_params.go`: ScoreParams 構造体（GeneratesBonus float64, OvercomesPenalty float64, SameElementBonus float64, DragonVeinBonus float64, ChiRatioWeight float64）。DefaultScoreParams() で初期値。JSON読み込み対応: LoadScoreParams(path)
-- [ ] `fengshui/score_params_data.json`: デフォルトスコアパラメータ（相生: +20, 相克: -15, 同属性: +5, 龍脈接続: +30, 気充填率ウェイト: 100）
-- [ ] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, ChiScore float64, AdjacencyScore float64, DragonVeinScore float64, Total float64）。内訳を保持
-- [ ] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave, registry, params) で生成。EvaluateRoom(roomID, flowEngine) FengShuiScore — 個別部屋のスコア算出。EvaluateAll(flowEngine) []FengShuiScore — 全部屋一括。CaveTotal(flowEngine) float64 — 洞窟全体の風水スコア合計。スコアリング:
+- [x] `fengshui/score_params.go`: ScoreParams 構造体（GeneratesBonus float64, OvercomesPenalty float64, SameElementBonus float64, DragonVeinBonus float64, ChiRatioWeight float64）。DefaultScoreParams() で初期値。JSON読み込み対応: LoadScoreParams(path)
+- [x] `fengshui/score_params_data.json`: デフォルトスコアパラメータ（相生: +20, 相克: -15, 同属性: +5, 龍脈接続: +30, 気充填率ウェイト: 100）
+- [x] `fengshui/score.go`: FengShuiScore 構造体（RoomID int, ChiScore float64, AdjacencyScore float64, DragonVeinScore float64, Total float64）。内訳を保持
+- [x] `fengshui/evaluator.go`: Evaluator 構造体。NewEvaluator(cave, registry, params) で生成。EvaluateRoom(roomID, flowEngine) FengShuiScore — 個別部屋のスコア算出。EvaluateAll(flowEngine) []FengShuiScore — 全部屋一括。CaveTotal(flowEngine) float64 — 洞窟全体の風水スコア合計。スコアリング:
   1. ChiScore = 部屋の気充填率 × ChiRatioWeight
   2. AdjacencyScore = 隣接部屋との五行相性ボーナス/ペナルティの合計（Paramsから取得）
   3. DragonVeinScore = 龍脈に接続されていれば DragonVeinBonus
   4. Total = ChiScore + AdjacencyScore + DragonVeinScore
-- [ ] `fengshui/evaluator_test.go`: 単独部屋のスコアテスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト、パラメータ変更がスコアに反映されるテスト
+- [x] `fengshui/evaluator_test.go`: 単独部屋のスコアテスト、相生隣接ボーナステスト、相克隣接ペナルティテスト、龍脈接続ボーナステスト、全部屋一括評価テスト、パラメータ変更がスコアに反映されるテスト
 
 ## Phase 2-E: 風水シリアライズ（fengshui/）
 
