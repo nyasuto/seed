@@ -63,14 +63,27 @@ func TestBuildSnapshot_ChiPoolBalance(t *testing.T) {
 	pool := economy.NewChiPool(1000)
 	_ = pool.Deposit(350, economy.Supply, "test", 0)
 
-	engine := economy.NewEconomyEngine(
-		pool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
-	)
+	sp, err := economy.DefaultSupplyParams()
+	if err != nil {
+		t.Fatalf("DefaultSupplyParams: %v", err)
+	}
+	cp, err := economy.DefaultCostParams()
+	if err != nil {
+		t.Fatalf("DefaultCostParams: %v", err)
+	}
+	dp, err := economy.DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
+	cc, err := economy.DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
+	bc, err := economy.DefaultBeastCost()
+	if err != nil {
+		t.Fatalf("DefaultBeastCost: %v", err)
+	}
+	engine := economy.NewEconomyEngine(pool, sp, cp, dp, cc, bc)
 
 	state := &GameState{
 		EconomyEngine: engine,

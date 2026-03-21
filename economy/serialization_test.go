@@ -8,11 +8,7 @@ import (
 )
 
 func TestMarshalUnmarshalEconomyState_RoundTrip(t *testing.T) {
-	supplyParams := DefaultSupplyParams()
-	costParams := DefaultCostParams()
-	deficitParams := DefaultDeficitParams()
-	constructionCost := DefaultConstructionCost()
-	beastCost := DefaultBeastCost()
+	supplyParams, costParams, deficitParams, constructionCost, beastCost := mustLoadDefaults(t)
 
 	chiPool := NewChiPool(100.0)
 	engine := NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
@@ -94,11 +90,7 @@ func TestMarshalUnmarshalEconomyState_RoundTrip(t *testing.T) {
 }
 
 func TestMarshalUnmarshalEconomyState_EmptyHistory(t *testing.T) {
-	supplyParams := DefaultSupplyParams()
-	costParams := DefaultCostParams()
-	deficitParams := DefaultDeficitParams()
-	constructionCost := DefaultConstructionCost()
-	beastCost := DefaultBeastCost()
+	supplyParams, costParams, deficitParams, constructionCost, beastCost := mustLoadDefaults(t)
 
 	chiPool := NewChiPool(200.0)
 	engine := NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)
@@ -140,11 +132,7 @@ func TestMarshalEconomyState_NilChiPool(t *testing.T) {
 }
 
 func TestUnmarshalEconomyState_InvalidJSON(t *testing.T) {
-	supplyParams := DefaultSupplyParams()
-	costParams := DefaultCostParams()
-	deficitParams := DefaultDeficitParams()
-	constructionCost := DefaultConstructionCost()
-	beastCost := DefaultBeastCost()
+	supplyParams, costParams, deficitParams, constructionCost, beastCost := mustLoadDefaults(t)
 
 	_, err := UnmarshalEconomyState([]byte("invalid"), supplyParams, costParams, deficitParams, constructionCost, beastCost)
 	if err == nil {
@@ -153,11 +141,7 @@ func TestUnmarshalEconomyState_InvalidJSON(t *testing.T) {
 }
 
 func TestMarshalUnmarshalEconomyState_WithAllTransactionTypes(t *testing.T) {
-	supplyParams := DefaultSupplyParams()
-	costParams := DefaultCostParams()
-	deficitParams := DefaultDeficitParams()
-	constructionCost := DefaultConstructionCost()
-	beastCost := DefaultBeastCost()
+	supplyParams, costParams, deficitParams, constructionCost, beastCost := mustLoadDefaults(t)
 
 	chiPool := NewChiPool(1000.0)
 	engine := NewEconomyEngine(chiPool, supplyParams, costParams, deficitParams, constructionCost, beastCost)

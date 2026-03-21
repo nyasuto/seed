@@ -117,7 +117,11 @@ func main() {
 			fmt.Printf("error building chi engine: %v\n", err)
 			return
 		}
-		ecoEngine := buildDemoEconomyEngine()
+		ecoEngine, err := buildDemoEconomyEngine()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "economy engine: %v\n", err)
+			return
+		}
 		// Run 10 ticks of chi flow to populate RoomChi.
 		for range 10 {
 			chiEngine.Tick()
@@ -237,17 +241,30 @@ func buildDemoEngine(cave *world.Cave) (*fengshui.ChiFlowEngine, error) {
 
 // buildDemoEconomyEngine creates an EconomyEngine with default parameters and
 // a chi pool seeded with an initial balance for demo purposes.
-func buildDemoEconomyEngine() *economy.EconomyEngine {
+func buildDemoEconomyEngine() (*economy.EconomyEngine, error) {
 	pool := economy.NewChiPool(150.0)
 	_ = pool.Deposit(50.0, economy.Supply, "initial", 0)
-	return economy.NewEconomyEngine(
-		pool,
-		economy.DefaultSupplyParams(),
-		economy.DefaultCostParams(),
-		economy.DefaultDeficitParams(),
-		economy.DefaultConstructionCost(),
-		economy.DefaultBeastCost(),
-	)
+	sp, err := economy.DefaultSupplyParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading supply params: %w", err)
+	}
+	cp, err := economy.DefaultCostParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading cost params: %w", err)
+	}
+	dp, err := economy.DefaultDeficitParams()
+	if err != nil {
+		return nil, fmt.Errorf("loading deficit params: %w", err)
+	}
+	cc, err := economy.DefaultConstructionCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading construction cost: %w", err)
+	}
+	bc, err := economy.DefaultBeastCost()
+	if err != nil {
+		return nil, fmt.Errorf("loading beast cost: %w", err)
+	}
+	return economy.NewEconomyEngine(pool, sp, cp, dp, cc, bc), nil
 }
 
 // buildDemoWaves creates demo invasion waves with invaders in various states.

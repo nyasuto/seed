@@ -21,9 +21,8 @@ type SupplyParams struct {
 }
 
 // DefaultSupplyParams returns the default supply parameters loaded from embedded JSON.
-func DefaultSupplyParams() *SupplyParams {
-	p, _ := LoadSupplyParams(defaultSupplyParamsJSON)
-	return p
+func DefaultSupplyParams() (*SupplyParams, error) {
+	return LoadSupplyParams(defaultSupplyParamsJSON)
 }
 
 // LoadSupplyParams parses supply parameters from JSON data.

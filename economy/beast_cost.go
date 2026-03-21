@@ -24,12 +24,8 @@ type BeastCost struct {
 }
 
 // DefaultBeastCost returns the default beast cost loaded from embedded JSON.
-func DefaultBeastCost() *BeastCost {
-	bc, err := LoadBeastCost(defaultBeastCostJSON)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load embedded beast cost: %v", err))
-	}
-	return bc
+func DefaultBeastCost() (*BeastCost, error) {
+	return LoadBeastCost(defaultBeastCostJSON)
 }
 
 // LoadBeastCost parses beast cost parameters from JSON data.

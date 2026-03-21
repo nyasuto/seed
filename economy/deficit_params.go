@@ -26,12 +26,8 @@ type DeficitParams struct {
 }
 
 // DefaultDeficitParams returns the default DeficitParams loaded from the embedded JSON.
-func DefaultDeficitParams() *DeficitParams {
-	p, err := LoadDeficitParams(deficitParamsJSON)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load embedded deficit params: %v", err))
-	}
-	return p
+func DefaultDeficitParams() (*DeficitParams, error) {
+	return LoadDeficitParams(deficitParamsJSON)
 }
 
 // LoadDeficitParams decodes DeficitParams from JSON data.

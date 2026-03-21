@@ -22,12 +22,8 @@ type ConstructionCost struct {
 }
 
 // DefaultConstructionCost returns the default construction cost loaded from embedded JSON.
-func DefaultConstructionCost() *ConstructionCost {
-	c, err := LoadConstructionCost(defaultConstructionCostJSON)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load embedded construction cost: %v", err))
-	}
-	return c
+func DefaultConstructionCost() (*ConstructionCost, error) {
+	return LoadConstructionCost(defaultConstructionCostJSON)
 }
 
 // LoadConstructionCost parses construction cost parameters from JSON data.

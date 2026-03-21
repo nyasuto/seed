@@ -209,7 +209,10 @@ func TestProcessDeficit_ZeroBalanceTotalDeficit(t *testing.T) {
 }
 
 func TestDeficitParams_LoadFromJSON(t *testing.T) {
-	p := DefaultDeficitParams()
+	p, err := DefaultDeficitParams()
+	if err != nil {
+		t.Fatalf("DefaultDeficitParams: %v", err)
+	}
 	if p.MildThreshold != 0.3 {
 		t.Errorf("expected mild threshold 0.3, got %f", p.MildThreshold)
 	}

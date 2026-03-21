@@ -46,7 +46,7 @@ func standardBalanceConfig() (
 const assumedInvasionInterval = 15
 
 func TestBalance_MaintenanceToSupplyRatio(t *testing.T) {
-	e := newTestEngine(0)
+	e := newTestEngine(t,0)
 	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
 
 	const totalTicks = 200
@@ -69,7 +69,7 @@ func TestBalance_MaintenanceToSupplyRatio(t *testing.T) {
 }
 
 func TestBalance_ConstructionCausesSignificantDrop(t *testing.T) {
-	e := newTestEngine(0)
+	e := newTestEngine(t,0)
 	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
 
 	// Let chi accumulate for 20 ticks.
@@ -95,7 +95,7 @@ func TestBalance_ConstructionCausesSignificantDrop(t *testing.T) {
 }
 
 func TestBalance_RecoverySlowerThanInvasionInterval(t *testing.T) {
-	e := newTestEngine(0)
+	e := newTestEngine(t,0)
 	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
 
 	const totalTicks = 200
@@ -114,7 +114,10 @@ func TestBalance_RecoverySlowerThanInvasionInterval(t *testing.T) {
 
 	// After building the most expensive room (dragon_den = 50 chi),
 	// recovery time should exceed invasion wave interval.
-	cc := DefaultConstructionCost()
+	cc, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
 	dragonDenCost := cc.CalcRoomCost("dragon_den")
 	recoveryTicks := int(dragonDenCost / avgNetPerTick)
 
@@ -133,8 +136,7 @@ func TestBalance_CannotMaxAllByTick200(t *testing.T) {
 	const maxLevel = 5
 
 	// Calculate total cost to upgrade all 6 rooms to max level and summon 3 beasts.
-	cc := DefaultConstructionCost()
-	bc := DefaultBeastCost()
+	_, _, _, cc, bc := mustLoadDefaults(t)
 
 	var totalUpgradeCost float64
 	for _, r := range rooms {
@@ -151,7 +153,7 @@ func TestBalance_CannotMaxAllByTick200(t *testing.T) {
 	totalCostToMax := totalUpgradeCost + totalSummonCost
 
 	// Calculate total net income over 200 ticks.
-	e := newTestEngine(0)
+	e := newTestEngine(t, 0)
 	rooms2, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
 	var totalSupply, totalMaintenance float64
 
@@ -177,17 +179,17 @@ func TestBalance_DoubledSupplyStillHasScarcity(t *testing.T) {
 	// When supply is doubled, the economy must NOT become trivially always-profitable.
 	// D002 anti-pattern: if doubled supply makes deficit/construction trade-offs
 	// irrelevant, the base supply is already too generous.
-	sp := DefaultSupplyParams()
+	sp, cp, dp, cc2, bc2 := mustLoadDefaults(t)
 	sp.BaseSupplyPerVein *= 2 // Double the supply
 
 	pool := NewChiPool(1000)
 	e := NewEconomyEngine(
 		pool,
 		sp,
-		DefaultCostParams(),
-		DefaultDeficitParams(),
-		DefaultConstructionCost(),
-		DefaultBeastCost(),
+		cp,
+		dp,
+		cc2,
+		bc2,
 	)
 
 	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
@@ -217,7 +219,10 @@ func TestBalance_DoubledSupplyStillHasScarcity(t *testing.T) {
 	// Dragon den construction should still consume a noticeable portion of
 	// accumulated balance after 20 ticks (same check as base test).
 	balanceBefore := e.ChiPool.Balance()
-	cc := DefaultConstructionCost()
+	cc, err := DefaultConstructionCost()
+	if err != nil {
+		t.Fatalf("DefaultConstructionCost: %v", err)
+	}
 	dragonDenCost := cc.CalcRoomCost("dragon_den")
 	dropRatio := dragonDenCost / balanceBefore
 	if dropRatio < 0.05 {
@@ -232,13 +237,15 @@ func TestBalance_DoubledSupplyStillHasScarcity(t *testing.T) {
 	}
 
 	// Removing all veins should still cause deficit even with doubled base.
+	sp2, cp2, dp2, cc3, bc3 := mustLoadDefaults(t)
+	sp2.BaseSupplyPerVein *= 2
 	e2 := NewEconomyEngine(
 		NewChiPool(1000),
-		sp,
-		DefaultCostParams(),
-		DefaultDeficitParams(),
-		DefaultConstructionCost(),
-		DefaultBeastCost(),
+		sp2,
+		cp2,
+		dp2,
+		cc3,
+		bc3,
 	)
 	noVeins := []fengshui.DragonVein{}
 	deficitWithNoVeins := false
@@ -261,22 +268,22 @@ func TestBalance_HalvedMaintenanceStillHasTradeoffs(t *testing.T) {
 	// When maintenance cost is halved, trade-offs must not vanish.
 	// D002 anti-pattern: if halved maintenance makes the economy trivially
 	// self-sustaining, the base maintenance is the only pressure.
-	cp := DefaultCostParams()
+	sp, cpHalf, dp, ccH, bcH := mustLoadDefaults(t)
 	// Halve all maintenance costs.
-	for k, v := range cp.RoomMaintenancePerTick {
-		cp.RoomMaintenancePerTick[k] = v / 2
+	for k, v := range cpHalf.RoomMaintenancePerTick {
+		cpHalf.RoomMaintenancePerTick[k] = v / 2
 	}
-	cp.BeastMaintenancePerTick /= 2
-	cp.TrapMaintenancePerTick /= 2
+	cpHalf.BeastMaintenancePerTick /= 2
+	cpHalf.TrapMaintenancePerTick /= 2
 
 	pool := NewChiPool(1000)
 	e := NewEconomyEngine(
 		pool,
-		DefaultSupplyParams(),
-		cp,
-		DefaultDeficitParams(),
-		DefaultConstructionCost(),
-		DefaultBeastCost(),
+		sp,
+		cpHalf,
+		dp,
+		ccH,
+		bcH,
 	)
 
 	rooms, beastCount, trapCount, veins, roomChis, caveScore := standardBalanceConfig()
@@ -291,8 +298,7 @@ func TestBalance_HalvedMaintenanceStillHasTradeoffs(t *testing.T) {
 	}
 
 	// Even with halved maintenance, total net income should NOT cover maxing everything.
-	cc := DefaultConstructionCost()
-	bc := DefaultBeastCost()
+	_, _, _, cc, bc := mustLoadDefaults(t)
 
 	var totalCostToMax float64
 	for _, r := range rooms {
@@ -336,7 +342,7 @@ func TestBalance_DeficitRecoveryCycle(t *testing.T) {
 	// Simulate dragon vein loss (e.g., during invasion damage) → deficit → recovery.
 	// Phase 1: No veins, maintenance drains balance to deficit.
 	// Phase 2: Vein restored, supply recovers balance.
-	e := newTestEngine(20) // Small initial balance.
+	e := newTestEngine(t,20) // Small initial balance.
 	rooms, beastCount, trapCount, _, roomChis, caveScore := standardBalanceConfig()
 
 	noVeins := []fengshui.DragonVein{}
