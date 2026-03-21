@@ -1,5 +1,7 @@
 // Command caveviz generates a hardcoded Cave and prints its ASCII representation.
 // Use --chi to display a chi flow overlay with dragon veins.
+// Use --beasts to display beast placements.
+// Use --all to display all layers (standard + chi + beasts).
 package main
 
 import (
@@ -7,12 +9,15 @@ import (
 	"fmt"
 
 	"github.com/ponpoko/chaosseed-core/fengshui"
+	"github.com/ponpoko/chaosseed-core/senju"
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
 )
 
 func main() {
 	chiMode := flag.Bool("chi", false, "display chi flow overlay")
+	beastMode := flag.Bool("beasts", false, "display beast placement overlay")
+	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts)")
 	flag.Parse()
 
 	cave, err := buildDemoCave()
@@ -21,24 +26,39 @@ func main() {
 		return
 	}
 
-	if *chiMode {
+	showChi := *chiMode || *allMode
+	showBeasts := *beastMode || *allMode
+
+	if showChi {
 		engine, err := buildDemoEngine(cave)
 		if err != nil {
 			fmt.Printf("error building chi engine: %v\n", err)
 			return
 		}
-		// Run 10 ticks to let chi accumulate.
 		for i := 0; i < 10; i++ {
 			engine.Tick()
 		}
 		fmt.Print(fengshui.RenderChiOverlay(cave, engine))
 		fmt.Println()
-		fmt.Println("Legend: ██=Rock/Full  ~~=DragonVein  ..=Corridor  ><= Entrance")
+		fmt.Println("Legend: ██=Rock/Full  ~~=DragonVein  ..=Corridor  ><=Entrance")
 		fmt.Println("       __=Empty  ░░=Low  ▒▒=Mid  ▓▓=High  ██=Full")
-	} else {
+	}
+
+	if showBeasts {
+		beasts := buildDemoBeasts()
+		if showChi {
+			fmt.Println()
+		}
+		fmt.Print(senju.RenderBeastOverlay(cave, beasts))
+		fmt.Println()
+		fmt.Println("Legend: ██=Rock  ..=Corridor  ><=Entrance  W=Wood F=Fire E=Earth M=Metal A=Water")
+		fmt.Println("       WW=1beast  2F=2 fire beasts  11=RoomID(no beasts)")
+	}
+
+	if !showChi && !showBeasts {
 		fmt.Print(cave.RenderASCII())
 		fmt.Println()
-		fmt.Println("Legend: ██=Rock  ..=Corridor  []=RoomFloor  ><= Entrance  1-9,A-Z=RoomID")
+		fmt.Println("Legend: ██=Rock  ..=Corridor  []=RoomFloor  ><=Entrance  1-9,A-Z=RoomID")
 	}
 }
 
@@ -93,6 +113,15 @@ func buildDemoCave() (*world.Cave, error) {
 	}
 
 	return cave, nil
+}
+
+// buildDemoBeasts creates demo beasts placed in the cave rooms.
+func buildDemoBeasts() []*senju.Beast {
+	return []*senju.Beast{
+		{ID: 1, SpeciesID: "suiryu", Name: "翠龍", Element: types.Wood, RoomID: 3, Level: 1},
+		{ID: 2, SpeciesID: "enhou", Name: "炎鳳", Element: types.Fire, RoomID: 3, Level: 1},
+		{ID: 3, SpeciesID: "kinrou", Name: "金狼", Element: types.Metal, RoomID: 4, Level: 1},
+	}
 }
 
 // buildDemoEngine creates a ChiFlowEngine with two dragon veins for the demo cave.

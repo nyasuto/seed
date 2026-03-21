@@ -184,9 +184,9 @@
 
 ## Phase 3-F: ASCII可視化への仙獣レイヤー追加
 
-- [ ] `senju/ascii.go`: RenderBeastOverlay(cave, beasts) string — CaveのASCII表示に仙獣の配置をオーバーレイ。部屋内に仙獣の属性を示す文字を表示（木:W, 火:F, 土:E, 金:M, 水:A）。仙獣数が2以上の部屋は数字+属性（例: `2F`）
-- [ ] `cmd/caveviz/main.go` 更新: `--beasts` フラグで仙獣レイヤー表示。`--all` で全レイヤー（通常+気+仙獣）を重ねて表示
-- [ ] `senju/ascii_test.go`: 小さなCaveで仙獣オーバーレイの出力テスト
+- [x] `senju/ascii.go`: RenderBeastOverlay(cave, beasts) string — CaveのASCII表示に仙獣の配置をオーバーレイ。部屋内に仙獣の属性を示す文字を表示（木:W, 火:F, 土:E, 金:M, 水:A）。仙獣数が2以上の部屋は数字+属性（例: `2F`）
+- [x] `cmd/caveviz/main.go` 更新: `--beasts` フラグで仙獣レイヤー表示。`--all` で全レイヤー（通常+気+仙獣）を重ねて表示
+- [x] `senju/ascii_test.go`: 小さなCaveで仙獣オーバーレイの出力テスト
 
 ## Phase 3-G: 統合検証
 
