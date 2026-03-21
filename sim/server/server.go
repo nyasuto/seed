@@ -38,6 +38,7 @@ func (gs *GameServer) RunGame(provider ActionProvider) (simulation.RunResult, er
 	}
 
 	gs.engine = engine
+	simulation.EnableRecording(engine)
 	defer func() { gs.engine = nil }()
 
 	return gs.runLoop(provider)

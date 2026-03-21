@@ -142,7 +142,7 @@ sim/server/ パッケージを作成する。
 **完了条件**:
 - チェックポイント保存 → 復元 → 続行が元実行と同一結果になるテスト
 
-- [ ] **Task 1-H: Game Server — リプレイ保存/再生**
+- [x] **Task 1-H: Game Server — リプレイ保存/再生**
 
 1. server/replay.go: リプレイ機能
    - SaveReplay(path string) — アクション履歴をファイルに保存
