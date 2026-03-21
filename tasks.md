@@ -285,7 +285,7 @@
 
 ## Phase 4-D: 撤退ロジック（invasion/）
 
-- [ ] `invasion/retreat.go`: RetreatEvaluator 構造体。ShouldRetreat(invader, wave) bool — 撤退判定:
+- [x] `invasion/retreat.go`: RetreatEvaluator 構造体。ShouldRetreat(invader, wave) bool — 撤退判定:
   1. HP が MaxHP × RetreatThreshold 以下 → 撤退
   2. 同一波の仲間が半数以上 Defeated → 撤退（士気崩壊）
   3. 目標達成済み（GoalAchieved）→ 撤退（戦利品を持って帰る）
