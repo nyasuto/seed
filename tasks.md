@@ -229,8 +229,8 @@
 
 ## Phase 3.5-E: ASCII可視化への行動レイヤー追加
 
-- [ ] `senju/ascii.go` 更新: 仙獣の行動状態を表示に反映。Guard: `[G]`, Patrol: `[P]`, Chase: `[!]`, Flee: `[←]`, Recovering: `[+]`。侵入者位置のプレースホルダー表示（`??` — Phase 4で本実装）
-- [ ] `cmd/caveviz/main.go` 更新: `--ai` フラグで行動状態レイヤー表示
+- [x] `senju/ascii.go` 更新: 仙獣の行動状態を表示に反映。Guard: `[G]`, Patrol: `[P]`, Chase: `[!]`, Flee: `[←]`, Recovering: `[+]`。侵入者位置のプレースホルダー表示（`??` — Phase 4で本実装）
+- [x] `cmd/caveviz/main.go` 更新: `--ai` フラグで行動状態レイヤー表示
 
 ## Phase 3.5-F: 統合検証
 

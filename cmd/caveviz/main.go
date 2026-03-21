@@ -17,7 +17,8 @@ import (
 func main() {
 	chiMode := flag.Bool("chi", false, "display chi flow overlay")
 	beastMode := flag.Bool("beasts", false, "display beast placement overlay")
-	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts)")
+	aiMode := flag.Bool("ai", false, "display beast behavior state overlay")
+	allMode := flag.Bool("all", false, "display all layers (standard + chi + beasts + ai)")
 	flag.Parse()
 
 	cave, err := buildDemoCave()
@@ -28,6 +29,7 @@ func main() {
 
 	showChi := *chiMode || *allMode
 	showBeasts := *beastMode || *allMode
+	showAI := *aiMode || *allMode
 
 	if showChi {
 		engine, err := buildDemoEngine(cave)
@@ -55,7 +57,22 @@ func main() {
 		fmt.Println("       WW=1beast  2F=2 fire beasts  11=RoomID(no beasts)")
 	}
 
-	if !showChi && !showBeasts {
+	if showAI {
+		beasts := buildDemoBeasts()
+		// Assign demo behavior states.
+		beasts[0].State = senju.Patrolling
+		beasts[1].State = senju.Idle // Guard
+		beasts[2].State = senju.Chasing
+		if showChi || showBeasts {
+			fmt.Println()
+		}
+		fmt.Print(senju.RenderBehaviorOverlay(cave, beasts, nil))
+		fmt.Println()
+		fmt.Println("Legend: ██=Rock  ..=Corridor  ><=Entrance  ??=Invader")
+		fmt.Println("       GG=Guard  PP=Patrol  !!=Chase  ++=Recovering  11=RoomID(no beasts)")
+	}
+
+	if !showChi && !showBeasts && !showAI {
 		fmt.Print(cave.RenderASCII())
 		fmt.Println()
 		fmt.Println("Legend: ██=Rock  ..=Corridor  []=RoomFloor  ><=Entrance  1-9,A-Z=RoomID")

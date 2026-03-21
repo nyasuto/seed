@@ -169,3 +169,108 @@ func TestRenderBeastOverlay_OtherCellTypes(t *testing.T) {
 		t.Errorf("expected >< for entrance, got:\n%s", got)
 	}
 }
+
+// --- Behavior overlay tests ---
+
+func TestRenderBehaviorOverlay_GuardState(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	beasts[0].State = Idle // Guard beasts are Idle
+
+	got := RenderBehaviorOverlay(cave, beasts, nil)
+
+	if !strings.Contains(got, "GG") {
+		t.Errorf("expected GG for Guard/Idle beast, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_PatrolState(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	beasts[0].State = Patrolling
+
+	got := RenderBehaviorOverlay(cave, beasts, nil)
+
+	if !strings.Contains(got, "PP") {
+		t.Errorf("expected PP for Patrolling beast, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_ChaseState(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	beasts[0].State = Chasing
+
+	got := RenderBehaviorOverlay(cave, beasts, nil)
+
+	if !strings.Contains(got, "!!") {
+		t.Errorf("expected !! for Chasing beast, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_FleeRecoveringState(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	beasts[0].State = Recovering
+
+	got := RenderBehaviorOverlay(cave, beasts, nil)
+
+	if !strings.Contains(got, "++") {
+		t.Errorf("expected ++ for Recovering beast, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_InvaderPlaceholder(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	// Room 2 has invaders
+	invaders := map[int][]int{2: {100}}
+
+	got := RenderBehaviorOverlay(cave, beasts, invaders)
+
+	// Room 2 should show "??" for invader placeholder
+	if !strings.Contains(got, "??") {
+		t.Errorf("expected ?? for invader placeholder, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_MultipleBeastsShowCount(t *testing.T) {
+	cave, beasts := makeSmallCaveWithBeasts(t)
+	beasts[0].State = Patrolling
+	beasts = append(beasts, &Beast{
+		ID: 2, Element: types.Fire, RoomID: 1, State: Patrolling,
+	})
+
+	got := RenderBehaviorOverlay(cave, beasts, nil)
+
+	// 2 beasts in room 1, first is Patrolling → "2P"
+	if !strings.Contains(got, "2P") {
+		t.Errorf("expected 2P for two Patrolling beasts, got:\n%s", got)
+	}
+}
+
+func TestRenderBehaviorOverlay_NoBeastsShowsRoomID(t *testing.T) {
+	cave, _ := makeSmallCaveWithBeasts(t)
+
+	got := RenderBehaviorOverlay(cave, nil, nil)
+
+	if !strings.Contains(got, "11") {
+		t.Errorf("expected 11 for room without beasts, got:\n%s", got)
+	}
+}
+
+func TestStateTag(t *testing.T) {
+	tests := []struct {
+		state BeastState
+		want  string
+	}{
+		{Idle, "[G]"},
+		{Patrolling, "[P]"},
+		{Chasing, "[!]"},
+		{Fighting, "[!]"},
+		{Recovering, "[+]"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.state.String(), func(t *testing.T) {
+			got := stateTag(tt.state)
+			if got != tt.want {
+				t.Errorf("stateTag(%v) = %q, want %q", tt.state, got, tt.want)
+			}
+		})
+	}
+}
