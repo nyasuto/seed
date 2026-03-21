@@ -131,7 +131,7 @@ func TestGrid_OutOfBoundsError(t *testing.T) {
 			t.Errorf("At(%v) error = %v, want ErrOutOfBounds", pos, err)
 		}
 
-		err = g.Set(pos, Cell{Type: Corridor})
+		err = g.Set(pos, Cell{Type: CorridorFloor})
 		if err == nil {
 			t.Errorf("Set(%v) expected error, got nil", pos)
 		}

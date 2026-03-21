@@ -6,8 +6,8 @@ type CellType int
 const (
 	// Rock is an unexcavated cell (default state).
 	Rock CellType = iota
-	// Corridor is a passable path between rooms.
-	Corridor
+	// CorridorFloor is a passable path between rooms.
+	CorridorFloor
 	// RoomFloor is a cell that belongs to a room interior.
 	RoomFloor
 	// Entrance is a cell that serves as a room entrance/exit.
@@ -19,8 +19,8 @@ func (c CellType) String() string {
 	switch c {
 	case Rock:
 		return "Rock"
-	case Corridor:
-		return "Corridor"
+	case CorridorFloor:
+		return "CorridorFloor"
 	case RoomFloor:
 		return "RoomFloor"
 	case Entrance:
