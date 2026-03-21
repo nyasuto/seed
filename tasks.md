@@ -382,7 +382,7 @@ sim/adapter/ai/ パッケージを作成する。
 - 不正JSON送信 → ErrorMessage 受信 → 再送信で正常続行するテスト
 - EOF → ゲーム終了のテスト
 
-- [ ] **Task 3-D: AI Mode — CLI統合とE2Eテスト**
+- [x] **Task 3-D: AI Mode — CLI統合とE2Eテスト**
 
 1. cmd/chaosseed-sim/main.go の `--ai` フラグ実装
    - `--scenario` でシナリオ指定

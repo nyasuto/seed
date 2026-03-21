@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/nyasuto/seed/sim/adapter/ai"
 	"github.com/nyasuto/seed/sim/adapter/human"
 	"github.com/nyasuto/seed/sim/server"
 )
@@ -28,6 +29,7 @@ func run() int {
 	balanceMode := flag.Bool("balance", false, "start Balance Dashboard")
 	scenarioName := flag.String("scenario", "tutorial", "scenario name or file path")
 	replayPath := flag.String("replay", "", "replay file path to play back")
+	aiTimeout := flag.Duration("timeout", 0, "action input timeout for AI Mode (e.g. 30s)")
 	flag.Parse()
 
 	if *showVersion {
@@ -77,7 +79,11 @@ func run() int {
 		}
 		return 0
 	case *aiMode:
-		fmt.Fprintln(os.Stderr, "ai mode: not implemented")
+		if err := runAIMode(*scenarioName, *aiTimeout); err != nil {
+			fmt.Fprintf(os.Stderr, "ai mode error: %v\n", err)
+			return 1
+		}
+		return 0
 	case *batchMode:
 		fmt.Fprintln(os.Stderr, "batch mode: not implemented")
 	case *balanceMode:
@@ -120,6 +126,32 @@ func runHumanMode(scenarioName string) error {
 		return nil
 	}
 
+	return err
+}
+
+// runAIMode starts the AI Mode game with JSON Lines I/O.
+func runAIMode(scenarioName string, timeout time.Duration) error {
+	sc, err := server.LoadScenario(scenarioName)
+	if err != nil {
+		return fmt.Errorf("load scenario: %w", err)
+	}
+
+	seed := time.Now().UnixNano()
+	gs, err := server.NewGameServer(sc, seed)
+	if err != nil {
+		return fmt.Errorf("create game server: %w", err)
+	}
+
+	builder := ai.NewStateBuilder(gs.Engine)
+	provider := ai.NewAIProvider(os.Stdin, os.Stdout, builder)
+	if timeout > 0 {
+		provider.SetTimeout(timeout)
+	}
+
+	_, err = gs.RunGame(provider)
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
 	return err
 }
 
