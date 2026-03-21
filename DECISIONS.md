@@ -222,16 +222,62 @@
 
 ---
 
+## D010: CoreHP — 龍穴コアの耐久値
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-21
+**フェーズ**: Phase 6
+
+**判断**: 龍穴（dragon_hole）のコア部屋にHP（CoreHP）を持たせ、侵入者がコア部屋に到達・攻撃すると減少する。CoreHP が 0 以下になるとゲーム敗北。
+
+**設計**:
+1. `RoomType.BaseCoreHP` にベース値を定義。dragon_hole のみ非ゼロ
+2. `RoomType.CoreHPAtLevel(level)` で `BaseCoreHP * level` を計算（レベルに応じたスケーリング）
+3. `Room.CoreHP` に現在値を保持。非コア部屋は 0
+4. `ScenarioProgress.CoreHP` で可変状態として追跡。`MarshalProgress`/`UnmarshalProgress` でシリアライズ可能
+5. `GameSnapshot.CoreHP` で条件評価器に読み取り専用で提供
+
+**理由**:
+- コアHPは Room に帰属させることで、部屋のレベルアップと自然に連動する
+- 条件評価は GameSnapshot（読み取り専用）経由とし、決定論性を保証する
+- 勝利条件（SurviveUntil: CoreHP > 0）と敗北条件（CoreDestroyed: CoreHP ≤ 0）の両方で参照される
+
+**影響範囲**: `world/room_type.go`, `world/room.go`, `scenario/progress.go`, `scenario/condition.go`, `scenario/conditions.go`
+
+---
+
+## D011: EventCommand パターン — イベントは状態変更ではなくコマンドを返す
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-21
+**フェーズ**: Phase 6
+
+**判断**: イベントシステムは直接ゲーム状態を変更せず、`EventCommand` インターフェースを返す。実際の状態変更は Phase 7 の simulation 層が担当する。
+
+**設計**:
+1. `EventCommand` インターフェース: `Execute() string` で人間可読な説明を返す
+2. 4つのコマンド型: `SpawnWaveCommand`, `ModifyChiCommand`, `ModifyConstraintCommand`, `MessageCommand`
+3. `NewCommand(def CommandDef)` ファクトリで JSON 定義からコマンドを生成
+4. `EventEngine.Tick()` は `GameSnapshot`（読み取り専用）を受け取り、条件を評価して `[]EventCommand` を返す
+5. OneShot イベントは `FiredEvents` マップで発火済みを追跡
+
+**理由**:
+- 関心の分離: イベントは「何をすべきか」を宣言し、「どう実行するか」は simulation 層に委ねる
+- 決定論性: 条件評価は純粋関数（GameSnapshot → bool）で副作用なし
+- 監査性: `Execute()` が全コマンドの人間可読ログを提供
+- 拡張性: ファクトリにコマンド型を追加するだけで新しいイベントアクションを追加可能
+- データ駆動: イベント定義は JSON から読み込み、コード変更なしにシナリオを追加可能
+
+**影響範囲**: `scenario/command.go`, `scenario/event_engine.go`, `scenario/event.go`, `scenario/condition.go`
+
+---
+
 ## 未解決課題サマリー
 
 | ID | 内容 | 対応予定フェーズ |
 |---|---|---|
 | D001 | OnCaveChangedの差分更新 | Phase 7（プロファイリング後） |
-| D002原則1 | 地形バリエーション（不完全性の強制） | Phase 6以降 |
-| D002原則2 | シナリオレベルの侵入波タイミング調整 | Phase 6 |
-| D002原則3 | 経済バランスの検証 | Phase 5-J, Phase 7 |
-| D007残作業 | シナリオごとの波間隔チューニング | Phase 6 |
-| 進化システム | 仙獣の進化（Phase 3ドラフトから延期中） | Phase 6以降 |
-| 仙獣敗北後処理 | 仙獣の復活/消滅ロジック | Phase 6 |
+| D002原則1 | 地形バリエーション（不完全性の強制） | Phase 7以降 |
+| D002原則3 | 経済バランスの検証 | Phase 7 |
 | 罠の盗賊回避率 | 盗賊のSPDによる罠回避 | 将来拡張 |
 | 侵入者AI高度化 | 複数ステップ先読み、仙獣回避 | 将来拡張 |
