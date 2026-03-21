@@ -365,7 +365,7 @@ sim/adapter/ai/ パッケージを作成する。
 - ChiPool 不足時に召喚が valid_actions に含まれないテスト
 - MaxRooms 到達後に dig_room が valid_actions に含まれないテスト
 
-- [ ] **Task 3-C: AI Mode — ActionProvider実装とエラーハンドリング**
+- [x] **Task 3-C: AI Mode — ActionProvider実装とエラーハンドリング**
 
 1. adapter/ai/provider.go: ActionProvider実装
    - ProvideActions: StateMessage を stdout に書き出し → stdin から ActionMessage を読み取り → パース → バリデーション → PlayerAction変換
