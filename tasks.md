@@ -335,8 +335,8 @@
 
 ## Phase 4-H: シリアライズ（invasion/）
 
-- [ ] `invasion/serialization.go`: MarshalInvasionState(waves []*InvasionWave) ([]byte, error) / UnmarshalInvasionState(data []byte, classRegistry) ([]*InvasionWave, error) — 全侵入波の状態を保存/復元。ExplorationMemory、Goal状態を含む
-- [ ] `invasion/serialization_test.go`: 保存→復元→等価検証テスト、途中状態（Advancing+Retreating混在）の保存/復元テスト、空リストの保存/復元テスト
+- [x] `invasion/serialization.go`: MarshalInvasionState(waves []*InvasionWave) ([]byte, error) / UnmarshalInvasionState(data []byte, classRegistry) ([]*InvasionWave, error) — 全侵入波の状態を保存/復元。ExplorationMemory、Goal状態を含む
+- [x] `invasion/serialization_test.go`: 保存→復元→等価検証テスト、途中状態（Advancing+Retreating混在）の保存/復元テスト、空リストの保存/復元テスト
 
 ## Phase 4-I: ASCII可視化への侵入レイヤー追加
 
