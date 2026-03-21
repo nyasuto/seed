@@ -1,5 +1,28 @@
 package scenario
 
+import "github.com/ponpoko/chaosseed-core/types"
+
+// GameSnapshot is a read-only snapshot of the current game state,
+// passed to ConditionEvaluator.Evaluate each tick to determine
+// whether a win or lose condition has been met.
+type GameSnapshot struct {
+	Tick                   types.Tick
+	CoreHP                 int
+	ChiPoolBalance         float64
+	BeastCount             int
+	AliveBeasts            int
+	DefeatedWaves          int
+	TotalWaves             int
+	CaveFengShuiScore      float64
+	ConsecutiveDeficitTicks int
+}
+
+// ConditionEvaluator evaluates a game condition against a snapshot.
+// Each concrete condition type implements this interface.
+type ConditionEvaluator interface {
+	Evaluate(snapshot GameSnapshot) bool
+}
+
 // ConditionDef defines a win or lose condition in data-driven form.
 // Type identifies the kind of condition (e.g. "survive_until",
 // "defeat_all_waves", "core_destroyed"), and Params holds type-specific
