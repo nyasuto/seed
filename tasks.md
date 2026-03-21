@@ -179,8 +179,8 @@
 
 ## Phase 3-E: 仙獣シリアライズ（senju/）
 
-- [ ] `senju/serialization.go`: MarshalBeasts(beasts []*Beast) ([]byte, error) / UnmarshalBeasts(data []byte, speciesRegistry) ([]*Beast, error) — 全仙獣の状態を保存/復元。SpeciesIDからElementやName等を復元
-- [ ] `senju/serialization_test.go`: 保存→復元→等価検証テスト、空リストの保存/復元テスト、存在しないSpeciesIDのエラーハンドリングテスト
+- [x] `senju/serialization.go`: MarshalBeasts(beasts []*Beast) ([]byte, error) / UnmarshalBeasts(data []byte, speciesRegistry) ([]*Beast, error) — 全仙獣の状態を保存/復元。SpeciesIDからElementやName等を復元
+- [x] `senju/serialization_test.go`: 保存→復元→等価検証テスト、空リストの保存/復元テスト、存在しないSpeciesIDのエラーハンドリングテスト
 
 ## Phase 3-F: ASCII可視化への仙獣レイヤー追加
 
