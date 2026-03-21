@@ -97,6 +97,10 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 			beast.State = senju.Idle
 			beast.HP = max(dr.RevivalHP, 1)
 			delete(s.DefeatResults, beast.ID)
+			// Re-assign Guard behavior after revival.
+			if s.BehaviorEngine != nil {
+				s.BehaviorEngine.AssignBehavior(beast, senju.Guard)
+			}
 			tickEvents = append(tickEvents, fmt.Sprintf("beast %d revived", beast.ID))
 		}
 	}
@@ -175,6 +179,10 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 				if beast.ID == ie.BeastID && beast.HP <= 0 {
 					dr := s.DefeatProcessor.ProcessDefeat(beast, tick)
 					s.DefeatResults[dr.BeastID] = dr
+					// Clear behavior for stunned beast to prevent stale map entries.
+					if s.BehaviorEngine != nil {
+						s.BehaviorEngine.RemoveBehavior(beast.ID)
+					}
 					tickEvents = append(tickEvents, fmt.Sprintf("beast %d stunned", beast.ID))
 				}
 			}
