@@ -259,24 +259,24 @@ func renderStatusPanel(s *GameState) string {
 	if s.Scenario != nil {
 		scenarioID = s.Scenario.ID
 	}
-	sb.WriteString(fmt.Sprintf("Tick: %d  Scenario: %s\n", tick, scenarioID))
-	sb.WriteString(fmt.Sprintf("Core HP: %d\n", coreHP))
+	fmt.Fprintf(&sb, "Tick: %d  Scenario: %s\n", tick, scenarioID)
+	fmt.Fprintf(&sb, "Core HP: %d\n", coreHP)
 
 	// Chi economy
 	chiBalance := 0.0
 	if s.EconomyEngine != nil && s.EconomyEngine.ChiPool != nil {
 		chiBalance = s.EconomyEngine.ChiPool.Balance()
 	}
-	sb.WriteString(fmt.Sprintf("Chi Pool: %.1f  Peak: %.1f\n", chiBalance, s.PeakChi))
+	fmt.Fprintf(&sb, "Chi Pool: %.1f  Peak: %.1f\n", chiBalance, s.PeakChi)
 
 	// Beast summary
 	alive, stunned := countBeastStates(s.Beasts)
-	sb.WriteString(fmt.Sprintf("Beasts: %d (alive: %d, stunned: %d)\n", len(s.Beasts), alive, stunned))
+	fmt.Fprintf(&sb, "Beasts: %d (alive: %d, stunned: %d)\n", len(s.Beasts), alive, stunned)
 
 	// Invasion summary
 	activeWaves, completedWaves, totalInvaders, activeInvaders := countInvasionState(s.Waves)
-	sb.WriteString(fmt.Sprintf("Waves: %d total, %d active, %d completed\n", len(s.Waves), activeWaves, completedWaves))
-	sb.WriteString(fmt.Sprintf("Invaders: %d total, %d active\n", totalInvaders, activeInvaders))
+	fmt.Fprintf(&sb, "Waves: %d total, %d active, %d completed\n", len(s.Waves), activeWaves, completedWaves)
+	fmt.Fprintf(&sb, "Invaders: %d total, %d active\n", totalInvaders, activeInvaders)
 
 	// Feng shui score
 	fengShuiScore := 0.0
@@ -288,16 +288,16 @@ func renderStatusPanel(s *GameState) string {
 		ev := fengshui.NewEvaluator(s.Cave, s.RoomTypeRegistry, params)
 		fengShuiScore = ev.CaveTotal(s.ChiFlowEngine)
 	}
-	sb.WriteString(fmt.Sprintf("Feng Shui: %.1f\n", fengShuiScore))
+	fmt.Fprintf(&sb, "Feng Shui: %.1f\n", fengShuiScore)
 
 	// Economy / deficit
-	sb.WriteString(fmt.Sprintf("Deficit: %d total ticks, %d consecutive\n", s.TotalDeficitTicks, s.ConsecutiveDeficitTicks))
+	fmt.Fprintf(&sb, "Deficit: %d total ticks, %d consecutive\n", s.TotalDeficitTicks, s.ConsecutiveDeficitTicks)
 
 	// Damage stats
-	sb.WriteString(fmt.Sprintf("Damage: dealt %d, received %d\n", s.TotalDamageDealt, s.TotalDamageReceived))
+	fmt.Fprintf(&sb, "Damage: dealt %d, received %d\n", s.TotalDamageDealt, s.TotalDamageReceived)
 
 	// Evolutions
-	sb.WriteString(fmt.Sprintf("Evolutions: %d\n", s.EvolutionCount))
+	fmt.Fprintf(&sb, "Evolutions: %d\n", s.EvolutionCount)
 
 	return sb.String()
 }
