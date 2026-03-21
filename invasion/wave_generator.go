@@ -37,6 +37,16 @@ func NewWaveGenerator(classRegistry *InvaderClassRegistry, rng types.RNG) *WaveG
 	}
 }
 
+// SetNextWaveID sets the next wave ID to be assigned.
+func (wg *WaveGenerator) SetNextWaveID(id int) {
+	wg.nextWaveID = id
+}
+
+// NextWaveID returns the next wave ID that will be assigned.
+func (wg *WaveGenerator) NextWaveID() int {
+	return wg.nextWaveID
+}
+
 // GenerateWave creates an InvasionWave based on the given config and cave layout.
 // The number of invaders is randomly chosen between MinInvaders and MaxInvaders.
 // Goals are assigned based on the cave's room composition:

@@ -664,8 +664,8 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 
 ## Phase 7-B: コマンド実行器（simulation/）
 
-- [ ] `simulation/executor.go`: CommandExecutor。Apply(state, []EventCommand) error。各コマンド型を判別し状態変更を実行（SpawnWave/ModifyChi/ModifyConstraint/Message）
-- [ ] `simulation/executor_test.go`: 各コマンド型の適用テスト
+- [x] `simulation/executor.go`: CommandExecutor。Apply(state, []EventCommand) error。各コマンド型を判別し状態変更を実行（SpawnWave/ModifyChi/ModifyConstraint/Message）
+- [x] `simulation/executor_test.go`: 各コマンド型の適用テスト
 
 ## Phase 7-C: メインループ（simulation/）
 
