@@ -189,7 +189,7 @@ sim/metrics/ パッケージのスケルトンを作成する。
 
 ## Phase 2: Human Mode（対話メニュー）
 
-- [ ] **Task 2-A: ASCII描画の拡張**
+- [x] **Task 2-A: ASCII描画の拡張**
 
 sim/render/ パッケージを作成する。
 
