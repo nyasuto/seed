@@ -482,7 +482,7 @@
 
 ## Phase 5-L: 統合検証
 
-- [ ] `economy/integration_test.go`: Cave + ChiFlowEngine + 仙獣 + 侵入波 + 経済エンジンの80ティックフルシミュレーション:
+- [x] `economy/integration_test.go`: Cave + ChiFlowEngine + 仙獣 + 侵入波 + 経済エンジンの80ティックフルシミュレーション:
   - 気供給が毎ティック ChiPool に入ること
   - 維持コストが毎ティック引き落とされること
   - 侵入波の撃退報酬が ChiPool に加算されること
