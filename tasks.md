@@ -659,7 +659,7 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
   - EvolveBeastAction（beastID）
   - NoAction（何もしない）
 - [x] `simulation/action.go`: ValidateAction(action, state) error — アクションの事前バリデーション（コスト足りるか、配置可能か等）
-- [ ] `simulation/action.go`: ApplyAction(action, state) (ActionResult, error) — アクション実行。EconomyEngine.TryXxx を内部で呼ぶ。ActionResult（Success bool, Cost float64, Description string）
+- [x] `simulation/action.go`: ApplyAction(action, state) (ActionResult, error) — アクション実行。EconomyEngine.TryXxx を内部で呼ぶ。ActionResult（Success bool, Cost float64, Description string）
 - [ ] `simulation/action_test.go`: 各アクション型のバリデーション・実行テスト、残高不足テスト、不正配置テスト
 
 ## Phase 7-B: コマンド実行器（simulation/）

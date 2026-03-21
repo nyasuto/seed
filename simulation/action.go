@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ponpoko/chaosseed-core/economy"
 	"github.com/ponpoko/chaosseed-core/senju"
 	"github.com/ponpoko/chaosseed-core/types"
 	"github.com/ponpoko/chaosseed-core/world"
@@ -271,4 +272,194 @@ func validateEvolveBeast(a EvolveBeastAction, state *GameState) error {
 	}
 
 	return nil
+}
+
+// ApplyAction validates and executes a player action against the current game
+// state, returning an ActionResult describing the outcome. The state is mutated
+// on success. On validation failure the state is unchanged and an error is returned.
+func ApplyAction(action PlayerAction, state *GameState) (ActionResult, error) {
+	if err := ValidateAction(action, state); err != nil {
+		return ActionResult{}, err
+	}
+
+	switch a := action.(type) {
+	case DigRoomAction:
+		return applyDigRoom(a, state)
+	case DigCorridorAction:
+		return applyDigCorridor(a, state)
+	case PlaceBeastAction:
+		return applyPlaceBeast(a, state)
+	case UpgradeRoomAction:
+		return applyUpgradeRoom(a, state)
+	case SummonBeastAction:
+		return applySummonBeast(a, state)
+	case EvolveBeastAction:
+		return applyEvolveBeast(a, state)
+	case NoAction:
+		return ActionResult{Success: true, Description: "no action taken"}, nil
+	default:
+		return ActionResult{}, fmt.Errorf("%w: %s", ErrUnknownAction, action.ActionType())
+	}
+}
+
+func currentTick(state *GameState) types.Tick {
+	if state.Progress != nil {
+		return state.Progress.CurrentTick
+	}
+	return 0
+}
+
+func applyDigRoom(a DigRoomAction, state *GameState) (ActionResult, error) {
+	tick := currentTick(state)
+
+	cost, err := state.EconomyEngine.TryBuildRoom(a.RoomTypeID, tick)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("dig room: %w", err)
+	}
+
+	room, err := state.Cave.AddRoom(a.RoomTypeID, a.Pos, a.Width, a.Height, nil)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("dig room: %w", err)
+	}
+
+	return ActionResult{
+		Success:     true,
+		Cost:        cost,
+		Description: fmt.Sprintf("dug room %d (%s) at (%d,%d)", room.ID, a.RoomTypeID, a.Pos.X, a.Pos.Y),
+	}, nil
+}
+
+func applyDigCorridor(a DigCorridorAction, state *GameState) (ActionResult, error) {
+	tick := currentTick(state)
+
+	corridor, err := state.Cave.ConnectRooms(a.FromRoomID, a.ToRoomID)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("dig corridor: %w", err)
+	}
+
+	cost, err := state.EconomyEngine.TryDigCorridor(len(corridor.Path), tick)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("dig corridor: %w", err)
+	}
+
+	return ActionResult{
+		Success:     true,
+		Cost:        cost,
+		Description: fmt.Sprintf("dug corridor %d from room %d to room %d (length %d)", corridor.ID, a.FromRoomID, a.ToRoomID, len(corridor.Path)),
+	}, nil
+}
+
+func applyPlaceBeast(a PlaceBeastAction, state *GameState) (ActionResult, error) {
+	// Find the first unassigned beast with the matching species.
+	var target *senju.Beast
+	for _, b := range state.Beasts {
+		if b.SpeciesID == a.SpeciesID && b.RoomID == 0 {
+			target = b
+			break
+		}
+	}
+	if target == nil {
+		return ActionResult{}, fmt.Errorf("no unassigned beast with species %s", a.SpeciesID)
+	}
+
+	// Assign beast to room.
+	target.RoomID = a.RoomID
+	room := state.Cave.RoomByID(a.RoomID)
+	room.BeastIDs = append(room.BeastIDs, target.ID)
+
+	return ActionResult{
+		Success:     true,
+		Cost:        0,
+		Description: fmt.Sprintf("placed beast %d (%s) in room %d", target.ID, a.SpeciesID, a.RoomID),
+	}, nil
+}
+
+func applyUpgradeRoom(a UpgradeRoomAction, state *GameState) (ActionResult, error) {
+	tick := currentTick(state)
+	room := state.Cave.RoomByID(a.RoomID)
+
+	cost, err := state.EconomyEngine.TryUpgradeRoom(room.TypeID, room.Level, tick)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("upgrade room: %w", err)
+	}
+
+	room.Level++
+
+	return ActionResult{
+		Success:     true,
+		Cost:        cost,
+		Description: fmt.Sprintf("upgraded room %d to level %d", a.RoomID, room.Level),
+	}, nil
+}
+
+func applySummonBeast(a SummonBeastAction, state *GameState) (ActionResult, error) {
+	tick := currentTick(state)
+
+	cost, err := state.EconomyEngine.TrySummonBeast(a.Element, tick)
+	if err != nil {
+		return ActionResult{}, fmt.Errorf("summon beast: %w", err)
+	}
+
+	// Find a species of the requested element.
+	var species *senju.Species
+	for _, s := range state.SpeciesRegistry.All() {
+		if s.Element == a.Element {
+			species = s
+			break
+		}
+	}
+	if species == nil {
+		return ActionResult{}, fmt.Errorf("no species found for element %v", a.Element)
+	}
+
+	beast := senju.NewBeast(state.NextBeastID, species, tick)
+	state.NextBeastID++
+	state.Beasts = append(state.Beasts, beast)
+
+	return ActionResult{
+		Success:     true,
+		Cost:        cost,
+		Description: fmt.Sprintf("summoned beast %d (%s, %v)", beast.ID, species.ID, a.Element),
+	}, nil
+}
+
+func applyEvolveBeast(a EvolveBeastAction, state *GameState) (ActionResult, error) {
+	tick := currentTick(state)
+
+	// Find the beast.
+	var beast *senju.Beast
+	for _, b := range state.Beasts {
+		if b.ID == a.BeastID {
+			beast = b
+			break
+		}
+	}
+	if beast == nil {
+		return ActionResult{}, fmt.Errorf("beast %d: %w", a.BeastID, ErrBeastNotFound)
+	}
+
+	// Get the first available evolution path.
+	paths := state.EvolutionRegistry.GetPaths(beast.SpeciesID)
+	if len(paths) == 0 {
+		return ActionResult{}, fmt.Errorf("beast %d: %w", a.BeastID, ErrNoEvolutionPath)
+	}
+	path := &paths[0]
+
+	// Pay the evolution chi cost.
+	if path.ChiCost > 0 {
+		if err := state.EconomyEngine.ChiPool.Withdraw(path.ChiCost, economy.BeastSummon, fmt.Sprintf("evolve beast %d", a.BeastID), tick); err != nil {
+			return ActionResult{}, fmt.Errorf("evolve beast: %w", err)
+		}
+	}
+
+	oldSpecies := beast.SpeciesID
+	if err := senju.Evolve(beast, path, state.SpeciesRegistry); err != nil {
+		return ActionResult{}, fmt.Errorf("evolve beast: %w", err)
+	}
+
+	return ActionResult{
+		Success:     true,
+		Cost:        path.ChiCost,
+		Description: fmt.Sprintf("evolved beast %d from %s to %s", a.BeastID, oldSpecies, beast.SpeciesID),
+	}, nil
 }
