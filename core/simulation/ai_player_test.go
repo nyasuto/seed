@@ -146,6 +146,129 @@ func TestSimpleAIPlayer_Interface(t *testing.T) {
 	var _ AIPlayer = NewRandomAIPlayer(engine.State, types.NewSeededRNG(2))
 }
 
+func TestSimpleAIPlayer_BuildsCorridorAfterRoom(t *testing.T) {
+	sc := tutorialScenario()
+	sc.InitialState.StartingChi = 500.0
+	rng := types.NewSeededRNG(1)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	ai := NewSimpleAIPlayer(engine.State)
+
+	// Tick 1: AI should build a room (among other actions).
+	snap1 := BuildSnapshot(engine.State)
+	actions1 := ai.DecideActions(snap1)
+	hasDigRoom := false
+	for _, a := range actions1 {
+		if a.ActionType() == "dig_room" {
+			hasDigRoom = true
+			break
+		}
+	}
+	if !hasDigRoom {
+		t.Fatal("expected SimpleAI to issue dig_room on first tick")
+	}
+
+	// Apply actions via engine step so the room is actually built.
+	_, err = engine.Step(actions1)
+	if err != nil {
+		t.Fatalf("Step 1: %v", err)
+	}
+
+	// Tick 2: AI should attempt to connect the new room with a corridor.
+	snap2 := BuildSnapshot(engine.State)
+	actions2 := ai.DecideActions(snap2)
+	hasCorridor := false
+	for _, a := range actions2 {
+		if a.ActionType() == "dig_corridor" {
+			hasCorridor = true
+			break
+		}
+	}
+	if !hasCorridor {
+		t.Error("expected SimpleAI to issue dig_corridor after building a room")
+	}
+}
+
+func TestSimpleAIPlayer_CorridorEnablesChiFlow(t *testing.T) {
+	// Use a large cave with no terrain obstacles so placement always succeeds.
+	sc := &scenario.Scenario{
+		ID:         "corridor_chi_test",
+		Name:       "Corridor Chi Test",
+		Difficulty: "easy",
+		InitialState: scenario.InitialState{
+			CaveWidth:      30,
+			CaveHeight:     30,
+			TerrainSeed:    1,
+			TerrainDensity: 0.0,
+			PrebuiltRooms: []scenario.RoomPlacement{
+				{TypeID: "dragon_hole", Pos: types.Pos{X: 5, Y: 5}, Level: 1},
+			},
+			DragonVeins: []scenario.DragonVeinPlacement{
+				{SourcePos: types.Pos{X: 5, Y: 7}, Element: types.Earth, FlowRate: 10.0},
+			},
+			StartingChi: 500.0,
+		},
+		WinConditions: []scenario.ConditionDef{
+			{Type: "survive_until", Params: json.RawMessage(`{"ticks": 30}`)},
+		},
+		LoseConditions: []scenario.ConditionDef{
+			{Type: "core_destroyed"},
+		},
+	}
+	rng := types.NewSeededRNG(42)
+
+	engine, err := NewSimulationEngine(sc, rng)
+	if err != nil {
+		t.Fatalf("NewSimulationEngine: %v", err)
+	}
+
+	ai := NewSimpleAIPlayer(engine.State)
+
+	// Run enough ticks for the AI to build a room and connect it.
+	result, err := engine.Run(15, func(snap scenario.GameSnapshot) []PlayerAction {
+		return ai.DecideActions(snap)
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	t.Logf("result: status=%v tick=%d reason=%s", result.Status, result.FinalTick, result.Reason)
+
+	// Verify a corridor was built.
+	if len(engine.State.Cave.Corridors) == 0 {
+		t.Fatal("expected at least one corridor to be built")
+	}
+
+	// Find a non-prebuilt room that is connected via corridor.
+	var newRoomID int
+	for _, cor := range engine.State.Cave.Corridors {
+		if cor.ToRoomID != 1 {
+			newRoomID = cor.ToRoomID
+		} else if cor.FromRoomID != 1 {
+			newRoomID = cor.FromRoomID
+		}
+		if newRoomID != 0 {
+			break
+		}
+	}
+	if newRoomID == 0 {
+		t.Fatal("expected a corridor connecting a new room")
+	}
+
+	// The new room should have received chi via adjacency propagation.
+	rc, ok := engine.State.ChiFlowEngine.RoomChi[newRoomID]
+	if !ok {
+		t.Fatalf("no RoomChi entry for new room %d", newRoomID)
+	}
+	if rc.Current <= 0 {
+		t.Errorf("expected new room %d to have chi > 0 after corridor connection, got %.2f", newRoomID, rc.Current)
+	}
+	t.Logf("new room %d chi: %.2f", newRoomID, rc.Current)
+}
+
 func TestSimpleAIPlayer_RespectsMaxRooms(t *testing.T) {
 	sc := tutorialScenario()
 	// Allow building rooms by giving enough chi.

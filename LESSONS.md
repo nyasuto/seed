@@ -24,6 +24,14 @@
 - `SimulationEngine.Step` で `evaluateEndConditions` が tick カウンタのインクリメント前に呼ばれていたため、`survive_until(N)` と `max_ticks: N` が同じ値のシナリオで off-by-one が発生し、勝利条件が満たされなかった。tick インクリメントを条件評価の前に移動して解決。「tick N を処理完了したら N+1 tick 生存した」というセマンティクスが正しい。
 - `BuildSnapshot` の `TotalWaves` が `len(state.Waves)`（スポーン済みウェーブ数）のみを参照していたため、`defeat_all_waves` 勝利条件が最初の1波撃退で即勝利と判定されてしまった。`GameState.ScheduledWaves`（シナリオの`spawn_wave`イベント数）を追加し、`TotalWaves = max(len(Waves), ScheduledWaves)` とすることで解決。standard.json にも `spawn_wave` イベントを追加する必要があった（`wave_schedule` はデータ定義のみ）。
 
+## Task 1-B: SimpleAIPlayerコリドー戦略
+
+- `applyDigRoom` で生成される部屋に入口（Entrance）がなかったため、コリドー接続が不可能だった。南側中央にデフォルト入口を自動生成するよう修正。
+- AIが同一ティックでコリドー掘削と新部屋建設を同時実行すると、コリドーが掘った CorridorFloor セルと新部屋の配置領域が競合し、配置バリデーションに失敗する。コリドーを掘るティックでは新部屋建設をスキップすることで解決。
+- `processActions` がアクション失敗時にティック全体をエラー終了させていたが、AI のベストエフォートなアクション（パスが見つからない等）を許容するため、失敗はスキップしてイベントログに記録する方式に変更。
+- ChiFlowEngine の `Tick()` で `RoomChi` マップや `Neighbors()` のマップイテレーション順が非決定的だったため、float64 の微小な精度差が発生。ソート済みスライスでの走査に修正して決定論性を確保。
+- `OnCaveChanged` はドラゴンヴェインを再構築するため、ゲーム中盤以降にスコアが急変する副作用がある。新部屋のchi追跡登録のみが必要な場合は `SyncNewRooms` を使うべき。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。

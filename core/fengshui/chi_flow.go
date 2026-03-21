@@ -1,6 +1,8 @@
 package fengshui
 
 import (
+	"sort"
+
 	"github.com/nyasuto/seed/core/types"
 	"github.com/nyasuto/seed/core/world"
 )
@@ -58,6 +60,15 @@ func (e *ChiFlowEngine) ensureRoomChi(room *world.Room) {
 	}
 }
 
+// SyncNewRooms registers RoomChi entries for any rooms in the cave that are
+// not yet tracked. Unlike OnCaveChanged, this does not rebuild dragon veins,
+// preserving existing vein paths and game behavior.
+func (e *ChiFlowEngine) SyncNewRooms(cave *world.Cave) {
+	for _, room := range cave.Rooms {
+		e.ensureRoomChi(room)
+	}
+}
+
 // elementMultiplier returns the flow multiplier for chi flowing from a source
 // element into a room with the given element.
 func (e *ChiFlowEngine) elementMultiplier(source, room types.Element) float64 {
@@ -94,17 +105,22 @@ func (e *ChiFlowEngine) Tick() {
 
 	// Phase 2: Adjacency propagation.
 	// Calculate deltas first, then apply (to avoid order-dependent results).
+	// Iterate rooms in sorted ID order for deterministic float accumulation.
 	graph := e.cave.BuildAdjacencyGraph()
 	deltas := make(map[int]float64)
+	sortedRoomIDs := make([]int, 0, len(e.RoomChi))
 	for rid := range e.RoomChi {
 		deltas[rid] = 0
+		sortedRoomIDs = append(sortedRoomIDs, rid)
 	}
+	sort.Ints(sortedRoomIDs)
 
 	// Track processed pairs to avoid double-counting.
 	type pair struct{ a, b int }
 	processed := make(map[pair]bool)
 
-	for rid, rc := range e.RoomChi {
+	for _, rid := range sortedRoomIDs {
+		rc := e.RoomChi[rid]
 		neighbors := graph.Neighbors(rid)
 		for _, nid := range neighbors {
 			p := pair{rid, nid}

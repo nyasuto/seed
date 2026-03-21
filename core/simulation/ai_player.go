@@ -20,12 +20,16 @@ type AIPlayer interface {
 }
 
 // SimpleAIPlayer implements a minimal strategy:
-//  1. If chi pool has余裕, build the cheapest affordable room.
-//  2. If a beast room has capacity and there are unassigned beasts, place one.
-//  3. If there are no beasts, summon the cheapest one.
-//  4. Otherwise, do nothing.
+//  1. If a new room was just built, connect it to the nearest existing room.
+//  2. If chi pool has余裕, build the cheapest affordable room.
+//  3. If a beast room has capacity and there are unassigned beasts, place one.
+//  4. If there are no beasts, summon the cheapest one.
+//  5. Otherwise, do nothing.
 type SimpleAIPlayer struct {
 	state *GameState
+	// pendingCorridorRoomID is the room ID of a newly built room that needs
+	// a corridor connection on the next tick. 0 means no pending corridor.
+	pendingCorridorRoomID int
 }
 
 // NewSimpleAIPlayer creates a SimpleAIPlayer that decides actions based on
@@ -39,17 +43,30 @@ func NewSimpleAIPlayer(state *GameState) *SimpleAIPlayer {
 func (ai *SimpleAIPlayer) DecideActions(snapshot scenario.GameSnapshot) []PlayerAction {
 	var actions []PlayerAction
 
-	// 1. Place unassigned beasts into rooms with capacity.
+	// 1. If we just built a room, connect it to the nearest existing room.
+	//    Skip room building this tick to avoid corridor/room placement conflicts.
+	corridorAction := ai.tryBuildCorridor()
+	if corridorAction != nil {
+		actions = append(actions, corridorAction)
+	}
+
+	// 2. Place unassigned beasts into rooms with capacity.
 	if action := ai.tryPlaceBeast(); action != nil {
 		actions = append(actions, action)
 	}
 
-	// 2. If chi is sufficient, build the cheapest room.
-	if action := ai.tryBuildRoom(snapshot); action != nil {
-		actions = append(actions, action)
+	// 3. If chi is sufficient and we're not building a corridor, build a room.
+	if corridorAction == nil {
+		if action := ai.tryBuildRoom(snapshot); action != nil {
+			if _, ok := action.(DigRoomAction); ok {
+				// Remember the room we're about to build so we can connect it next tick.
+				ai.pendingCorridorRoomID = ai.state.Cave.NextRoomID()
+			}
+			actions = append(actions, action)
+		}
 	}
 
-	// 3. If beast rooms have space but no unassigned beasts, summon one.
+	// 4. If beast rooms have space but no unassigned beasts, summon one.
 	if action := ai.trySummonBeast(snapshot); action != nil {
 		actions = append(actions, action)
 	}
@@ -58,6 +75,47 @@ func (ai *SimpleAIPlayer) DecideActions(snapshot scenario.GameSnapshot) []Player
 		return []PlayerAction{NoAction{}}
 	}
 	return actions
+}
+
+// tryBuildCorridor attempts to connect a recently built room to the nearest
+// existing room. Returns nil if no corridor is needed or possible.
+func (ai *SimpleAIPlayer) tryBuildCorridor() PlayerAction {
+	roomID := ai.pendingCorridorRoomID
+	ai.pendingCorridorRoomID = 0
+	if roomID == 0 {
+		return nil
+	}
+
+	s := ai.state
+	newRoom := s.Cave.RoomByID(roomID)
+	if newRoom == nil {
+		return nil
+	}
+	if len(newRoom.Entrances) == 0 {
+		return nil
+	}
+
+	// Find the nearest existing room that has entrances and is not the new room.
+	var bestID int
+	bestDist := math.MaxInt32
+	for _, room := range s.Cave.Rooms {
+		if room.ID == roomID {
+			continue
+		}
+		if len(room.Entrances) == 0 {
+			continue
+		}
+		dist := newRoom.Pos.Distance(room.Pos)
+		if dist < bestDist {
+			bestDist = dist
+			bestID = room.ID
+		}
+	}
+	if bestID == 0 {
+		return nil
+	}
+
+	return DigCorridorAction{FromRoomID: bestID, ToRoomID: roomID}
 }
 
 // tryBuildRoom attempts to find the cheapest affordable room type and a valid
