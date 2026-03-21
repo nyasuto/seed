@@ -336,6 +336,56 @@
 
 ---
 
+## D014: MaxRooms制約のバリデーション追加
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-A
+
+**判断**: `simulation/action.go` の `validateDigRoom` に `GameConstraints.MaxRooms` チェックを追加。現在の部屋数が MaxRooms 以上なら DigRoom アクションを拒否する。MaxRooms が 0 の場合は制約なし（無制限）として扱う。
+
+**理由**:
+- シナリオごとに部屋数上限を設定できるようにすることで、D002原則1「不完全性の強制」を強化
+- SimpleAIPlayer も MaxRooms を参照し、上限到達時は DigRoom を試行しないよう修正
+
+**影響範囲**: `simulation/action.go`, `simulation/ai_player.go`
+
+---
+
+## D015: SimpleAIPlayerコリドー戦略
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-B
+
+**判断**: SimpleAIPlayer の DecideActions で、DigRoom 成功後の次ティックに隣接部屋への DigCorridor を自動発行する戦略を追加。龍穴からの気の伝播経路を確保する。
+
+**理由**:
+- AI が部屋を掘るだけで通路を掘らないと、気が伝播せず新部屋が活用されない
+- 通路掘りロジックにより、AIプレイヤーが最低限の機能するダンジョンを構築できるようになる
+- 通路が掘れない場合（壁、距離等）はスキップし、エラーにしない
+
+**影響範囲**: `simulation/ai_player.go`
+
+---
+
+## D016: caveScore正規化（呼び出し側）
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-C
+
+**判断**: `simulation/engine.go` の Step メソッドで、`CaveTotal()` の生値をそのまま `CalcTickSupply` に渡していた問題を修正。CaveTotal を MaxPossibleScore（全部屋の理論最大スコア合計）で割って [0,1] に正規化してから渡す。
+
+**理由**:
+- `CalcTickSupply` は `caveScore` を [0,1] の範囲として扱う設計だが、CaveTotal は部屋数に比例して増加する生値であり、部屋数が増えると供給量が指数的に膨らむ問題があった
+- 正規化により、部屋数が増えても供給量が適切な範囲に収まる
+- MaxPossibleScore が 0 の場合（部屋なし）は caveScore = 0.0 として安全に処理
+
+**影響範囲**: `simulation/engine.go`
+
+---
+
 ## 未解決課題サマリー
 
 | ID | 内容 | ステータス |
