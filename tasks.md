@@ -254,7 +254,7 @@ sim/adapter/human/ パッケージを作成する。
 - アップグレードサブメニューからPlayerActionが正しく生成されるテスト
 - コスト不足時に警告が表示されるテスト
 
-- [ ] **Task 2-E: Human Mode — ActionProvider実装とティック結果表示**
+- [x] **Task 2-E: Human Mode — ActionProvider実装とティック結果表示**
 
 1. adapter/human/provider.go: ActionProvider インターフェース実装
    - ProvideActions: メニュー表示 → 入力受付 → PlayerAction返却
