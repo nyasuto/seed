@@ -9,6 +9,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [core, sim, game]
     steps:
       - uses: actions/checkout@v6
 
@@ -19,6 +22,11 @@ jobs:
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: ${{ matrix.module }}
 
-      - name: Run make check
-        run: make check
+      - name: Run vet
+        run: cd ${{ matrix.module }} && go vet ./...
+
+      - name: Run tests with race detector
+        run: cd ${{ matrix.module }} && go test -race ./...
