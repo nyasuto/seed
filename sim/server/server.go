@@ -17,6 +17,7 @@ const defaultMaxTicks = 10000
 type GameServer struct {
 	scenario *scenario.Scenario
 	seed     int64
+	engine   *simulation.SimulationEngine
 }
 
 // NewGameServer creates a GameServer for the given scenario and RNG seed.
@@ -36,9 +37,29 @@ func (gs *GameServer) RunGame(provider ActionProvider) (simulation.RunResult, er
 		return simulation.RunResult{}, fmt.Errorf("create engine: %w", err)
 	}
 
+	gs.engine = engine
+	defer func() { gs.engine = nil }()
+
+	return gs.runLoop(provider)
+}
+
+// ResumeGame continues a game from a previously loaded checkpoint.
+// Call LoadCheckpoint before calling this method.
+func (gs *GameServer) ResumeGame(provider ActionProvider) (simulation.RunResult, error) {
+	if gs.engine == nil {
+		return simulation.RunResult{}, fmt.Errorf("no active engine; call LoadCheckpoint first")
+	}
+	defer func() { gs.engine = nil }()
+
+	return gs.runLoop(provider)
+}
+
+// runLoop drives the tick loop using the current engine.
+func (gs *GameServer) runLoop(provider ActionProvider) (simulation.RunResult, error) {
+	engine := gs.engine
 	maxTicks := gs.maxTicks()
 
-	for i := range maxTicks {
+	for i := int(engine.State.Progress.CurrentTick); i < maxTicks; i++ {
 		snapshot := simulation.BuildSnapshot(engine.State)
 
 		actions, err := provider.ProvideActions(snapshot)

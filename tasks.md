@@ -132,7 +132,7 @@ sim/server/ パッケージを作成する。
 - シナリオJSONファイルの読み込み → ゲーム開始テスト
 - 組み込みシナリオ名（"tutorial"）での読み込みテスト
 
-- [ ] **Task 1-G: Game Server — チェックポイント保存/復元**
+- [x] **Task 1-G: Game Server — チェックポイント保存/復元**
 
 1. server/checkpoint.go: チェックポイント機能
    - SaveCheckpoint(path string) — 現在のゲーム状態をファイルに保存
