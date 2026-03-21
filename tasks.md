@@ -171,7 +171,7 @@ sim/metrics/ パッケージのスケルトンを作成する。
 - GameSummary に基本統計が正しく集計されるテスト（1ゲーム完走後）
 - `go vet ./...` クリーン
 
-- [ ] **Task 1-J: Phase 1 統合テストと完了**
+- [x] **Task 1-J: Phase 1 統合テストと完了**
 
 1. GameServer + SimpleAIPlayer(ActionProviderラップ) + Collector で1ゲーム完走の統合テスト
 2. チュートリアルシナリオと標準シナリオの両方で完走確認

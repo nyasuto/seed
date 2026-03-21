@@ -32,6 +32,11 @@
 - ChiFlowEngine の `Tick()` で `RoomChi` マップや `Neighbors()` のマップイテレーション順が非決定的だったため、float64 の微小な精度差が発生。ソート済みスライスでの走査に修正して決定論性を確保。
 - `OnCaveChanged` はドラゴンヴェインを再構築するため、ゲーム中盤以降にスコアが急変する副作用がある。新部屋のchi追跡登録のみが必要な場合は `SyncNewRooms` を使うべき。
 
+## Phase 1-J: sim統合テスト
+
+- GameServer + Collector の統合テストでは、`LoadBuiltinScenario` で組み込みシナリオを直接読み込むのが最も簡潔。テスト用 JSON を手書きする `tutorialScenarioJSON()` パターンよりも、実際の組み込みシナリオを使うことで JSON 定義の正当性も同時に検証できる。
+- NoAction プロバイダーでも tutorial シナリオは survive_until 条件で勝利し、standard シナリオは defeat_all_waves で勝利する（仙獣が初期配置されているため）。AIの介入なしでもゲームが完走することの確認は、エンジンの堅牢性テストとして有用。
+
 ## Phase 0-B: エコシステム整備
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。
