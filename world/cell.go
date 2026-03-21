@@ -12,6 +12,10 @@ const (
 	RoomFloor
 	// Entrance is a cell that serves as a room entrance/exit.
 	Entrance
+	// HardRock is an indestructible rock cell that cannot be excavated.
+	HardRock
+	// Water is an underground water vein cell that cannot be excavated.
+	Water
 )
 
 // String returns the name of the CellType.
@@ -25,9 +29,18 @@ func (c CellType) String() string {
 		return "RoomFloor"
 	case Entrance:
 		return "Entrance"
+	case HardRock:
+		return "HardRock"
+	case Water:
+		return "Water"
 	default:
 		return "Unknown"
 	}
+}
+
+// IsImpassable reports whether the cell type cannot be excavated or traversed.
+func (c CellType) IsImpassable() bool {
+	return c == HardRock || c == Water
 }
 
 // Cell represents a single tile in the cave grid.
