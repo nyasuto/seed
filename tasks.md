@@ -4,7 +4,7 @@
 ## Phase 0: プロジェクト初期化
 
 - [x] `go mod init github.com/ponpoko/chaosseed-core` でモジュール初期化
-- [ ] ディレクトリ構造を作成: `types/`, `world/`, `testutil/`, `docs/`
+- [x] ディレクトリ構造を作成: `types/`, `world/`, `testutil/`, `docs/`
 - [ ] PRD を `docs/PRD.md` に配置（参照用コピー）
 
 ## Phase 1-A: 共有型定義（types/）
