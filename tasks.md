@@ -573,12 +573,12 @@ EventAction は MutableGameState を直接操作しない。代わりに EventCo
 ## Phase 6-F: イベントシステム（scenario/）
 
 - [x] `scenario/event.go`: EventDef 構造体（ID string, Condition ConditionDef, Commands []CommandDef, OneShot bool）。CommandDef 構造体（Type string, Params map[string]any）
-- [ ] `scenario/command.go`: EventCommand インターフェース（Execute() string で説明文を返すのみ。実際の適用はsimulation層）。具体的なコマンド:
+- [x] `scenario/command.go`: EventCommand インターフェース（Execute() string で説明文を返すのみ。実際の適用はsimulation層）。具体的なコマンド:
   - SpawnWaveCommand: 追加侵入波の定義を返す
   - ModifyChiCommand: ChiPool への加算/減算額を返す
   - ModifyConstraintCommand: 制約変更内容を返す
   - MessageCommand: 通知メッセージを返す
-- [ ] `scenario/command.go`: NewCommand(def CommandDef) (EventCommand, error) — ファクトリ
+- [x] `scenario/command.go`: NewCommand(def CommandDef) (EventCommand, error) — ファクトリ
 - [ ] `scenario/event_engine.go`: EventEngine 構造体。Tick(snapshot GameSnapshot, events []EventDef) []EventCommand — 条件を評価し、発火したイベントのコマンドリストを返す。OneShot管理（FiredEventsのSet）。コマンドの適用はsimulation層が行う（D011）
 - [ ] `scenario/event_test.go`: OneShot 1回実行テスト、条件未達で発火しないテスト、複数イベント同時発火テスト、FiredEventsの永続管理テスト
 
