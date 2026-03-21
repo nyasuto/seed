@@ -1,6 +1,11 @@
-.PHONY: test test-race vet lint cover check clean
+.PHONY: all build test test-race vet lint cover check clean
 
 MODULES := core sim game
+
+all: build check
+
+build:
+	cd sim && go build -o chaosseed-sim ./cmd/chaosseed-sim
 
 test:
 	@for mod in $(MODULES); do echo "=== test $$mod ===" && (cd $$mod && go test ./...) || exit 1; done

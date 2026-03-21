@@ -24,7 +24,7 @@
 - `chaosseed-sim --version` がバージョン文字列を出力
 - `chaosseed-sim --human` が "not implemented" で終了
 
-- [ ] **Task 0-B: sim用Makefileとプロジェクト基盤**
+- [x] **Task 0-B: sim用Makefileとプロジェクト基盤**
 
 ルートMakefileは既に存在する（test, test-race, vet, lint, cover, check, clean ターゲット）。
 以下を実施する：
