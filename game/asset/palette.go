@@ -1,6 +1,10 @@
 package asset
 
-import "image/color"
+import (
+	"image/color"
+
+	"github.com/nyasuto/seed/core/types"
+)
 
 // Element colors — one per five-element (五行).
 var (
@@ -28,3 +32,21 @@ var (
 	ColorUIText       = color.RGBA{R: 0xFA, G: 0xFA, B: 0xFA, A: 0xFF}
 	ColorUIBorder     = color.RGBA{R: 0x75, G: 0x75, B: 0x75, A: 0xFF}
 )
+
+// ElementColor returns the palette color for the given element.
+func ElementColor(elem types.Element) color.RGBA {
+	switch elem {
+	case types.Wood:
+		return ColorWood
+	case types.Fire:
+		return ColorFire
+	case types.Earth:
+		return ColorEarth
+	case types.Metal:
+		return ColorMetal
+	case types.Water:
+		return ColorWater
+	default:
+		return ColorUIText
+	}
+}
