@@ -111,7 +111,7 @@ func (br *BatchRunner) Run() (*BatchResult, error) {
 					// Report progress periodically: every 10% or at completion.
 					total := br.config.Games
 					if c == total || (total >= 10 && c%(total/10) == 0) {
-						fmt.Fprintf(br.config.Progress, "%d/%d games completed...\n", c, total)
+						_, _ = fmt.Fprintf(br.config.Progress, "%d/%d games completed...\n", c, total)
 					}
 					mu.Unlock()
 				}

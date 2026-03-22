@@ -51,7 +51,7 @@ const menuText = `
 // It returns the selected MenuChoice. On invalid input, it re-prompts.
 func ShowMainMenu(ir *InputReader) (MenuChoice, error) {
 	for {
-		fmt.Fprint(ir.out, menuText)
+		_, _ = fmt.Fprint(ir.out, menuText)
 		line, err := ir.ReadLine("選択> ")
 		if err != nil {
 			return 0, err
@@ -59,7 +59,7 @@ func ShowMainMenu(ir *InputReader) (MenuChoice, error) {
 
 		choice, ok := parseMenuChoice(line)
 		if !ok {
-			fmt.Fprintf(ir.out, "無効な選択です: %q\n", line)
+			_, _ = fmt.Fprintf(ir.out, "無効な選択です: %q\n", line)
 			continue
 		}
 		return choice, nil
@@ -110,10 +110,10 @@ func ConfirmQuit(ir *InputReader) (bool, error) {
 
 // PrintMessage writes a message line to the output.
 func PrintMessage(w io.Writer, msg string) {
-	fmt.Fprintln(w, msg)
+	_, _ = fmt.Fprintln(w, msg)
 }
 
 // PrintError writes an error message to the output.
 func PrintError(w io.Writer, err error) {
-	fmt.Fprintf(w, "エラー: %v\n", err)
+	_, _ = fmt.Fprintf(w, "エラー: %v\n", err)
 }

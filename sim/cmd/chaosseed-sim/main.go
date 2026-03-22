@@ -138,7 +138,7 @@ func runHumanMode(scenarioName string) error {
 
 	// io.EOF means the player quit.
 	if errors.Is(err, io.EOF) {
-		fmt.Fprintln(os.Stdout, "ゲームを終了しました。")
+		_, _ = fmt.Fprintln(os.Stdout, "ゲームを終了しました。")
 		return nil
 	}
 
@@ -332,11 +332,11 @@ func runBalanceMode(scenarioName string, games int) error {
 	}
 
 	// Generate and display suggestions for each alert.
-	fmt.Fprintln(os.Stdout)
-	fmt.Fprintln(os.Stdout, "--- Sweep Suggestions ---")
+	_, _ = fmt.Fprintln(os.Stdout)
+	_, _ = fmt.Fprintln(os.Stdout, "--- Sweep Suggestions ---")
 	for _, alert := range alerts {
 		suggestions := balance.SuggestSweep(alert)
-		fmt.Fprint(os.Stdout, balance.FormatSuggestions(suggestions))
+		_, _ = fmt.Fprint(os.Stdout, balance.FormatSuggestions(suggestions))
 
 		// Run sweep for each suggestion and compare.
 		scenarioJSON, jsonErr := loadScenarioJSON(scenarioName)
@@ -362,7 +362,7 @@ func runBalanceMode(scenarioName string, games int) error {
 			}
 
 			comparison := balance.CompareResults(baseline.BatchResult.BreakageReport, alert.MetricID, sweepResults)
-			fmt.Fprint(os.Stdout, balance.FormatComparison(comparison))
+			_, _ = fmt.Fprint(os.Stdout, balance.FormatComparison(comparison))
 		}
 	}
 

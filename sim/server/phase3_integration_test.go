@@ -35,7 +35,7 @@ func TestPhase3_AIMode_ErrorRetry(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		firstTick := true
 
@@ -126,7 +126,7 @@ func TestPhase3_AIMode_InvalidAction(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		firstTick := true
 
@@ -219,7 +219,7 @@ func TestPhase3_AIMode_StandardScenario(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		for {
 			msg, err := client.readMessage()
@@ -281,7 +281,7 @@ func TestPhase3_AIMode_ValidActionsContent(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		checkedFirstTick := false
 
@@ -389,7 +389,7 @@ func TestPhase3_AIMode_GameEndMessage(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		for {
 			msg, err := client.readMessage()
@@ -453,7 +453,7 @@ func TestPhase3_ModeCoexistence(t *testing.T) {
 
 		clientErr := make(chan error, 1)
 		go func() {
-			defer inW.Close()
+			defer func() { _ = inW.Close() }()
 			client := newAIClient(outR, inW)
 			for {
 				msg, err := client.readMessage()
@@ -545,7 +545,7 @@ func TestPhase3_SameScenarioBothModes(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		for {
 			msg, err := client.readMessage()

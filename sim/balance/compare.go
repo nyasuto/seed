@@ -142,7 +142,7 @@ func FormatComparison(cr ComparisonResult) string {
 		}
 
 		if i == cr.BestIndex {
-			line += fmt.Sprintf("  ← Best")
+			line += "  ← Best"
 		}
 
 		sb.WriteString(line)

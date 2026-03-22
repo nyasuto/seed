@@ -25,7 +25,7 @@ func NewInputReader(r io.Reader, w io.Writer) *InputReader {
 
 // ReadLine reads a single line of input. Returns io.EOF when input is exhausted.
 func (ir *InputReader) ReadLine(prompt string) (string, error) {
-	fmt.Fprint(ir.out, prompt)
+	_, _ = fmt.Fprint(ir.out, prompt)
 	if !ir.scanner.Scan() {
 		if err := ir.scanner.Err(); err != nil {
 			return "", err
@@ -46,7 +46,7 @@ func (ir *InputReader) ReadInt(prompt string) (int, error) {
 		}
 		n, err := strconv.Atoi(line)
 		if err != nil {
-			fmt.Fprintf(ir.out, "無効な入力です。数字を入力してください: %q\n", line)
+			_, _ = fmt.Fprintf(ir.out, "無効な入力です。数字を入力してください: %q\n", line)
 			continue
 		}
 		return n, nil
@@ -62,7 +62,7 @@ func (ir *InputReader) ReadIntInRange(prompt string, min, max int) (int, error) 
 			return 0, err
 		}
 		if n < min || n > max {
-			fmt.Fprintf(ir.out, "範囲外です。%d〜%d の数字を入力してください。\n", min, max)
+			_, _ = fmt.Fprintf(ir.out, "範囲外です。%d〜%d の数字を入力してください。\n", min, max)
 			continue
 		}
 		return n, nil
@@ -83,7 +83,7 @@ func (ir *InputReader) ReadYesNo(prompt string) (bool, error) {
 		case "n", "no":
 			return false, nil
 		default:
-			fmt.Fprintf(ir.out, "無効な入力です。y/n で答えてください。\n")
+			_, _ = fmt.Fprintf(ir.out, "無効な入力です。y/n で答えてください。\n")
 		}
 	}
 }

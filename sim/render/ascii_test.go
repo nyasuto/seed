@@ -34,10 +34,10 @@ func newTestState() *simulation.GameState {
 
 	// Set grid cells for the room.
 	for x := 1; x <= 2; x++ {
-		grid.Set(types.Pos{X: x, Y: 1}, world.Cell{Type: world.RoomFloor, RoomID: 1})
+		_ = grid.Set(types.Pos{X: x, Y: 1}, world.Cell{Type: world.RoomFloor, RoomID: 1})
 	}
 	// Set an entrance.
-	grid.Set(types.Pos{X: 0, Y: 1}, world.Cell{Type: world.Entrance})
+	_ = grid.Set(types.Pos{X: 0, Y: 1}, world.Cell{Type: world.Entrance})
 
 	return &simulation.GameState{
 		Cave: cave,

@@ -57,7 +57,7 @@ type BuildContext struct {
 // Returns nil action when the player chooses to go back.
 func ShowDigRoomMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAction, error) {
 	if len(ctx.RoomTypes) == 0 {
-		fmt.Fprintln(ir.out, "建設可能な部屋タイプがありません。")
+		_, _ = fmt.Fprintln(ir.out, "建設可能な部屋タイプがありません。")
 		return nil, nil
 	}
 
@@ -69,15 +69,15 @@ func ShowDigRoomMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAction
 	})
 
 	// Display room type choices.
-	fmt.Fprintln(ir.out, "")
-	fmt.Fprintln(ir.out, "=== 部屋を掘る ===")
-	fmt.Fprintln(ir.out, "  0. 戻る")
+	_, _ = fmt.Fprintln(ir.out, "")
+	_, _ = fmt.Fprintln(ir.out, "=== 部屋を掘る ===")
+	_, _ = fmt.Fprintln(ir.out, "  0. 戻る")
 	for i, rt := range sorted {
 		costWarning := ""
 		if rt.Cost > ctx.ChiBalance {
 			costWarning = " [コスト不足!]"
 		}
-		fmt.Fprintf(ir.out, "  %d. %s (%s) - コスト: %.1f%s\n",
+		_, _ = fmt.Fprintf(ir.out, "  %d. %s (%s) - コスト: %.1f%s\n",
 			i+1, rt.Name, rt.Element, rt.Cost, costWarning)
 	}
 
@@ -94,7 +94,7 @@ func ShowDigRoomMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAction
 
 	// Warn if cost is insufficient but still allow proceeding.
 	if selected.Cost > ctx.ChiBalance {
-		fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
+		_, _ = fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
 			selected.Cost, ctx.ChiBalance)
 	}
 
@@ -138,7 +138,7 @@ func readRoomCoordinates(ir *InputReader, ctx BuildContext) (x, y int, err error
 // Returns nil action when the player chooses to go back.
 func ShowDigCorridorMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAction, error) {
 	if len(ctx.Rooms) < 2 {
-		fmt.Fprintln(ir.out, "通路を掘るには2つ以上の部屋が必要です。")
+		_, _ = fmt.Fprintln(ir.out, "通路を掘るには2つ以上の部屋が必要です。")
 		return nil, nil
 	}
 
@@ -146,9 +146,9 @@ func ShowDigCorridorMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAc
 	printRoomList(ir.out, ctx.Rooms)
 
 	// Read from room ID.
-	fmt.Fprintln(ir.out, "")
-	fmt.Fprintln(ir.out, "=== 通路を掘る ===")
-	fmt.Fprintln(ir.out, "  0 を入力すると戻ります。")
+	_, _ = fmt.Fprintln(ir.out, "")
+	_, _ = fmt.Fprintln(ir.out, "=== 通路を掘る ===")
+	_, _ = fmt.Fprintln(ir.out, "  0 を入力すると戻ります。")
 
 	fromID, err := ir.ReadInt("始点の部屋ID> ")
 	if err != nil {
@@ -159,7 +159,7 @@ func ShowDigCorridorMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAc
 	}
 
 	if !hasRoom(ctx.Rooms, fromID) {
-		fmt.Fprintf(ir.out, "部屋ID %d は存在しません。\n", fromID)
+		_, _ = fmt.Fprintf(ir.out, "部屋ID %d は存在しません。\n", fromID)
 		return nil, nil
 	}
 
@@ -173,12 +173,12 @@ func ShowDigCorridorMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAc
 	}
 
 	if !hasRoom(ctx.Rooms, toID) {
-		fmt.Fprintf(ir.out, "部屋ID %d は存在しません。\n", toID)
+		_, _ = fmt.Fprintf(ir.out, "部屋ID %d は存在しません。\n", toID)
 		return nil, nil
 	}
 
 	if fromID == toID {
-		fmt.Fprintln(ir.out, "始点と終点は異なる部屋を指定してください。")
+		_, _ = fmt.Fprintln(ir.out, "始点と終点は異なる部屋を指定してください。")
 		return nil, nil
 	}
 
@@ -190,10 +190,10 @@ func ShowDigCorridorMenu(ir *InputReader, ctx BuildContext) (simulation.PlayerAc
 
 // printRoomList prints a formatted list of existing rooms.
 func printRoomList(w io.Writer, rooms []RoomInfo) {
-	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "--- 既存の部屋 ---")
+	_, _ = fmt.Fprintln(w, "")
+	_, _ = fmt.Fprintln(w, "--- 既存の部屋 ---")
 	for _, r := range rooms {
-		fmt.Fprintf(w, "  ID:%d %s (%s) at (%d,%d)\n",
+		_, _ = fmt.Fprintf(w, "  ID:%d %s (%s) at (%d,%d)\n",
 			r.ID, r.Name, r.TypeID, r.Pos.X, r.Pos.Y)
 	}
 }
