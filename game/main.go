@@ -14,6 +14,7 @@ import (
 
 	"github.com/nyasuto/seed/game/asset"
 	"github.com/nyasuto/seed/game/controller"
+	"github.com/nyasuto/seed/game/save"
 	"github.com/nyasuto/seed/game/scene"
 	"github.com/nyasuto/seed/game/view"
 )
@@ -65,11 +66,82 @@ func NewGame() (*Game, error) {
 }
 
 func (g *Game) makeTitleScene() *scene.TitleScene {
+	hasSaves := g.checkSavesExist()
 	return scene.NewTitleScene(screenWidth, screenHeight,
 		func() { g.showScenarioSelect() },
-		func() { /* Load stub — Phase 4 */ },
+		func() { g.showLoadScreen() },
+		hasSaves,
 		drawTitleScene,
 	)
+}
+
+// checkSavesExist returns true if at least one save file exists.
+func (g *Game) checkSavesExist() bool {
+	dir, err := save.DefaultSaveDir()
+	if err != nil {
+		return false
+	}
+	saves, err := save.ListSaves(dir)
+	if err != nil {
+		return false
+	}
+	return len(saves) > 0
+}
+
+// showLoadScreen transitions to the save file selection screen.
+func (g *Game) showLoadScreen() {
+	dir, err := save.DefaultSaveDir()
+	if err != nil {
+		log.Printf("failed to get save dir: %v", err)
+		return
+	}
+	saves, err := save.ListSaves(dir)
+	if err != nil {
+		log.Printf("failed to list saves: %v", err)
+		return
+	}
+
+	entries := make([]scene.LoadEntry, len(saves))
+	for i, s := range saves {
+		entries[i] = scene.LoadEntry{
+			Path:       s.Path,
+			Filename:   s.Filename,
+			SavedAt:    s.SavedAt,
+			ScenarioID: s.ScenarioID,
+		}
+	}
+
+	loadScene := scene.NewLoadScene(screenWidth, screenHeight, entries,
+		func(entry scene.LoadEntry) { g.loadFromSave(entry.Path) },
+		func() { g.showTitle() },
+		drawLoadScene,
+	)
+	g.scenes.Switch(loadScene)
+}
+
+// loadFromSave loads a save file and starts the InGame scene.
+func (g *Game) loadFromSave(path string) {
+	sf, err := save.LoadSaveFile(path)
+	if err != nil {
+		log.Printf("failed to load save: %v", err)
+		return
+	}
+	ctrl, err := controller.NewGameControllerFromCheckpoint(sf.Checkpoint, sf.ScenarioJSON)
+	if err != nil {
+		log.Printf("failed to restore game: %v", err)
+		return
+	}
+	inGame := scene.NewInGameScene(scene.InGameConfig{
+		Controller:   ctrl,
+		ScreenWidth:  screenWidth,
+		ScreenHeight: screenHeight,
+		MapOffsetX:   mapOffsetX,
+		MapOffsetY:   mapOffsetY,
+		OnGameOver: func(result simulation.GameResult, snap scenario.GameSnapshot) {
+			g.showResult(result, snap)
+		},
+	})
+	g.scenes.Switch(inGame)
 }
 
 // showScenarioSelect transitions to the scenario selection screen.
@@ -147,7 +219,15 @@ func drawTitleScene(screen image.Image, ts *scene.TitleScene) {
 		ngState = view.ButtonHover
 	}
 	ngBtn.Draw(dst, ngState)
-	ldBtn.Draw(dst, view.ButtonNormal)
+
+	ldState := view.ButtonDisabled
+	if ts.HasSaves() {
+		ldState = view.ButtonNormal
+		if ldBtn.Contains(px, py) {
+			ldState = view.ButtonHover
+		}
+	}
+	ldBtn.Draw(dst, ldState)
 }
 
 // drawSelectScene renders the scenario selection screen using ebiten drawing primitives.
@@ -184,6 +264,47 @@ func drawSelectScene(screen image.Image, ss *scene.ScenarioSelectScene) {
 	// Back button.
 	backBtn := view.ButtonFromRect(ss.BackRect(), "Back")
 	backBtn.Draw(dst, view.ButtonNormal)
+}
+
+// drawLoadScene renders the save file selection screen using ebiten drawing primitives.
+func drawLoadScene(screen image.Image, ls *scene.LoadScene) {
+	dst := screen.(*ebiten.Image)
+	dst.Fill(asset.ColorUIBackground)
+
+	sw := ls.ScreenWidth()
+	px, py := ebiten.CursorPosition()
+
+	// Header.
+	header := "Load Game"
+	hw := view.TextWidth(header)
+	view.DrawText(dst, header, (sw-hw)/2, 40)
+
+	// Save entries.
+	entries := ls.Entries()
+	rects := ls.ButtonRects()
+	for i, r := range rects {
+		label := scene.FormatEntryLabel(entries[i])
+		btn := view.ButtonFromRect(r, label)
+		state := view.ButtonNormal
+		if btn.Contains(px, py) {
+			state = view.ButtonHover
+		}
+		btn.Draw(dst, state)
+	}
+
+	if len(entries) == 0 {
+		msg := "No save files found"
+		mw := view.TextWidth(msg)
+		view.DrawText(dst, msg, (sw-mw)/2, 200)
+	}
+
+	// Back button.
+	backBtn := view.ButtonFromRect(ls.BackRect(), "Back")
+	backState := view.ButtonNormal
+	if backBtn.Contains(px, py) {
+		backState = view.ButtonHover
+	}
+	backBtn.Draw(dst, backState)
 }
 
 // drawResultScene renders the result screen using ebiten drawing primitives.
@@ -238,6 +359,8 @@ func (g *Game) Update() error {
 		case *scene.TitleScene:
 			s.HandleClick(px, py)
 		case *scene.ScenarioSelectScene:
+			s.HandleClick(px, py)
+		case *scene.LoadScene:
 			s.HandleClick(px, py)
 		case *scene.ResultScene:
 			s.HandleClick(px, py)

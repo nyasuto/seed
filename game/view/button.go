@@ -18,6 +18,8 @@ const (
 	ButtonHover
 	// ButtonActive indicates the button is currently active/selected.
 	ButtonActive
+	// ButtonDisabled indicates the button is not interactive.
+	ButtonDisabled
 )
 
 // Button represents a clickable UI button with a label.
@@ -71,6 +73,8 @@ func buttonBGColor(state ButtonState) color.RGBA {
 		return color.RGBA{R: 0x4C, G: 0xAF, B: 0x50, A: 0xFF} // green highlight
 	case ButtonHover:
 		return color.RGBA{R: 0x42, G: 0x42, B: 0x42, A: 0xFF} // lighter gray
+	case ButtonDisabled:
+		return color.RGBA{R: 0x2A, G: 0x2A, B: 0x2A, A: 0xFF} // dark gray
 	default:
 		return asset.ColorUIBackground
 	}
@@ -80,6 +84,8 @@ func buttonBorderColor(state ButtonState) color.RGBA {
 	switch state {
 	case ButtonActive:
 		return color.RGBA{R: 0x81, G: 0xC7, B: 0x84, A: 0xFF} // light green
+	case ButtonDisabled:
+		return color.RGBA{R: 0x44, G: 0x44, B: 0x44, A: 0xFF} // dim border
 	default:
 		return asset.ColorUIBorder
 	}

@@ -6,7 +6,7 @@ import (
 
 func TestTitleScene_NewGameButtonClick(t *testing.T) {
 	called := false
-	ts := NewTitleScene(1088, 728, func() { called = true }, nil, nil)
+	ts := NewTitleScene(1088, 728, func() { called = true }, nil, false, nil)
 
 	// Click center of the New Game button.
 	r := ts.NewGameRect()
@@ -23,7 +23,7 @@ func TestTitleScene_NewGameButtonClick(t *testing.T) {
 
 func TestTitleScene_LoadButtonClick(t *testing.T) {
 	called := false
-	ts := NewTitleScene(1088, 728, nil, func() { called = true }, nil)
+	ts := NewTitleScene(1088, 728, nil, func() { called = true }, true, nil)
 
 	r := ts.LoadRect()
 	cx := (r.Min.X + r.Max.X) / 2
@@ -38,7 +38,7 @@ func TestTitleScene_LoadButtonClick(t *testing.T) {
 }
 
 func TestTitleScene_ClickOutsideButtons(t *testing.T) {
-	ts := NewTitleScene(1088, 728, func() { t.Error("should not fire") }, func() { t.Error("should not fire") }, nil)
+	ts := NewTitleScene(1088, 728, func() { t.Error("should not fire") }, func() { t.Error("should not fire") }, true, nil)
 
 	if ts.HandleClick(0, 0) {
 		t.Error("expected HandleClick to return false for click outside buttons")
@@ -46,12 +46,28 @@ func TestTitleScene_ClickOutsideButtons(t *testing.T) {
 }
 
 func TestTitleScene_ButtonsDoNotOverlap(t *testing.T) {
-	ts := NewTitleScene(1088, 728, nil, nil, nil)
+	ts := NewTitleScene(1088, 728, nil, nil, false, nil)
 	ng := ts.NewGameRect()
 	ld := ts.LoadRect()
 
 	if ng.Overlaps(ld) {
 		t.Errorf("New Game button %v overlaps Load button %v", ng, ld)
+	}
+}
+
+func TestTitleScene_LoadButtonDisabled(t *testing.T) {
+	called := false
+	ts := NewTitleScene(1088, 728, nil, func() { called = true }, false, nil)
+
+	r := ts.LoadRect()
+	cx := (r.Min.X + r.Max.X) / 2
+	cy := (r.Min.Y + r.Max.Y) / 2
+
+	if ts.HandleClick(cx, cy) {
+		t.Error("expected HandleClick to return false when hasSaves is false")
+	}
+	if called {
+		t.Error("expected onLoad NOT to be called when hasSaves is false")
 	}
 }
 
@@ -62,7 +78,7 @@ func TestTitleScene_TransitionToScenarioSelect(t *testing.T) {
 	titleScene := NewTitleScene(1088, 728, func() {
 		transitioned = true
 		sm.Switch(&spyScene{name: "select"})
-	}, nil, nil)
+	}, nil, false, nil)
 
 	sm.Switch(titleScene)
 

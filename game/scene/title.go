@@ -13,9 +13,13 @@ type TitleScene struct {
 	newGameRect image.Rectangle
 	loadRect    image.Rectangle
 
+	// hasSaves indicates whether save files exist. When false, the Load
+	// button is greyed out and clicks are ignored.
+	hasSaves bool
+
 	// onNewGame is called when the player clicks "New Game".
 	onNewGame func()
-	// onLoad is called when the player clicks "Load" (stub for Phase 4).
+	// onLoad is called when the player clicks "Load".
 	onLoad func()
 
 	// drawFunc is injected by the caller to handle ebiten-dependent rendering.
@@ -23,9 +27,10 @@ type TitleScene struct {
 }
 
 // NewTitleScene creates a TitleScene. onNewGame is called when "New Game"
-// is clicked. onLoad is called when "Load" is clicked (may be nil for stub).
-// drawFunc handles rendering (nil is safe — Draw becomes a no-op).
-func NewTitleScene(screenWidth, screenHeight int, onNewGame, onLoad func(), drawFunc func(image.Image, *TitleScene)) *TitleScene {
+// is clicked. onLoad is called when "Load" is clicked. hasSaves controls
+// whether the Load button is enabled. drawFunc handles rendering (nil is
+// safe — Draw becomes a no-op).
+func NewTitleScene(screenWidth, screenHeight int, onNewGame, onLoad func(), hasSaves bool, drawFunc func(image.Image, *TitleScene)) *TitleScene {
 	btnW := 180
 	btnH := 36
 	cx := (screenWidth - btnW) / 2
@@ -36,6 +41,7 @@ func NewTitleScene(screenWidth, screenHeight int, onNewGame, onLoad func(), draw
 		screenHeight: screenHeight,
 		newGameRect:  image.Rect(cx, baseY, cx+btnW, baseY+btnH),
 		loadRect:     image.Rect(cx, baseY+btnH+12, cx+btnW, baseY+btnH+12+btnH),
+		hasSaves:     hasSaves,
 		onNewGame:    onNewGame,
 		onLoad:       onLoad,
 		drawFunc:     drawFunc,
@@ -62,7 +68,7 @@ func (ts *TitleScene) HandleClick(px, py int) bool {
 		ts.onNewGame()
 		return true
 	}
-	if pt.In(ts.loadRect) && ts.onLoad != nil {
+	if pt.In(ts.loadRect) && ts.onLoad != nil && ts.hasSaves {
 		ts.onLoad()
 		return true
 	}
@@ -93,4 +99,9 @@ func (ts *TitleScene) ScreenWidth() int {
 // ScreenHeight returns the screen height.
 func (ts *TitleScene) ScreenHeight() int {
 	return ts.screenHeight
+}
+
+// HasSaves reports whether save files are available (controls Load button state).
+func (ts *TitleScene) HasSaves() bool {
+	return ts.hasSaves
 }
