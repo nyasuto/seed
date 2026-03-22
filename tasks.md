@@ -1,639 +1,534 @@
-# chaosseed-sim tasks.md
+# chaosseed-game tasks.md
 
-> RALF Loop 用タスクファイル。1イテレーション1タスク。
+> Ralph Loop 用タスクファイル。1イテレーション1タスク。
 > 上から順に消化する。各タスクの完了条件をすべて満たしてから次に進む。
 > タスク完了時にチェックボックスを [x] にする。
+>
+> **GUI固有のルール**: 描画の「見た目の正しさ」はgo testで検証できない。
+> タスクの完了条件は「ロジックテスト + コンパイル成功 + vetクリーン」に限定する。
+> 目視確認はフェーズ末尾の統合タスク（Ralph Loopの外、チャットでぽんぽこが実施）で行う。
 
 ---
 
-## Phase 0: プロジェクト初期化
+## Phase 0: Ebitengine習作 + プロジェクト初期化
 
-- [x] **Task 0-A: simスケルトン作成**
+- [ ] **Task 0-A: プロジェクト初期化とEbitengine導入**
 
-モノレポ構成（go.work, core/, sim/, sim/go.mod, sim/docs/PRD.md）は既に存在する。
-以下の残作業を実施する：
-
-1. sim/go.mod に core への require を追加（`require github.com/nyasuto/seed/core v0.0.0` + replace ディレクティブ）
-2. `go work sync` で整合確認
-3. sim/cmd/chaosseed-sim/main.go のスケルトン作成（`--human`, `--ai`, `--batch`, `--balance`, `--version` フラグのパース、未実装モードは "not implemented" で終了）
+1. game/ ディレクトリで作業する
+2. Ebitengine v2 を `go get` で導入
+3. game/main.go: 最小の Ebitengine アプリ（空ウィンドウ表示、1088x728、タイトル "ChaosForge"）
+4. game/Makefile 作成（build, test, vet, clean）
+5. ルート Makefile に game を追加
+6. CLAUDE.md 更新（game の依存ポリシー追記）
 
 **完了条件**:
 - `go work sync` が成功
-- `cd sim && go build ./...` が成功
-- `cd sim && go vet ./...` が成功
-- `chaosseed-sim --version` がバージョン文字列を出力
-- `chaosseed-sim --human` が "not implemented" で終了
+- `cd game && go build ./...` が成功
+- `cd game && go vet ./...` がクリーン
+- バイナリ実行でウィンドウが表示される（手動確認OK、ループ停止条件ではない）
 
-- [x] **Task 0-B: sim用Makefileとプロジェクト基盤**
+- [ ] **Task 0-B: カラーパレットと仮タイルセット生成**
 
-ルートMakefileは既に存在する（test, test-race, vet, lint, cover, check, clean ターゲット）。
-以下を実施する：
-
-1. ルートMakefile に `build` と `all` ターゲットを追加（`all: build check`、`build` は sim バイナリ生成）
-2. sim/Makefile 作成（ターゲット: build, test, vet, lint, clean）
-3. sim/.golangci.yml 作成（ルートの .golangci.yml と同じルールセット）
-
-**完了条件**:
-- `cd sim && make build` が sim バイナリを生成
-- `cd sim && make test` が（まだテストはないが）エラーなく完了
-- `cd sim && make vet` がクリーン
-- ルートの `make all` で core と sim が両方ビルド・テストされる
-
----
-
-## Phase 1: core修正 + Game Server
-
-- [x] **Task 1-A: core修正 — MaxRooms制約チェック追加**
-
-core/simulation/action.go の validateDigRoom に GameConstraints.MaxRooms チェックを追加する。
-現在の部屋数が MaxRooms 以上なら DigRoom アクションを拒否する。
-
-1. validateDigRoom に MaxRooms チェック追加（MaxRooms > 0 の場合のみ制約を適用）
-2. エラーメッセージ: "max rooms reached: %d/%d"
-3. SimpleAIPlayer が MaxRooms に達した場合に DigRoom を試行しないよう修正
-
-**完了条件**:
-- MaxRooms=5 のシナリオで 5部屋建設後に DigRoom が拒否されるテスト
-- SimpleAIPlayer が MaxRooms 制約を尊重するテスト
-- 既存テストが全パス
-
-- [x] **Task 1-B: core修正 — SimpleAIPlayerコリドー戦略**
-
-core/simulation/ai_player.go の SimpleAIPlayer に、新部屋建設後に隣接部屋への通路を掘るロジックを追加する。
-
-1. SimpleAIPlayer の DecideActions メソッドで DigRoom 後の次ティックに DigCorridor を発行
-2. 対象: 新部屋と既存の隣接部屋の間（龍穴からの気の伝播経路を確保）
-3. 通路が掘れない場合（壁、距離等）はスキップ
-
-**完了条件**:
-- SimpleAIPlayer が部屋建設後に通路を掘ることを確認するテスト
-- 通路経由で気が新部屋に伝播することを確認するテスト（ChiFlowEngine.Tick 後に新部屋の RoomChi.Current > 0）
-- 既存テストが全パス
-
-- [x] **Task 1-C: core修正 — caveScore正規化（呼び出し側）**
-
-core/simulation/engine.go の Step メソッドで、`ev.CaveTotal()` の生値（部屋スコア合計）をそのまま CalcTickSupply に渡している問題を修正する。CalcTickSupply は caveScore を [0,1] の範囲として扱う設計のため、呼び出し側で正規化が必要。
-
-1. simulation/engine.go で CaveTotal を正規化してから CalcTickSupply に渡す
-2. 正規化方法: CaveTotal / MaxPossibleScore（全部屋の理論最大スコア合計）、0.0〜1.0 にクランプ
-3. MaxPossibleScore が 0 の場合（部屋なし）は caveScore = 0.0
-
-**完了条件**:
-- CalcTickSupply に渡される caveScore が 0.0〜1.0 の範囲に収まるテスト
-- 部屋数を増やしても供給量が指数的に膨らまないテスト（線形またはサブリニア）
-- 既存テストの期待値を正規化後の値に更新し、全パス
-
-- [x] **Task 1-D: core v1.1.0 タグ + DECISIONS.md更新**
-
-1. Task 1-A〜1-C の修正が core の全テストをパスすることを確認
-2. DECISIONS.md に以下を追記:
-   - D014: MaxRooms制約のバリデーション追加（RESOLVED）
-   - D015: SimpleAIPlayerコリドー戦略（RESOLVED）
-   - D016: caveScore正規化（RESOLVED）
-3. core に v1.1.0 タグを打つ準備（タグ打ち自体はチャットで確認後に実施）
-
-**完了条件**:
-- `cd core && go test ./... -count=1` 全パス
-- `cd core && go vet ./...` クリーン
-- DECISIONS.md に D014, D015, D016 が記載
-
-- [x] **Task 1-E: Game Server — ActionProviderインターフェースとGameServer構造体**
-
-sim/server/ パッケージを作成する。
-
-1. server/provider.go: ActionProvider インターフェース定義
+1. asset/palette.go: ゲーム全体のカラーパレット定義
+   - 属性色（Fire=赤系, Water=青系, Wood=緑系, Metal=黄系, Earth=茶系）
+   - 地形色（Wall=濃い灰, Floor=薄い灰, Corridor=灰, DragonHole=紫, HardRock=非常に濃い灰, WaterTerrain=深い青）
+   - UI色（背景、テキスト、ボーダー）
+2. asset/tileset.go: TilesetProvider インターフェース定義
    ```go
-   type ActionProvider interface {
-       ProvideActions(snapshot *simulation.GameSnapshot) ([]simulation.PlayerAction, error)
-       OnTickComplete(snapshot *simulation.GameSnapshot)
-       OnGameEnd(result *simulation.RunResult)
+   type TilesetProvider interface {
+       GetTile(cellType world.CellType, element types.Element) *ebiten.Image
+       GetBeastSprite(species string, level int) *ebiten.Image
+       GetInvaderSprite(class string) *ebiten.Image
    }
    ```
-2. server/server.go: GameServer 構造体
-   ```go
-   type GameServer struct { ... }
-   func NewGameServer(scenario *scenario.ScenarioDef, seed int64) (*GameServer, error)
-   func (gs *GameServer) RunGame(provider ActionProvider) (*simulation.RunResult, error)
-   ```
-3. GameServer.RunGame は内部で core の SimulationRunner.Run を呼び、ActionProvider をブリッジする
+3. asset/placeholder.go: PlaceholderProvider 実装
+   - 全CellType分の32x32色付き矩形を生成
+   - HardRock: ✕模様、WaterTerrain: ～模様、DragonHole: ★マーク
 
 **完了条件**:
-- GameServer が NewGameServer → RunGame の流れでゲームを1ゲーム完走するテスト（core の SimpleAIPlayer をラップした ActionProvider で）
-- ActionProvider の各メソッドが適切なタイミングで呼ばれることを検証するモックテスト
+- PlaceholderProvider が TilesetProvider を満たすコンパイル確認
+- 全CellTypeに対して GetTile が non-nil の *ebiten.Image を返すテスト
+- 全タイルが32x32ピクセルであるテスト
 
-- [x] **Task 1-F: Game Server — セッション管理とシナリオ読み込み**
+- [ ] **Task 0-C: Caveデータからタイルマップ描画**
 
-1. server/session.go: セッションライフサイクル管理
-   - LoadScenario(path string) でシナリオJSON読み込み
-   - 組み込みシナリオ（"tutorial", "standard"）のサポート
-2. GameServer にセッション操作を委譲するメソッド追加
-
-**完了条件**:
-- シナリオJSONファイルの読み込み → ゲーム開始テスト
-- 組み込みシナリオ名（"tutorial"）での読み込みテスト
-
-- [x] **Task 1-G: Game Server — チェックポイント保存/復元**
-
-1. server/checkpoint.go: チェックポイント機能
-   - SaveCheckpoint(path string) — 現在のゲーム状態をファイルに保存
-   - LoadCheckpoint(path string) — ファイルからゲーム状態を復元
-2. GameServer にチェックポイント操作を委譲するメソッド追加
+1. view/mapview.go: MapView 構造体
+   - Caveデータからタイルマップへの座標変換: `CellPos(x,y) → ScreenPos(px,py)`
+   - `Draw(screen *ebiten.Image, cave *world.Cave, provider TilesetProvider)`
+   - 全セルを走査し、CellType に応じたタイルを描画
+2. coreのCaveデータを読み込み、MapViewで描画するデモ
+   - 組み込みチュートリアルシナリオのCaveをそのまま使用
 
 **完了条件**:
-- チェックポイント保存 → 復元 → 続行が元実行と同一結果になるテスト
+- CellPos→ScreenPos の座標変換テスト（境界値含む）
+- ScreenPos→CellPos の逆変換テスト（マウスクリック→セル座標の基礎）
+- `go build ./...` が成功
 
-- [x] **Task 1-H: Game Server — リプレイ保存/再生**
+- [ ] **Task 0-D: マウスホバーとセル情報表示**
 
-1. server/replay.go: リプレイ機能
-   - SaveReplay(path string) — アクション履歴をファイルに保存
-   - LoadReplay(path string) — ファイルからアクション履歴を読み込み再生
-2. GameServer にリプレイ操作を委譲するメソッド追加
-
-**完了条件**:
-- リプレイ保存 → 再生が元実行と同一結果になるテスト
-
-- [x] **Task 1-I: Metrics Collector スケルトン**
-
-sim/metrics/ パッケージのスケルトンを作成する。
-
-1. metrics/collector.go: Collector 構造体と基本インターフェース
-   ```go
-   type Collector struct { ... }
-   func NewCollector() *Collector
-   func (c *Collector) OnTick(snapshot *simulation.GameSnapshot, actions []simulation.PlayerAction)
-   func (c *Collector) OnGameEnd(result *simulation.RunResult) *GameSummary
-   ```
-2. metrics/summary.go: GameSummary 構造体（勝敗、総ティック数、建設部屋数、最終CoreHP等の基本統計）
-3. GameServer に Collector を組み込み、毎ティック OnTick を呼ぶ
+1. input/mouse.go: マウス座標→セル座標変換
+   - ScreenPos→CellPos 変換（MapView の逆変換を利用）
+   - ホバー中のセル座標を毎フレーム追跡
+2. view/tooltip.go: ツールチップ描画
+   - ホバー中のセルの CellType を文字表示
+   - 部屋セルの場合は部屋ID、属性、レベルを表示
+3. main.go に MapView + ツールチップを統合
 
 **完了条件**:
-- Collector が GameServer 経由でティックごとに呼ばれるテスト
-- GameSummary に基本統計が正しく集計されるテスト（1ゲーム完走後）
-- `go vet ./...` クリーン
+- マウス座標(320, 160)→セル座標(10, 5)のような変換テスト
+- マップ外の座標が無効として扱われるテスト
+- `go build ./...` が成功
 
-- [x] **Task 1-J: Phase 1 統合テストと完了**
+- [ ] **Task 0-E: Phase 0 統合と確認**
 
-1. GameServer + SimpleAIPlayer(ActionProviderラップ) + Collector で1ゲーム完走の統合テスト
-2. チュートリアルシナリオと標準シナリオの両方で完走確認
-3. GameSummary の出力を確認（勝敗、ティック数等が妥当な値か）
-4. DECISIONS.md 棚卸し — Phase 1 で生まれた設計判断があれば追記
-5. LESSONS.md — Phase 1 の知見追記
+1. チュートリアルシナリオのCaveサイズが24x20タイルに収まることを確認
+   - 収まらない場合は core のシナリオJSONを調整（DECISIONS.md に記録）
+2. `go test ./... -count=1 -race` 全パス
+3. `go vet ./...` クリーン
+4. DECISIONS.md 棚卸し
+5. LESSONS.md — Phase 0 の知見追記（Ebitengine の学び）
 
 **完了条件**:
-- 統合テスト2件（tutorial, standard）がパス
-- `cd sim && go test ./... -count=1 -race` 全パス
-- `cd sim && go vet ./...` クリーン
-- PHASE_COMPLETE_1.md 生成
+- `cd game && go test ./... -count=1 -race` 全パス
+- `cd game && go vet ./...` クリーン
+- PHASE_COMPLETE_0.md 生成
 
 ---
 
-## Phase 2: Human Mode（対話メニュー）
+## Phase 1: Game Controller + ティック進行
 
-- [x] **Task 2-A: ASCII描画の拡張**
+- [ ] **Task 1-A: GameController — core接続とSnapshot管理**
 
-sim/render/ パッケージを作成する。
-
-1. render/ascii.go: core の caveviz/RenderFullStatus をベースに拡張
-   - ANSIカラーコード対応（属性ごとの色: 火=赤, 水=青, 木=緑, 金=黄, 土=茶）
-   - 仙獣の状態表示（名前、Lv、行動状態）
-   - 侵入者の位置・状態表示
-   - 経済情報（ChiPool残量、供給量/ティック、維持コスト/ティック）
-   - CoreHP バー表示
-2. render/format.go: 共通フォーマット関数（HP バー、プログレスバー、カラー出力）
-
-**完了条件**:
-- テスト用の GameSnapshot を渡して期待通りの ASCII 文字列が生成されるテスト
-- ANSIカラーが正しく出力されるテスト（エスケープシーケンスの検証）
-- ターミナル幅80文字以内に収まるレイアウト
-
-- [x] **Task 2-B: Human Mode — メインメニューとアクション選択**
-
-sim/adapter/human/ パッケージを作成する。
-
-1. adapter/human/menu.go: メインメニュー表示と入力受付
-   - 1. 部屋を掘る → サブメニューへ
-   - 2. 通路を掘る → サブメニューへ
-   - 3. 仙獣を召喚する → サブメニューへ
-   - 4. 部屋をアップグレードする → サブメニューへ
-   - 5. 何もしない（1ティック進める）
-   - 6. 早送り（Nティック）→ ティック数入力
-   - s. セーブ / l. ロード / r. リプレイ保存 / q. 終了
-2. adapter/human/input.go: 入力ヘルパー（数字入力、Yes/No、座標入力）
-3. 無効入力時のエラー表示と再入力ループ
+1. controller/controller.go: GameController 構造体
+   ```go
+   type GameController struct {
+       engine   *simulation.SimulationEngine
+       snapshot *simulation.GameSnapshot
+       pending  []simulation.PlayerAction
+       state    GameState  // Playing, Paused, FastForward, GameOver
+   }
+   func NewGameController(scenarioDef *scenario.ScenarioDef, seed int64) (*GameController, error)
+   func (gc *GameController) Snapshot() *simulation.GameSnapshot
+   func (gc *GameController) AddAction(action simulation.PlayerAction)
+   func (gc *GameController) AdvanceTick() (*simulation.StepResult, error)
+   ```
+2. シナリオ読み込み（組み込みシナリオ対応、sim/server の embed パターンを流用）
+3. AdvanceTick: pending キューを Step() に渡し、Snapshot を更新
 
 **完了条件**:
-- io.Reader からスクリプト化された入力を渡してメニュー遷移をテスト
-- 無効入力（範囲外の数字、非数値文字列）でエラー表示後に再入力になるテスト
+- NewGameController でチュートリアルシナリオ読み込み→AdvanceTick 1回→Snapshot が更新されるテスト
+- AddAction → AdvanceTick で PlayerAction が engine に渡されるテスト
+- 既存の core テストが影響を受けないことの確認
 
-- [x] **Task 2-C: Human Mode — サブメニュー（部屋掘削・通路）**
+- [ ] **Task 1-B: ティック進行モード（手動/早送り/一時停止）**
 
-1. adapter/human/submenu_build.go: 建設系サブメニュー
-   - 部屋を掘る: 座標入力 → 属性選択（fire/water/wood/metal/earth） → PlayerAction生成
-   - 通路を掘る: 始点部屋ID → 終点部屋ID → PlayerAction生成
-2. valid_actions に基づく選択肢の動的生成
-   - 建設不可セルは表示しない、コスト不足の場合は警告表示
-3. "戻る" 操作でメインメニューに復帰
-
-**完了条件**:
-- 部屋掘削サブメニューからPlayerActionが正しく生成されるテスト
-- 通路掘削サブメニューからPlayerActionが正しく生成されるテスト
-- コスト不足時に警告が表示されるテスト
-- "戻る" でメインメニューに戻るテスト
-
-- [x] **Task 2-D: Human Mode — サブメニュー（召喚・アップグレード）**
-
-1. adapter/human/submenu_unit.go: 仙獣系サブメニュー
-   - 仙獣を召喚する: 部屋ID → 種族選択 → PlayerAction生成
-   - 部屋をアップグレードする: 部屋ID → PlayerAction生成
-2. valid_actions に基づく選択肢の動的生成
-   - コスト不足の場合は警告表示
-3. "戻る" 操作でメインメニューに復帰
+1. controller/tick.go: ティック進行ロジック
+   - Manual: AdvanceTick() の明示的呼び出しでのみ進行
+   - FastForward: 毎フレーム N ティック自動進行（N は設定可能）
+   - Paused: 進行停止（描画は継続）
+2. TogglePause(), StartFastForward(speed int), StopFastForward()
+3. FastForward 中に侵入波到達 or ゲーム終了で自動停止
 
 **完了条件**:
-- 召喚サブメニューからPlayerActionが正しく生成されるテスト
-- アップグレードサブメニューからPlayerActionが正しく生成されるテスト
-- コスト不足時に警告が表示されるテスト
+- Manual モードで AdvanceTick 呼び出しなしではティック数が変わらないテスト
+- FastForward で 10 ティック自動進行するテスト
+- Paused → Resume でティック進行が再開するテスト
+- FastForward 中にゲーム終了条件を満たすと停止するテスト
 
-- [x] **Task 2-E: Human Mode — ActionProvider実装とティック結果表示**
+- [ ] **Task 1-C: GameSnapshot から描画データへの変換**
 
-1. adapter/human/provider.go: ActionProvider インターフェース実装
-   - ProvideActions: メニュー表示 → 入力受付 → PlayerAction返却
-   - OnTickComplete: ティック結果のサマリー表示（戦闘発生、経済変化、イベント通知）
-   - OnGameEnd: 勝敗結果とGameSummaryの表示
-2. adapter/human/display.go: ティック結果の表示ロジック
-   - 戦闘が発生した場合: 部屋ごとの戦闘結果（ダメージ、倒した/倒された）
-   - 侵入波が到達した場合: 波の情報（敵数、種類）
-   - CoreHPが減少した場合: 警告表示
-   - 仙獣が成長/進化した場合: 通知
-3. 早送り中は描画スキップ（完了後にサマリー表示）
-
-**完了条件**:
-- スクリプト入力で1ゲーム完走するE2Eテスト（wait連打でゲーム終了まで進む）
-- 早送り（ff 50）で50ティック分スキップされるテスト
-- OnTickComplete で戦闘ログが出力されるテスト
-
-- [x] **Task 2-F: Human Mode — CLI統合とチェックポイント操作**
-
-1. cmd/chaosseed-sim/main.go の `--human` フラグ実装
-   - `--scenario` 引数でシナリオ指定
-   - `--scenario tutorial` で組み込みチュートリアル
-2. Human Mode のセーブ/ロード統合
-   - 's' キー → ファイルパス入力 → チェックポイント保存
-   - 'l' キー → ファイルパス入力 → チェックポイント復元 → ゲーム再開
-   - 'r' キー → ファイルパス入力 → リプレイ保存
-3. 'q' キーで確認ダイアログ → 終了
+1. view/mapview.go の拡張: Snapshot から部屋の属性情報を読み取り、タイル色を属性に応じて変更
+   - 部屋セルは部屋の Element に基づく色で描画
+   - 龍穴は紫で描画
+   - 空いている壁セルはデフォルト灰色
+2. view/entity.go: 仙獣/侵入者のスプライト描画
+   - Snapshot の仙獣リストから位置を読み取り、対応する部屋の中心に描画
+   - Snapshot の侵入者リストから位置を読み取り、同様に描画
+   - PlaceholderProvider 経由でスプライト取得
 
 **完了条件**:
-- `chaosseed-sim --human --scenario tutorial` でゲームが起動するテスト
-- セーブ → 終了 → ロードでゲームが続行されるテスト
-- リプレイ保存 → `chaosseed-sim --replay` で再生されるテスト
+- Snapshot の部屋属性が Fire の場合、対応するセルが Fire 色タイルで描画される座標計算テスト
+- 仙獣の部屋ID→描画座標の変換テスト
+- 侵入者の部屋ID→描画座標の変換テスト
 
-- [x] **Task 2-G: Phase 2 統合テストと完了**
+- [ ] **Task 1-D: Top Bar — ステータス表示**
 
-1. チュートリアルシナリオのスクリプト実行E2Eテスト
-   - 部屋掘る → 仙獣召喚 → wait × N → ゲーム終了 の一連の流れ
-2. 全サブメニューの遷移テスト
-3. ASCII描画の目視確認用スクリプト（手動確認用、テストではない）
+1. view/ui.go: UIPanel 構造体
+   - Top Bar: ChiPool（現在値/最大値）、CoreHP（バー + 数値）、Tick数
+   - Snapshot から値を読み取り、毎フレーム描画
+2. view/text.go: テキスト描画ヘルパー
+   - Ebitengine のテキスト描画API（ebitenutil.DebugPrint or text パッケージ）
+   - 位置指定、色指定のラッパー
+
+**完了条件**:
+- Snapshot の ChiPool=150, MaxChiPool=500 → "ChiPool: 150/500" のテキスト生成テスト
+- CoreHP バーの幅計算テスト（80/100 → 80%幅）
+- `go build ./...` が成功
+
+- [ ] **Task 1-E: Phase 1 統合と確認**
+
+1. main.go を統合: GameController + MapView + EntityView + TopBar
+   - 起動 → チュートリアルシナリオ読み込み → マップ描画 → スペースキーでティック進行
+   - 仙獣/侵入者がマップ上に表示される
+2. `go test ./... -count=1 -race` 全パス
+3. `go vet ./...` クリーン
 4. DECISIONS.md 棚卸し
 5. LESSONS.md 追記
 
 **完了条件**:
-- E2Eテストがパス
-- `cd sim && go test ./... -count=1 -race` 全パス
-- `cd sim && go vet ./...` クリーン
+- `cd game && go test ./... -count=1 -race` 全パス
+- `cd game && go vet ./...` クリーン
+- PHASE_COMPLETE_1.md 生成
+
+---
+
+## Phase 2: 操作システム
+
+- [ ] **Task 2-A: 操作モードステートマシン**
+
+1. input/action.go: ActionMode 定義
+   ```go
+   type ActionMode int
+   const (
+       ModeNormal ActionMode = iota
+       ModeDigRoom
+       ModeDigCorridor
+       ModeSummon
+       ModeUpgrade
+   )
+   ```
+2. input/state.go: InputStateMachine
+   - 現在のモード管理
+   - モード切替（キーボード D/C/S/U、Escape でキャンセル→Normal に戻る）
+   - モードに応じたマウスクリックの解釈を変更
+3. モード表示（画面下部のAction Bar でアクティブモードをハイライト）
+
+**完了条件**:
+- キー 'D' で ModeDigRoom に遷移するテスト
+- Escape で ModeNormal に戻るテスト
+- ModeDigRoom 中にキー 'S' で ModeSummon に切り替わるテスト
+
+- [ ] **Task 2-B: Action Bar 描画**
+
+1. view/actionbar.go: Action Bar 描画
+   - 5つのアクションボタン: [掘る D] [通路 C] [召喚 S] [強化 U] [待機 W]
+   - 3つのティック制御ボタン: [▶ Space] [▶▶ F] [⏸ Esc]
+   - アクティブモードのボタンをハイライト表示
+   - マウスクリックでボタン押下判定
+2. view/button.go: 汎用ボタン描画
+   - 矩形 + テキストラベル + ホバー/アクティブ状態
+
+**完了条件**:
+- ボタン矩形内のクリック座標が「ボタン押下」と判定されるテスト
+- ボタン矩形外のクリックが無視されるテスト
+- `go build ./...` が成功
+
+- [ ] **Task 2-C: DigRoom フロー**
+
+1. ModeDigRoom の完全な操作フロー:
+   - モード進入 → マップ上の壁セルをクリック → 部屋位置決定
+   - 属性選択パネル表示（5属性のボタン一覧）→ クリックで選択
+   - PlayerAction(DigRoom) を GameController.AddAction() に投入
+   - ModeNormal に復帰
+2. バリデーション:
+   - 壁セル以外をクリック → エラー表示（赤テキスト）、モード継続
+   - HardRock/Water セルをクリック → エラー表示
+   - ChiPool 不足 → 属性選択パネルで警告表示
+
+**完了条件**:
+- 壁セル座標+Fire属性 → DigRoom PlayerAction が正しく生成されるテスト
+- HardRock セルクリックが拒否されるテスト
+- 属性選択後に ModeNormal に復帰するテスト
+
+- [ ] **Task 2-D: DigCorridor フロー**
+
+1. ModeDigCorridor の操作フロー:
+   - モード進入 → 始点の部屋セルをクリック → 始点部屋ID記録 → ハイライト表示
+   - 終点の部屋セルをクリック → DigCorridor PlayerAction 生成
+   - ModeNormal に復帰
+2. バリデーション:
+   - 部屋セル以外をクリック → エラー表示
+   - 始点と終点が同じ部屋 → エラー表示
+
+**完了条件**:
+- 始点部屋ID=1, 終点部屋ID=3 → DigCorridor PlayerAction が正しく生成されるテスト
+- 部屋以外のセルクリックが拒否されるテスト
+- 始点選択後にEscapeでキャンセル→ModeNormal復帰テスト
+
+- [ ] **Task 2-E: SummonBeast フロー**
+
+1. ModeSummon の操作フロー:
+   - モード進入 → 部屋セルをクリック → 部屋ID記録
+   - 種族選択パネル表示（利用可能な仙獣種族のボタン一覧）→ クリックで選択
+   - SummonBeast PlayerAction 生成
+   - ModeNormal に復帰
+2. バリデーション:
+   - 部屋以外をクリック → エラー表示
+   - ChiPool 不足 → 種族選択パネルで警告
+   - 部屋に既に仙獣がいる場合 → エラー表示
+
+**完了条件**:
+- 部屋ID=2, 種族="kirin" → SummonBeast PlayerAction が正しく生成されるテスト
+- ChiPool 不足時に警告が返るバリデーションテスト
+
+- [ ] **Task 2-F: UpgradeRoom フロー + Wait + ティック制御統合**
+
+1. ModeUpgrade の操作フロー:
+   - モード進入 → 部屋セルをクリック → UpgradeRoom PlayerAction 生成
+   - ModeNormal に復帰
+2. Wait: キー W → PlayerAction なしで AdvanceTick 呼び出し
+3. ティック制御の統合:
+   - スペースキー / [▶] ボタン → AdvanceTick（pending キュー実行）
+   - キー F / [▶▶] ボタン → FastForward 開始
+   - Escape / [⏸] ボタン → FastForward 停止 or モードキャンセル
+4. pending キューに複数アクションが積まれている場合の表示（キュー内容を Action Bar 近くに表示）
+
+**完了条件**:
+- 部屋ID=1 → UpgradeRoom PlayerAction テスト
+- Wait → ティック数が1増えるテスト
+- FastForward 開始→10ティック進行→手動停止のテスト
+
+- [ ] **Task 2-G: 操作フィードバック（エラー表示、モード表示）**
+
+1. view/feedback.go: 操作フィードバック表示
+   - エラーメッセージ: 赤テキストで画面下部に表示、3秒後にフェードアウト
+   - モード表示: マウスカーソル近くにモード名テキスト（"掘削モード" 等）
+   - 有効セルのハイライト: ModeDigRoom 中に壁セルを薄く光らせる
+   - 無効セルの暗転: HardRock/Water を掘削モード中に暗く表示
+2. view/selection.go: 選択パネルの汎用コンポーネント
+   - 属性選択パネル（5つの色付きボタン）
+   - 種族選択パネル（種族名のボタンリスト）
+   - パネル表示中は他の操作をブロック
+
+**完了条件**:
+- エラーメッセージのタイマー（3秒）テスト
+- 選択パネルの項目クリック判定テスト
+- `go build ./...` が成功
+
+- [ ] **Task 2-H: Phase 2 統合と確認**
+
+1. 全操作フローの統合: main.go に ActionBar + InputStateMachine + 全フローを接続
+2. キーボードショートカット一覧の最終確認: D/C/S/U/W/Space/F/Escape
+3. `go test ./... -count=1 -race` 全パス
+4. `go vet ./...` クリーン
+5. DECISIONS.md 棚卸し
+6. LESSONS.md 追記
+
+**完了条件**:
+- `cd game && go test ./... -count=1 -race` 全パス
+- `cd game && go vet ./...` クリーン
 - PHASE_COMPLETE_2.md 生成
 
 ---
 
-## Phase 3: AI Mode（JSON I/O）
+## Phase 3: シーン管理 + UI
 
-- [x] **Task 3-A: AI Modeプロトコル定義**
+- [ ] **Task 3-A: シーンマネージャー**
 
-sim/adapter/ai/ パッケージを作成する。
-
-1. adapter/ai/protocol.go: メッセージ型定義
+1. scene/manager.go: SceneManager
    ```go
-   // サーバー → クライアント
-   type StateMessage struct {
-       Type         string                     `json:"type"`          // "state"
-       Tick         int                        `json:"tick"`
-       Snapshot     json.RawMessage            `json:"snapshot"`
-       ValidActions []ValidAction              `json:"valid_actions"`
+   type Scene interface {
+       Update() error
+       Draw(screen *ebiten.Image)
+       OnEnter()
+       OnExit()
    }
-   type GameEndMessage struct {
-       Type    string                          `json:"type"`          // "game_end"
-       Result  string                          `json:"result"`        // "victory" | "defeat"
-       Summary json.RawMessage                 `json:"summary"`
-       Metrics json.RawMessage                 `json:"metrics"`
-   }
-   type ErrorMessage struct {
-       Type    string                          `json:"type"`          // "error"
-       Message string                          `json:"message"`
-   }
-
-   // クライアント → サーバー
-   type ActionMessage struct {
-       Type    string                          `json:"type"`          // "action"
-       Actions []ActionDef                     `json:"actions"`
-   }
-
-   type ValidAction struct {
-       Kind   string                           `json:"kind"`          // "dig_room", "dig_corridor", ...
-       Params map[string]interface{}            `json:"params"`        // アクション固有のパラメータ
-   }
+   type SceneManager struct { ... }
+   func (sm *SceneManager) Switch(scene Scene)
+   func (sm *SceneManager) Update() error
+   func (sm *SceneManager) Draw(screen *ebiten.Image)
    ```
-2. JSON Lines 形式: 1行1メッセージ、改行区切り
+2. main.go の Game 構造体に SceneManager を組み込み、Update/Draw を委譲
 
 **完了条件**:
-- 全メッセージ型の JSON シリアライズ/デシリアライズのラウンドトリップテスト
-- ValidAction が正しく生成されるテスト（建設可能座標、召喚可能種族等）
+- SceneA → Switch(SceneB) で OnExit(A) → OnEnter(B) が呼ばれるテスト
+- Switch 後に Update/Draw が新シーンに委譲されるテスト
 
-- [x] **Task 3-B: AI Mode — valid_actions生成とSnapshot変換**
+- [ ] **Task 3-B: タイトル画面とシナリオ選択画面**
 
-1. adapter/ai/serializer.go:
-   - SnapshotToJSON: GameSnapshot を JSON に変換
-   - BuildValidActions: 現在のゲーム状態から実行可能なアクション一覧を生成
-     - dig_room: 建設可能な全座標と選択可能な属性
-     - dig_corridor: 接続可能な部屋ペア
-     - summon_beast: 配置可能な部屋と召喚可能な種族（コスト条件含む）
-     - upgrade_room: アップグレード可能な部屋（コスト条件含む）
-     - wait: 常に利用可能
-2. コスト不足のアクションは valid_actions に含めない（LLM の無駄な試行を防ぐ）
+1. scene/title.go: タイトル画面
+   - ゲーム名 "ChaosForge — 風水回廊記" 表示
+   - [新しいゲーム] ボタン → シナリオ選択画面へ
+   - [ロード] ボタン → ファイル選択（Phase 4 で実装、ここではスタブ）
+2. scene/select.go: シナリオ選択画面
+   - 組み込みシナリオ一覧（tutorial, standard）
+   - シナリオ選択 → InGame シーンへ遷移
 
 **完了条件**:
-- チュートリアルシナリオの初期状態から valid_actions が正しく生成されるテスト
-- ChiPool 不足時に召喚が valid_actions に含まれないテスト
-- MaxRooms 到達後に dig_room が valid_actions に含まれないテスト
+- タイトル画面の [新しいゲーム] ボタンクリック → シナリオ選択画面への遷移テスト
+- シナリオ選択 → InGame シーン生成テスト
+- `go build ./...` が成功
 
-- [x] **Task 3-C: AI Mode — ActionProvider実装とエラーハンドリング**
+- [ ] **Task 3-C: InGame シーンへの統合**
 
-1. adapter/ai/provider.go: ActionProvider実装
-   - ProvideActions: StateMessage を stdout に書き出し → stdin から ActionMessage を読み取り → パース → バリデーション → PlayerAction変換
-   - OnTickComplete: 何もしない（AI Mode では StateMessage に全情報を含めるため）
-   - OnGameEnd: GameEndMessage を stdout に書き出し
-2. エラーハンドリング:
-   - 不正なJSON → ErrorMessage を返却 → 再度 StateMessage を送信して再入力待ち
-   - valid_actions にないアクション → ErrorMessage → 再入力待ち
-   - stdin がEOF → ゲームを "quit" で終了
-   - タイムアウト（`--timeout` フラグ）→ 自動 wait アクション
+1. scene/ingame.go: InGameScene
+   - Phase 1〜2 の全コンポーネント（GameController, MapView, EntityView, TopBar, ActionBar, InputStateMachine）を統合
+   - Update() で入力処理→コントローラー更新→状態更新
+   - Draw() で MapView→EntityView→UI→ツールチップ→フィードバックの順で描画
+2. ゲーム終了検知: GameController が GameOver を返したら Result シーンへ遷移
 
 **完了条件**:
-- パイプ経由で ActionMessage を送り、次の StateMessage を受け取るテスト
-- 不正JSON送信 → ErrorMessage 受信 → 再送信で正常続行するテスト
-- EOF → ゲーム終了のテスト
+- InGameScene の Update→Draw サイクルがエラーなく動くテスト（モック Snapshot で）
+- ゲーム終了条件で Result シーンへの遷移が発生するテスト
 
-- [x] **Task 3-D: AI Mode — CLI統合とE2Eテスト**
+- [ ] **Task 3-D: 結果画面**
 
-1. cmd/chaosseed-sim/main.go の `--ai` フラグ実装
-   - `--scenario` でシナリオ指定
-   - `--timeout` でアクション入力タイムアウト指定（デフォルト: なし）
-2. E2Eテスト: Go テストから chaosseed-sim プロセスをパイプで起動し、JSON Lines で対話して1ゲーム完走
-   - 全ティック wait で完走（最低限の動作確認）
-   - 数回の dig_room + summon_beast + wait で完走（基本戦略）
-3. adapter/ai/docs/PROTOCOL.md: AI Mode プロトコル仕様書
-   - LLMのプロンプトにそのまま含められる形式
-   - メッセージ型、valid_actions の使い方、エラー処理
+1. scene/result.go: ResultScene
+   - 勝利/敗北の大きなテキスト表示
+   - 統計サマリー: 総ティック数、建設部屋数、撃退した侵入波数、最終CoreHP
+   - [もう一度] ボタン → シナリオ選択画面へ
+   - [タイトルへ] ボタン → タイトル画面へ
 
 **完了条件**:
-- `echo '...' | chaosseed-sim --ai --scenario tutorial` で動作するテスト
-- E2Eテスト2件（wait完走、基本戦略完走）がパス
-- PROTOCOL.md が存在し、プロトコルの全メッセージ型をカバー
+- 勝利時と敗北時で異なるテキストが表示されるテスト（文字列生成ロジック）
+- [タイトルへ] ボタンでタイトル画面に遷移するテスト
 
-- [x] **Task 3-E: Phase 3 統合テストと完了**
+- [ ] **Task 3-E: Info Panel — 部屋/仙獣/侵入者の詳細表示**
 
-1. AI Mode の全機能の統合テスト
-2. Human Mode との共存テスト（同一バイナリで `--human` と `--ai` が切り替え可能）
-3. DECISIONS.md 棚卸し
-4. LESSONS.md 追記
+1. view/infopanel.go: InfoPanel
+   - 部屋選択時: 部屋ID、属性、レベル、RoomChi（現在/最大）、配置仙獣リスト
+   - 仙獣選択時: 種族、レベル、HP、ATK/DEF/SPD、行動状態（Guard/Patrol/Chase/Flee）
+   - 侵入者選択時: クラス、HP、目標AI、現在の行動
+   - 何も選択されていない場合: 全体のゲーム情報（シナリオ名、現在の侵入波状況）
+2. 部屋クリック → Info Panel に詳細表示（ModeNormal 時）
 
 **完了条件**:
-- `cd sim && go test ./... -count=1 -race` 全パス
-- `cd sim && go vet ./...` クリーン
+- 部屋データから Info Panel 用のテキスト行が正しく生成されるテスト
+- 仙獣データから Info Panel 用のテキスト行が正しく生成されるテスト
+
+- [ ] **Task 3-F: Phase 3 統合と確認**
+
+1. タイトル→シナリオ選択→InGame→Result の完全なシーンフローが動くことの確認
+2. `go test ./... -count=1 -race` 全パス
+3. `go vet ./...` クリーン
+4. DECISIONS.md 棚卸し
+5. LESSONS.md 追記
+
+**完了条件**:
+- `cd game && go test ./... -count=1 -race` 全パス
+- `cd game && go vet ./...` クリーン
 - PHASE_COMPLETE_3.md 生成
 
 ---
 
-## Phase 4: Batch Mode + 壊れるサイン検出
+## Phase 4: セーブ/ロード + 仕上げ
 
-- [x] **Task 4-A: Metrics — 壊れるサイン検出メトリクス B01〜B05**
+- [ ] **Task 4-A: セーブ/ロード**
 
-metrics/collector.go に以下のメトリクス収集ロジックを実装する。
-
-| ID | メトリクス | 収集タイミング |
-|---|---|---|
-| B01 | TicksBeforeFirstWave — 初波到達ティック | 初回侵入波到達時に記録 |
-| B02 | ActionsBeforeFirstWave — 初波前のPlayerAction数 | 初回侵入波到達時に記録 |
-| B03 | TerrainBlockRate — 地形制約による建設阻止率 | DigRoom失敗時に加算 |
-| B04 | ZeroBuildableRate — 建設可能セル極小ゲームの割合 | ゲーム開始時に判定 |
-| B05 | WaveOverlapRate — 建設中に侵入波が到達した割合 | 侵入波到達時に直前Nティックの建設有無を確認 |
-
-**完了条件**:
-- 各メトリクスが正しく収集されるユニットテスト（5件）
-- B01: 初波がtick 30で来るシナリオ → B01=30
-- B02: 初波前にDigRoom 3回 → B02=3
-- B03: 10回のDigRoom試行で3回地形阻止 → B03=0.3
-- B05: 侵入波到達の直前5ティック以内にDigRoomあり → overlap記録
-
-- [x] **Task 4-B: Metrics — 壊れるサイン検出メトリクス B06〜B09**
-
-| ID | メトリクス | 収集タイミング |
-|---|---|---|
-| B06 | StompRate — CoreHP80%以上残して勝利の割合 | ゲーム終了時に判定 |
-| B07 | EarlyWipeRate — 全ティック50%以内に敗北の割合 | ゲーム終了時に判定 |
-| B08 | PerfectionRate — 全部屋MaxLv到達ゲームの割合 | ゲーム終了時（勝利時のみ）に判定 |
-| B09 | AvgRoomLevelRatio — クリア時のLv平均/MaxLv | ゲーム終了時（勝利時のみ）に計算 |
+1. save/checkpoint.go: チェックポイント保存/復元
+   - GameController の状態を JSON 保存（core の Checkpoint 機能を活用）
+   - ファイルパス: `~/.chaosforge/saves/` ディレクトリ
+   - ファイル名: `save_YYYYMMDD_HHMMSS.json`
+2. save/config.go: ゲーム設定の保存/復元
+   - ウィンドウサイズ、早送り速度
+   - `~/.chaosforge/config.json`
+3. InGame シーンにセーブ/ロードを統合
+   - Ctrl+S → 自動ファイル名でセーブ → 確認メッセージ表示
+   - Ctrl+L → 最新のセーブファイルからロード → ゲーム状態復元
 
 **完了条件**:
-- 各メトリクスが正しく収集されるユニットテスト（4件）
-- B06: CoreHP 90/100 で勝利 → stomp=true
-- B07: max_ticks=200 のシナリオで tick 80 に敗北 → early_wipe=true
-- B08: 全部屋Lv5/MaxLv5 で勝利 → perfection=true
-- B09: 3部屋でLv 2,3,4、MaxLv=5 → ratio=0.6
+- セーブ→ロードで GameController のティック数と Snapshot が一致するテスト
+- セーブファイルが JSON として valid であるテスト
+- 設定ファイルの保存/復元テスト
 
-- [x] **Task 4-C: Metrics — 壊れるサイン検出メトリクス B10〜B11**
+- [ ] **Task 4-B: タイトル画面のロード機能**
 
-| ID | メトリクス | 収集タイミング |
-|---|---|---|
-| B10 | LayoutEntropy — 異なるseed間の部屋配置エントロピー | バッチ完了後に全ゲームの配置を比較 |
-| B11 | ResourceSurplusRate — ゲーム後半でChiPool余剰のティック割合 | 毎ティック ChiPool/MaxObserved を追跡 |
-
-**完了条件**:
-- B10: 異なるseed 10個でのゲーム結果から配置エントロピーが計算されるテスト
-- B11: ChiPool が常に余裕あるゲーム → surplus_rate > 0.5 のテスト
-
-- [x] **Task 4-D: Metrics — BreakageReport（閾値判定・アラート生成）**
-
-1. metrics/breakage.go:
-   - BreakageAlert 構造体（MetricID, BrokenSign, Value, Threshold, Direction）
-   - BreakageReport 構造体（Alerts, Clean）
-   - DetectBreakage() — 全メトリクスの閾値判定
-2. 閾値はD002テーブルから直接転記:
-   - B01: < シナリオ定義の最低猶予ティック
-   - B02: < 3
-   - B03: < 0.05
-   - B04: > 0.10
-   - B05: < 0.30
-   - B06: > 0.30
-   - B07: > 0.20
-   - B08: > 0.05
-   - B09: > 0.80
-   - B10: < 閾値（要シナリオ依存の調整）
-   - B11: > 0.50
+1. scene/title.go の [ロード] ボタン実装
+   - `~/.chaosforge/saves/` 内のセーブファイル一覧を取得
+   - 一覧表示（ファイル名、タイムスタンプ、シナリオ名）
+   - 選択 → チェックポイント復元 → InGame シーンへ遷移
+2. セーブファイルが存在しない場合: [ロード] ボタンをグレーアウト
 
 **完了条件**:
-- DetectBreakage() が閾値違反のメトリクスだけをアラートに含めるテスト
-- アラート0件のケースで Clean に全IDが含まれるテスト
+- セーブファイル一覧の取得テスト（テスト用ディレクトリで）
+- 存在しないディレクトリでもエラーにならないテスト
+- `go build ./...` が成功
 
-- [x] **Task 4-E: Batch Mode — 並列バッチ実行**
+- [ ] **Task 4-C: 戦闘・侵入の視覚フィードバック**
 
-sim/adapter/batch/ パッケージを作成する。
-
-1. adapter/batch/runner.go:
-   - BatchRunner 構造体（シナリオ、ゲーム数、AIタイプ、並列数）
-   - Run() → []GameSummary + BreakageReport
-   - goroutine プール（runtime.NumCPU() ベース）
-   - 進捗表示（stderr に "100/1000 games completed..." 形式）
-2. 各ゲームは独立したRNGシード（ベースシード + ゲーム番号）
+1. 戦闘発生中の部屋: タイル枠線を赤く点滅（数フレーム周期で明滅）
+2. 侵入波到達時: 画面上部に "Wave 3 incoming!" のような警告テキスト（数秒間表示）
+3. CoreHP 減少時: CoreHP バーを赤く点滅
+4. 仙獣敗北時: 対象仙獣のスプライトを点滅表示
+5. ゲーム進行に影響する情報を視覚的に強調し、ASCIIの「気づけない」問題を解消
 
 **完了条件**:
-- 100ゲームのバッチ実行が成功するテスト
-- 並列実行でも決定論性が保たれるテスト（同一ベースシード → 同一結果）
-- GameSummary が全ゲーム分集約されるテスト
+- 戦闘中フラグ ON の部屋が点滅対象として識別されるロジックテスト
+- 侵入波到達の検知ロジックテスト（前ティックと現ティックの波数比較）
+- `go build ./...` が成功
 
-- [x] **Task 4-F: Batch Mode — レポート生成とパラメータスイープ**
+- [ ] **Task 4-D: Phase 4 統合と確認**
 
-1. metrics/report.go:
-   - GenerateJSON(summaries, breakageReport) → JSON文字列
-   - GenerateCSV(summaries) → CSV文字列
-   - 出力フォーマットはPRDセクション3.3のBatch Mode出力に準拠
-2. adapter/batch/sweep.go:
-   - パラメータスイープ実行（"key=v1,v2,v3" 形式のパース）
-   - シナリオJSONの指定パラメータを動的に書き換えてバッチ実行
-   - 各パラメータ値ごとの BreakageReport を比較出力
+1. セーブ→終了→ロード→ゲーム続行のフロー確認
+2. 戦闘/侵入フィードバックがゲーム進行中に機能することの確認
+3. `go test ./... -count=1 -race` 全パス
+4. `go vet ./...` クリーン
+5. DECISIONS.md 棚卸し
+6. LESSONS.md 追記
 
 **完了条件**:
-- JSON レポートが PRD のフォーマットに準拠するテスト
-- CSV レポートが生成されるテスト
-- パラメータスイープ "economy.supply_multiplier=0.5,1.0,2.0" で3回のバッチ実行が行われるテスト
-
-- [x] **Task 4-G: Batch Mode — CLI統合とD002検証**
-
-1. cmd/chaosseed-sim/main.go の `--batch` フラグ実装
-   - `--scenario`, `--games`, `--ai`, `--output`, `--format`, `--sweep` オプション
-2. D002検証: core Phase 7-H の検証をBreakageReportで再現
-   - チュートリアルシナリオ × SimpleAI × 1,000ゲーム
-   - BreakageReport のアラートが0件であることを確認
-3. パフォーマンステスト: 1,000ゲーム × SimpleAI が5分以内
-
-**完了条件**:
-- `chaosseed-sim --batch --scenario tutorial --games 1000 --ai simple --output results.json` が成功
-- results.json の breakage_report.alerts が空配列
-- 1,000ゲームが5分以内に完了（テストでタイムアウト設定）
-
-- [x] **Task 4-H: Phase 4 統合テストと完了**
-
-1. Batch Mode の全機能統合テスト
-2. Human Mode / AI Mode / Batch Mode の共存テスト
-3. DECISIONS.md 棚卸し
-4. LESSONS.md 追記
-
-**完了条件**:
-- `cd sim && go test ./... -count=1 -race` 全パス
-- `cd sim && go vet ./...` クリーン
+- `cd game && go test ./... -count=1 -race` 全パス
+- `cd game && go vet ./...` クリーン
 - PHASE_COMPLETE_4.md 生成
 
 ---
 
-## Phase 5: バランス調整ダッシュボード
+## Phase 5: 統合検証 + リリース
 
-- [x] **Task 5-A: ダッシュボード — ベースライン実行と壊れるサイン表示**
+- [ ] **Task 5-A: チュートリアルシナリオ手動プレイテスト**
 
-sim/balance/ パッケージを作成する。
+**このタスクはRalph Loopの外で、ぽんぽこがチャットで実施する。**
 
-1. balance/dashboard.go:
-   - Dashboard 構造体（シナリオ、ゲーム数、AIタイプ）
-   - Run() — ベースラインのバッチ実行 → BreakageReport の整形表示
-   - 表示フォーマット: ✅/🔴 + メトリクスID + 名前 + 値 + 閾値
-2. stdin からの対話操作（スイープ実行の確認等）
-
-**完了条件**:
-- ダッシュボード表示が PRD セクション4 のフォーマットに準拠するテスト
-- アラート0件の場合に "No breakage detected" が表示されるテスト
-- アラートありの場合にメトリクスID + 壊れるサイン + 調整の方向が表示されるテスト
-
-- [x] **Task 5-B: ダッシュボード — スイープ提案と比較**
-
-1. balance/suggest.go:
-   - SuggestSweep(alert BreakageAlert) → パラメータ名と値の候補
-   - D002テーブルの「調整の方向」に基づくルールベースの提案
-   - 例: B06(StompRate) → invasion.base_attack_power のスイープ提案
-2. balance/compare.go:
-   - CompareResults(baseline, sweepResults) → 比較表の文字列
-   - 新たなアラートが発生したパラメータ値には警告マーク
-   - "Best" 判定: アラート解消 + 新規アラートなし
+1. `chaosseed-game` を起動
+2. タイトル → シナリオ選択（tutorial）→ ゲーム開始
+3. 以下のD002体感チェックリストに沿ってプレイ:
+   - [ ] 計画する: マップを見て「ここに部屋を掘りたい」と思えるか
+   - [ ] 妥協する: 地形制約で理想が阻まれ、代替案を考える瞬間があるか
+   - [ ] 中断される: 構築中に侵入波が来て「まだ準備できてない！」と焦るか
+   - [ ] 噛み合う: 不完全な防衛で敵を撃退し「よし！」と感じるか
+   - [ ] 完璧が来ない: クリア時に「次はもっとうまくやれる」と思えるか
+4. 操作に関するフィードバック:
+   - 全アクション（掘る/通路/召喚/強化/待機）が実行できるか
+   - モード切替が直感的か
+   - ティック進行が快適か
+5. フィードバックをチャットに記録 → 修正が必要なら追加タスクを生成
 
 **完了条件**:
-- B06 アラートから invasion.base_attack_power のスイープが提案されるテスト
-- スイープ結果の比較表が生成されるテスト
-- 新規アラート発生時に警告が表示されるテスト
+- ぽんぽこがチュートリアルシナリオを完走（勝利 or 敗北）
+- D002チェックリストの記入
+- フィードバック記録
 
-- [x] **Task 5-C: ダッシュボード — パラメータ適用とCLI統合**
+- [ ] **Task 5-B: 標準シナリオ手動プレイテスト + パフォーマンス確認**
 
-1. balance/apply.go:
-   - ApplyParameter(scenarioPath, key, value) — シナリオJSONの指定パラメータを書き換え
-   - バックアップファイルの自動生成（.bak）
-2. cmd/chaosseed-sim/main.go の `--balance` フラグ実装
-   - `--scenario`, `--games` オプション
-3. E2Eテスト: ダッシュボード起動 → スイープ → 適用 の一連の流れ
+**このタスクもRalph Loopの外。**
 
-**完了条件**:
-- `chaosseed-sim --balance --scenario tutorial --games 100` が起動するテスト
-- パラメータ適用後にシナリオJSONが更新されるテスト
-- バックアップファイルが生成されるテスト
-
-- [x] **Task 5-D: Phase 5 統合テストと完了**
-
-1. ダッシュボードの全機能統合テスト
-2. 全モード（Human / AI / Batch / Balance）の共存テスト
-3. DECISIONS.md 棚卸し
-4. LESSONS.md 追記
+1. 標準シナリオの手動プレイ
+2. パフォーマンス確認: 60FPS 維持（M4 Mac mini）
+   - Ebitengine の FPS カウンターで確認
+   - 仙獣・侵入者が多い状態（ゲーム中盤〜後半）でのフレームレート
+3. 致命的なバグ・操作不能があれば追加タスク生成
 
 **完了条件**:
-- `cd sim && go test ./... -count=1 -race` 全パス
-- `cd sim && go vet ./...` クリーン
-- PHASE_COMPLETE_5.md 生成
+- 標準シナリオを完走（勝利 or 敗北）
+- 60FPS維持を確認
+- フィードバック記録
 
----
+- [ ] **Task 5-C: ドキュメント更新とリリース準備**
 
-## Phase 6: 統合検証 + リリース
-
-- [x] **Task 6-A: 全モード統合テスト**
-
-1. Human Mode: スクリプト入力でチュートリアルシナリオ完走
-2. AI Mode: パイプ経由でチュートリアルシナリオ完走
-3. Batch Mode: 1,000ゲーム × SimpleAI → BreakageReport アラート0件
-4. Balance: ダッシュボード起動 → BreakageReport 表示
-5. リプレイ: Batch で記録 → `--replay` で再生 → 決定論性確認
-6. チェックポイント: Human Mode で保存 → `--checkpoint` で復元 → 続行
-7. `go test ./... -count=1 -race` 全パス（core + sim）
-8. `go vet ./...` クリーン（core + sim）
-
-**完了条件**:
-- 上記8項目すべてパス
-
-- [x] **Task 6-B: ドキュメント更新とリリース準備**
-
-1. HANDOFF.md 作成（現在未作成のため新規作成）
-   - sim の完了フェーズを追記
-   - アーキテクチャ（Game Server + 3アダプター）の記載
-   - Breakageメトリクス（B01〜B11）の記載
-   - 次のステップ（chaosseed-game）の更新
-2. DECISIONS.md 更新 — sim全フェーズで生まれた設計判断の最終棚卸し
-3. LESSONS.md 更新 — sim全フェーズの知見の最終追記
-4. sim/README.md の最終更新（全モードの使い方、プロトコル仕様へのリンク）
+1. HANDOFF.md 更新
+   - game の完了フェーズを追記
+   - アーキテクチャ（GameController + SceneManager + View/Input 分離）の記載
+   - 仮アセットシステム（TilesetProvider）の記載
+   - D002体感フィードバックの結果を記載
+   - 次のステップ（ドット絵アセット、BGM/SE、龍脈可視化等）の更新
+2. DECISIONS.md 更新 — game全フェーズで生まれた設計判断の最終棚卸し
+3. LESSONS.md 更新 — game全フェーズの知見の最終追記
+4. game/README.md 作成（ビルド方法、操作方法、キーボードショートカット一覧）
 5. v1.0.0 タグの準備
 
 **完了条件**:
 - HANDOFF.md, DECISIONS.md, LESSONS.md が最新
-- README.md が全モードをカバー
-- PHASE_COMPLETE_6.md 生成
+- game/README.md が存在し、操作方法をカバー
+- `go test ./... -count=1 -race` 全パス（core + sim + game）
+- `go vet ./...` クリーン（core + sim + game）
+- PHASE_COMPLETE_5.md 生成
