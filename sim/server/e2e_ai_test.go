@@ -81,7 +81,7 @@ func TestE2E_AIMode_WaitOnly(t *testing.T) {
 	// Client goroutine: read state messages and respond with wait.
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		for {
 			msg, err := client.readMessage()
@@ -146,7 +146,7 @@ func TestE2E_AIMode_BasicStrategy(t *testing.T) {
 	// Client goroutine: implement a basic strategy.
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newAIClient(outR, inW)
 		tick := 0
 		digDone := false
@@ -210,7 +210,7 @@ func chooseAction(validActions []ai.ValidAction, digDone, summonDone *bool) ai.A
 		for _, va := range validActions {
 			if va.Kind == "dig_room" {
 				*digDone = true
-				return ai.ActionDef{Kind: va.Kind, Params: va.Params}
+				return ai.ActionDef(va)
 			}
 		}
 	}
@@ -219,7 +219,7 @@ func chooseAction(validActions []ai.ValidAction, digDone, summonDone *bool) ai.A
 		for _, va := range validActions {
 			if va.Kind == "summon_beast" {
 				*summonDone = true
-				return ai.ActionDef{Kind: va.Kind, Params: va.Params}
+				return ai.ActionDef(va)
 			}
 		}
 	}

@@ -54,7 +54,7 @@ func TestGameContextBuilder_DuringGame(t *testing.T) {
 		},
 	}
 
-	gs.RunGame(provider)
+	_, _ = gs.RunGame(provider)
 
 	// BuildContext assertions
 	if capturedBuild.CaveWidth == 0 {
@@ -122,7 +122,7 @@ func TestServerCheckpointOps_SaveLoadReplay(t *testing.T) {
 		savePath:   savePath,
 		replayPath: replayPath,
 	}
-	gs.RunGame(provider)
+	_, _ = gs.RunGame(provider)
 
 	if !provider.saveOK {
 		t.Error("expected save to succeed during game")

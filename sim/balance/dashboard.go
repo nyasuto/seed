@@ -176,7 +176,7 @@ func (d *Dashboard) printReport(baseline *BaselineResult) {
 		baseline.BatchResult.BreakageReport,
 		baseline.BatchResult.BreakageData,
 	)
-	fmt.Fprint(d.config.Output, output)
+	_, _ = fmt.Fprint(d.config.Output, output)
 }
 
 func calcSummaryStats(summaries []metrics.GameSummary) (winRate, avgTicks float64) {

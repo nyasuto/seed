@@ -90,7 +90,7 @@ func TestPhase6_AIMode_TutorialComplete(t *testing.T) {
 
 	clientErr := make(chan error, 1)
 	go func() {
-		defer inW.Close()
+		defer func() { _ = inW.Close() }()
 		client := newTestAIClient(outR, inW)
 		for {
 			msg, err := client.readMessage()

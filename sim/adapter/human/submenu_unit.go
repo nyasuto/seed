@@ -45,20 +45,20 @@ type UnitContext struct {
 // Returns nil action when the player chooses to go back.
 func ShowSummonBeastMenu(ir *InputReader, ctx UnitContext) (simulation.PlayerAction, error) {
 	if len(ctx.SummonOptions) == 0 {
-		fmt.Fprintln(ir.out, "召喚可能な属性がありません。")
+		_, _ = fmt.Fprintln(ir.out, "召喚可能な属性がありません。")
 		return nil, nil
 	}
 
 	// Display summon choices.
-	fmt.Fprintln(ir.out, "")
-	fmt.Fprintln(ir.out, "=== 仙獣を召喚する ===")
-	fmt.Fprintln(ir.out, "  0. 戻る")
+	_, _ = fmt.Fprintln(ir.out, "")
+	_, _ = fmt.Fprintln(ir.out, "=== 仙獣を召喚する ===")
+	_, _ = fmt.Fprintln(ir.out, "  0. 戻る")
 	for i, opt := range ctx.SummonOptions {
 		costWarning := ""
 		if opt.Cost > ctx.ChiBalance {
 			costWarning = " [コスト不足!]"
 		}
-		fmt.Fprintf(ir.out, "  %d. %s - コスト: %.1f%s\n",
+		_, _ = fmt.Fprintf(ir.out, "  %d. %s - コスト: %.1f%s\n",
 			i+1, opt.Element, opt.Cost, costWarning)
 	}
 
@@ -75,7 +75,7 @@ func ShowSummonBeastMenu(ir *InputReader, ctx UnitContext) (simulation.PlayerAct
 
 	// Warn if cost is insufficient but still allow proceeding.
 	if selected.Cost > ctx.ChiBalance {
-		fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
+		_, _ = fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
 			selected.Cost, ctx.ChiBalance)
 	}
 
@@ -88,20 +88,20 @@ func ShowSummonBeastMenu(ir *InputReader, ctx UnitContext) (simulation.PlayerAct
 // Returns nil action when the player chooses to go back.
 func ShowUpgradeRoomMenu(ir *InputReader, ctx UnitContext) (simulation.PlayerAction, error) {
 	if len(ctx.UpgradeOptions) == 0 {
-		fmt.Fprintln(ir.out, "アップグレード可能な部屋がありません。")
+		_, _ = fmt.Fprintln(ir.out, "アップグレード可能な部屋がありません。")
 		return nil, nil
 	}
 
 	// Display upgrade choices.
-	fmt.Fprintln(ir.out, "")
-	fmt.Fprintln(ir.out, "=== 部屋をアップグレードする ===")
-	fmt.Fprintln(ir.out, "  0. 戻る")
+	_, _ = fmt.Fprintln(ir.out, "")
+	_, _ = fmt.Fprintln(ir.out, "=== 部屋をアップグレードする ===")
+	_, _ = fmt.Fprintln(ir.out, "  0. 戻る")
 	for i, opt := range ctx.UpgradeOptions {
 		costWarning := ""
 		if opt.UpgradeCost > ctx.ChiBalance {
 			costWarning = " [コスト不足!]"
 		}
-		fmt.Fprintf(ir.out, "  %d. ID:%d %s (%s) Lv%d - コスト: %.1f%s\n",
+		_, _ = fmt.Fprintf(ir.out, "  %d. ID:%d %s (%s) Lv%d - コスト: %.1f%s\n",
 			i+1, opt.ID, opt.Name, opt.TypeID, opt.Level, opt.UpgradeCost, costWarning)
 	}
 
@@ -118,7 +118,7 @@ func ShowUpgradeRoomMenu(ir *InputReader, ctx UnitContext) (simulation.PlayerAct
 
 	// Warn if cost is insufficient but still allow proceeding.
 	if selected.UpgradeCost > ctx.ChiBalance {
-		fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
+		_, _ = fmt.Fprintf(ir.out, "警告: コスト不足です（必要: %.1f, 残高: %.1f）\n",
 			selected.UpgradeCost, ctx.ChiBalance)
 	}
 

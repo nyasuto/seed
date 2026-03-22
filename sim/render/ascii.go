@@ -273,9 +273,10 @@ func renderBeastSection(sb *strings.Builder, s *simulation.GameState) {
 	for _, b := range s.Beasts {
 		elemColor := ElementColor(b.Element)
 		stateStr := b.State.String()
-		if b.State == senju.Fighting {
+		switch b.State {
+		case senju.Fighting:
 			stateStr = Colorize(stateStr, Red)
-		} else if b.State == senju.Stunned {
+		case senju.Stunned:
 			stateStr = Colorize(stateStr, Dim)
 		}
 		fmt.Fprintf(sb, "  %s Lv%d %s HP:%s [%s]\n",

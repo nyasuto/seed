@@ -177,12 +177,10 @@ func TestHumanProvider_FastForwardSkipsDisplay(t *testing.T) {
 	out.Reset()
 
 	// OnTickComplete during FF should produce no output.
+	// During FF (fastForward > 0), display should be skipped.
+	// After this tick, fastForward goes from 2 to 1 (still > 0 at next ProvideActions).
 	snap.Tick = 1
 	hp.OnTickComplete(snap)
-	if out.Len() > 0 {
-		// During FF (fastForward > 0), display should be skipped.
-		// After this tick, fastForward goes from 2 to 1 (still > 0 at next ProvideActions).
-	}
 
 	// Tick 2: still FF.
 	snap.Tick = 2
