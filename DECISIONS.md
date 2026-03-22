@@ -511,3 +511,31 @@
 - D019 (SummonBeast Element選択): ACTIVE — 設計原則として継続有効
 - game Phase 1 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 2 では対応せず。Phase 3 以降で検討
 - 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし
+
+---
+
+## D020: Scene インターフェースの Draw 引数は image.Image
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-22
+**フェーズ**: game Phase 3-A
+
+**判断**: `Scene` インターフェースの `Draw` メソッドは `*ebiten.Image` ではなく `image.Image` を受け取る設計とした。具体的なシーン実装内で `screen.(*ebiten.Image)` にキャストする。
+
+**理由**:
+- SceneManager と Scene インターフェースのテストが ebiten に依存しなくなり、headless 環境でもテスト可能
+- `spyScene` のような軽量モックでライフサイクルテストができる
+- 実行時の型アサーションコストは無視できるレベル
+
+**影響範囲**: `scene/manager.go`, 全 Scene 実装（`ingame.go`, `title.go`, `select.go`, `result.go`）
+
+---
+
+## game Phase 3 棚卸し（2026-03-22）
+
+全 D001〜D020 を確認済み。
+- D019 (SummonBeast Element選択): ACTIVE — 継続有効
+- D020 (Scene Draw image.Image): ACTIVE — headless テスト可能な設計として継続有効
+- game Phase 2 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 3 では対応せず。Phase 4 以降で検討
+- 「BuildRoomRenderMap の毎フレーム再構築」は Phase 3 でも対応せず。パフォーマンス問題が顕在化した場合に対応
+- 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし

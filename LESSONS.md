@@ -102,3 +102,11 @@
 - 操作フロー（DigRoom, DigCorridor, SummonBeast, UpgradeRoom）はそれぞれ独立した Flow 構造体として実装し、ステップ状態を内部に持つ設計が明快。main.go の `handleClick` でフローの現在ステップに応じた処理を分岐する。
 - `ElementPanel`（属性選択パネル）表示中は他の操作をブロックする必要がある。main.go の `Update` で `g.elemPanel != nil` を先にチェックし、パネルのクリック処理を優先するガードが有効。
 - `FeedbackOverlay` のエラーメッセージは TPS（60fps）ベースのフレームカウントでフェードアウトする。`time.Duration` ではなくフレーム数で管理することで、決定論的なテストが可能。
+
+## game Phase 3: シーン管理 + UI
+
+- `Scene` インターフェースの `Draw` 引数を `image.Image` にすることで、SceneManager のライフサイクルテスト（OnEnter/OnExit/Switch）が ebiten に依存せず headless 環境でも実行可能になった（D020）。具体シーン内で `screen.(*ebiten.Image)` にキャストする方式。
+- InGameScene は Phase 1-2 の全コンポーネント（GameController, MapView, EntityRenderer, TopBar, ActionBar, InputStateMachine, 4つの Flow, FeedbackOverlay, InfoPanel）を統合する大きな構造体。main.go の Game 構造体から責務を移管し、シーンの切り替えで状態がクリーンになる設計。
+- ResultScene は `simulation.GameResult` と `scenario.GameSnapshot` を受け取り、勝利/敗北テキストと統計を表示する。InGameScene の `onGameOver` コールバック経由で遷移する。SceneManager.Switch は InGameScene 側からは直接呼べないため、main.go の Game 構造体がコールバックを仲介する。
+- scene パッケージ内のテストファイル（title_test.go, select_test.go, ingame_test.go, result_test.go）は ebiten を直接 import しなくても、同一パッケージ内の ingame.go 等が ebiten を import しているため、パッケージレベルの init() が発動して headless 環境で panic する。テストを headless で実行するには manager_test.go のように別パッケージ（`scene_test`）にするか、Scene インターフェースだけを別パッケージに分離する必要がある。
+- InfoPanel は部屋/仙獣/侵入者の詳細表示を担当。ModeNormal での部屋クリック → InfoPanel 表示という流れで、操作モードと情報表示を分離。選択状態（selectedRoomID）は InfoPanel 自身が持ち、InGameScene が handleClick で SelectRoom/ClearSelection を呼ぶ。
