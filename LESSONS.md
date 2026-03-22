@@ -78,3 +78,11 @@
 
 - golangci-lint v2 では設定ファイルに `version: "2"` が必須。v1 形式の設定はエラーになる。
 - golangci-lint v2 では `typecheck` は独立 linter ではなくなった（常に有効）。`gosimple` は `staticcheck` に統合された。enable リストに含めるとエラーになる。
+
+## game Phase 0: Ebitengine 習作 + プロジェクト初期化
+
+- Ebitengine v2 のタイル描画では `ebiten.DrawImageOptions` の `GeoM.Translate` でピクセル座標を指定する。タイルサイズ（32x32）× セル座標でスクリーン座標に変換し、逆変換でマウス座標→セル座標を得る。整数除算で済むため高速。
+- `ebiten.NewImage(w, h)` で生成したオフスクリーン画像に `Fill` や `Set` で描画してタイルを作成できる。PlaceholderProvider はこの方式で全 CellType 分のタイルを起動時に一括生成している。
+- core の `simulation.NewSimulationEngine` でチュートリアルシナリオを読み込み、`engine.State.Cave` を直接参照することで game 側で Cave データを取得できる。Phase 1 以降は GameController 経由に変更予定。
+- game の testdata/tutorial.json は core の組み込みシナリオと同一内容を embed している。Phase 1 以降は core の `scenario.LoadBuiltinScenario` を使う方向に統一すべき。
+- チュートリアルシナリオの Cave サイズは 16x16 タイルで、想定ビューポート（24x20）に余裕を持って収まる。
