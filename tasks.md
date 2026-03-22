@@ -413,7 +413,7 @@
 
 ## Phase 4: セーブ/ロード + 仕上げ
 
-- [ ] **Task 4-A: セーブ/ロード**
+- [x] **Task 4-A: セーブ/ロード**
 
 1. save/checkpoint.go: チェックポイント保存/復元
    - GameController の状態を JSON 保存（core の Checkpoint 機能を活用）

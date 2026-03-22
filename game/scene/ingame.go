@@ -3,6 +3,7 @@ package scene
 import (
 	"fmt"
 	"image"
+	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -12,6 +13,7 @@ import (
 	"github.com/nyasuto/seed/game/asset"
 	"github.com/nyasuto/seed/game/controller"
 	"github.com/nyasuto/seed/game/input"
+	"github.com/nyasuto/seed/game/save"
 	"github.com/nyasuto/seed/game/view"
 )
 
@@ -135,6 +137,17 @@ func (s *InGameScene) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		px, py := ebiten.CursorPosition()
 		s.handleClick(px, py)
+	}
+
+	// Save/Load keys (Ctrl+S / Ctrl+L).
+	if s.elemPanel == nil {
+		ctrl := ebiten.IsKeyPressed(ebiten.KeyControl) || ebiten.IsKeyPressed(ebiten.KeyMeta)
+		if ctrl && inpututil.IsKeyJustPressed(ebiten.KeyS) {
+			s.handleSave()
+		}
+		if ctrl && inpututil.IsKeyJustPressed(ebiten.KeyL) {
+			s.handleLoad()
+		}
 	}
 
 	// Tick control keys (only when not in element panel).
@@ -501,6 +514,62 @@ func (s *InGameScene) currentTickMode() view.TickMode {
 // Controller returns the GameController for external access (e.g., save/load).
 func (s *InGameScene) Controller() *controller.GameController {
 	return s.ctrl
+}
+
+func (s *InGameScene) handleSave() {
+	dir, err := save.DefaultSaveDir()
+	if err != nil {
+		s.showError(fmt.Sprintf("save error: %v", err))
+		return
+	}
+	path := filepath.Join(dir, save.GenerateFilename())
+	scenarioID := s.ctrl.Engine().State.Scenario.ID
+	err = save.SaveCheckpoint(path, s.ctrl.Engine(), s.ctrl.ScenarioJSON(), scenarioID)
+	if err != nil {
+		s.showError(fmt.Sprintf("save error: %v", err))
+		return
+	}
+	s.feedback.ShowError(fmt.Sprintf("Saved: %s", filepath.Base(path)))
+}
+
+func (s *InGameScene) handleLoad() {
+	dir, err := save.DefaultSaveDir()
+	if err != nil {
+		s.showError(fmt.Sprintf("load error: %v", err))
+		return
+	}
+	saves, err := save.ListSaves(dir)
+	if err != nil {
+		s.showError(fmt.Sprintf("load error: %v", err))
+		return
+	}
+	if len(saves) == 0 {
+		s.showError("no save files found")
+		return
+	}
+	// Load the most recent save.
+	sf, err := save.LoadSaveFile(saves[0].Path)
+	if err != nil {
+		s.showError(fmt.Sprintf("load error: %v", err))
+		return
+	}
+	if err := s.ctrl.RestoreFromCheckpoint(sf.Checkpoint); err != nil {
+		s.showError(fmt.Sprintf("restore error: %v", err))
+		return
+	}
+
+	// Rebuild view components for the restored cave.
+	cave := s.ctrl.Engine().State.Cave
+	s.mouse = input.NewMouseTracker(s.mapView, cave.Grid.Width, cave.Grid.Height)
+	s.stateMachine = input.NewInputStateMachine()
+	s.resetDigRoomFlow()
+	s.resetDigCorridorFlow()
+	s.resetSummonFlow()
+	s.resetUpgradeFlow()
+	s.infoPanel.ClearSelection()
+	s.gameOverNotified = false
+
+	s.feedback.ShowError(fmt.Sprintf("Loaded: %s", filepath.Base(saves[0].Path)))
 }
 
 // findMaxCoreHP returns the max core HP from the dragon hole room.
