@@ -184,7 +184,7 @@
 
 ## Phase 2: 操作システム
 
-- [ ] **Task 2-A: 操作モードステートマシン**
+- [x] **Task 2-A: 操作モードステートマシン**
 
 1. input/action.go: ActionMode 定義
    ```go
