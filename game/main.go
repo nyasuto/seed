@@ -28,6 +28,29 @@ const (
 //go:embed testdata/tutorial.json
 var tutorialJSON []byte
 
+//go:embed testdata/standard.json
+var standardJSON []byte
+
+// builtinScenarios returns the list of selectable scenario entries.
+func builtinScenarios() []scene.ScenarioEntry {
+	return []scene.ScenarioEntry{
+		{
+			ID:          "tutorial",
+			Name:        "チュートリアル",
+			Description: "基本操作を学ぶための簡単なシナリオ",
+			Difficulty:  "easy",
+			Data:        tutorialJSON,
+		},
+		{
+			ID:          "standard",
+			Name:        "標準シナリオ",
+			Description: "中規模マップでの本格的な洞窟経営シナリオ",
+			Difficulty:  "normal",
+			Data:        standardJSON,
+		},
+	}
+}
+
 // Game implements ebiten.Game interface.
 // It delegates Update/Draw to the active Scene via SceneManager.
 type Game struct {
@@ -73,34 +96,142 @@ func (p *inGameProxy) Draw(screen image.Image) {
 func (p *inGameProxy) OnEnter() {}
 func (p *inGameProxy) OnExit()  {}
 
-// NewGame creates a Game with a tutorial scenario loaded.
+// NewGame creates a Game starting at the title screen.
 func NewGame() (*Game, error) {
-	ctrl, err := controller.NewGameController(tutorialJSON, 42)
+	g := &Game{}
+	g.scenes = scene.NewSceneManager(g.makeTitleScene())
+	return g, nil
+}
+
+func (g *Game) makeTitleScene() *scene.TitleScene {
+	return scene.NewTitleScene(screenWidth, screenHeight,
+		func() { g.showScenarioSelect() },
+		func() { /* Load stub — Phase 4 */ },
+		drawTitleScene,
+	)
+}
+
+// showScenarioSelect transitions to the scenario selection screen.
+func (g *Game) showScenarioSelect() {
+	entries := builtinScenarios()
+	selectScene := scene.NewScenarioSelectScene(screenWidth, screenHeight, entries,
+		func(entry scene.ScenarioEntry) { g.startInGame(entry.Data) },
+		func() { g.showTitle() },
+		drawSelectScene,
+	)
+	g.scenes.Switch(selectScene)
+}
+
+// showTitle transitions back to the title screen.
+func (g *Game) showTitle() {
+	g.scenes.Switch(g.makeTitleScene())
+}
+
+// startInGame initializes the GameController and in-game components,
+// then switches to the InGame scene.
+func (g *Game) startInGame(scenarioJSON []byte) {
+	ctrl, err := controller.NewGameController(scenarioJSON, 42)
 	if err != nil {
-		return nil, err
+		log.Printf("failed to start game: %v", err)
+		return
 	}
 
 	mv := view.NewMapView(mapOffsetX, mapOffsetY)
 	cave := ctrl.Engine().State.Cave
 
-	g := &Game{
-		ctrl:         ctrl,
-		provider:     asset.NewPlaceholderProvider(),
-		mapView:      mv,
-		entity:       view.NewEntityRenderer(mv),
-		topBar:       &view.TopBar{},
-		mouse:        input.NewMouseTracker(mv, cave.Grid.Width, cave.Grid.Height),
-		tooltip:      &view.Tooltip{},
-		stateMachine: input.NewInputStateMachine(),
-		actionBar:    view.NewActionBar(screenHeight),
-		feedback:     view.NewFeedbackOverlay(),
+	g.ctrl = ctrl
+	g.provider = asset.NewPlaceholderProvider()
+	g.mapView = mv
+	g.entity = view.NewEntityRenderer(mv)
+	g.topBar = &view.TopBar{}
+	g.mouse = input.NewMouseTracker(mv, cave.Grid.Width, cave.Grid.Height)
+	g.tooltip = &view.Tooltip{}
+	g.stateMachine = input.NewInputStateMachine()
+	g.actionBar = view.NewActionBar(screenHeight)
+	g.feedback = view.NewFeedbackOverlay()
+
+	g.scenes.Switch(&inGameProxy{game: g})
+}
+
+// drawTitleScene renders the title screen using ebiten drawing primitives.
+func drawTitleScene(screen image.Image, ts *scene.TitleScene) {
+	dst := screen.(*ebiten.Image)
+	dst.Fill(asset.ColorUIBackground)
+
+	sw := ts.ScreenWidth()
+	sh := ts.ScreenHeight()
+
+	// Title text.
+	title := "ChaosForge"
+	tw := view.TextWidth(title)
+	view.DrawText(dst, title, (sw-tw)/2, sh/2-60)
+
+	subtitle := "- Feng Shui Corridor Chronicle -"
+	stw := view.TextWidth(subtitle)
+	view.DrawText(dst, subtitle, (sw-stw)/2, sh/2-36)
+
+	// Buttons.
+	ngBtn := view.ButtonFromRect(ts.NewGameRect(), "New Game")
+	ldBtn := view.ButtonFromRect(ts.LoadRect(), "Load")
+
+	px, py := ebiten.CursorPosition()
+	ngState := view.ButtonNormal
+	if ngBtn.Contains(px, py) {
+		ngState = view.ButtonHover
 	}
-	g.scenes = scene.NewSceneManager(&inGameProxy{game: g})
-	return g, nil
+	ngBtn.Draw(dst, ngState)
+	ldBtn.Draw(dst, view.ButtonNormal)
+}
+
+// drawSelectScene renders the scenario selection screen using ebiten drawing primitives.
+func drawSelectScene(screen image.Image, ss *scene.ScenarioSelectScene) {
+	dst := screen.(*ebiten.Image)
+	dst.Fill(asset.ColorUIBackground)
+
+	sw := ss.ScreenWidth()
+	px, py := ebiten.CursorPosition()
+
+	// Header.
+	header := "Select Scenario"
+	hw := view.TextWidth(header)
+	view.DrawText(dst, header, (sw-hw)/2, 40)
+
+	// Scenario buttons.
+	entries := ss.Entries()
+	rects := ss.ButtonRects()
+	for i, r := range rects {
+		label := entries[i].Name + "  [" + entries[i].Difficulty + "]"
+		btn := view.ButtonFromRect(r, label)
+		state := view.ButtonNormal
+		if btn.Contains(px, py) {
+			state = view.ButtonHover
+		}
+		btn.Draw(dst, state)
+
+		// Description below button.
+		desc := entries[i].Description
+		dw := view.TextWidth(desc)
+		view.DrawColoredText(dst, desc, (sw-dw)/2, r.Max.Y+2, asset.ColorUIBorder, 1.0)
+	}
+
+	// Back button.
+	backBtn := view.ButtonFromRect(ss.BackRect(), "Back")
+	backBtn.Draw(dst, view.ButtonNormal)
 }
 
 // Update delegates to the active scene via SceneManager.
+// For title and select scenes, it also handles mouse click input
+// (since those scenes are ebiten-free and expose HandleClick).
 func (g *Game) Update() error {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		px, py := ebiten.CursorPosition()
+		switch s := g.scenes.Current().(type) {
+		case *scene.TitleScene:
+			s.HandleClick(px, py)
+		case *scene.ScenarioSelectScene:
+			s.HandleClick(px, py)
+		}
+	}
 	return g.scenes.Update()
 }
 

@@ -34,6 +34,11 @@ func NewButton(x, y, w, h int, label string) Button {
 	}
 }
 
+// ButtonFromRect creates a Button from an existing rectangle and label.
+func ButtonFromRect(r image.Rectangle, label string) Button {
+	return Button{Rect: r, Label: label}
+}
+
 // Contains reports whether the screen coordinate (px, py) is inside the button.
 func (b Button) Contains(px, py int) bool {
 	return image.Pt(px, py).In(b.Rect)

@@ -344,7 +344,7 @@
 - SceneA → Switch(SceneB) で OnExit(A) → OnEnter(B) が呼ばれるテスト
 - Switch 後に Update/Draw が新シーンに委譲されるテスト
 
-- [ ] **Task 3-B: タイトル画面とシナリオ選択画面**
+- [x] **Task 3-B: タイトル画面とシナリオ選択画面**
 
 1. scene/title.go: タイトル画面
    - ゲーム名 "ChaosForge — 風水回廊記" 表示
