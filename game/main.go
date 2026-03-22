@@ -29,6 +29,7 @@ type Game struct {
 	registry *world.RoomTypeRegistry
 	provider asset.TilesetProvider
 	mapView  *view.MapView
+	roomInfo map[int]view.RoomRenderInfo
 	mouse    *input.MouseTracker
 	tooltip  *view.Tooltip
 }
@@ -46,12 +47,14 @@ func NewGame() (*Game, error) {
 	}
 
 	mv := view.NewMapView(32, 32)
+	roomInfo := view.BuildRoomRenderMap(engine.State.Cave, engine.State.RoomTypeRegistry)
 
 	return &Game{
 		cave:     engine.State.Cave,
 		registry: engine.State.RoomTypeRegistry,
 		provider: asset.NewPlaceholderProvider(),
 		mapView:  mv,
+		roomInfo: roomInfo,
 		mouse:    input.NewMouseTracker(mv, engine.State.Cave.Grid.Width, engine.State.Cave.Grid.Height),
 		tooltip:  &view.Tooltip{},
 	}, nil
@@ -65,7 +68,7 @@ func (g *Game) Update() error {
 
 // Draw draws the game screen.
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.mapView.Draw(screen, g.cave, g.registry, g.provider)
+	g.mapView.Draw(screen, g.cave, g.roomInfo, g.provider)
 
 	cx, cy, ok := g.mouse.CursorCell()
 	if ok {

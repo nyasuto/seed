@@ -135,7 +135,7 @@
 - Paused → Resume でティック進行が再開するテスト
 - FastForward 中にゲーム終了条件を満たすと停止するテスト
 
-- [ ] **Task 1-C: GameSnapshot から描画データへの変換**
+- [x] **Task 1-C: GameSnapshot から描画データへの変換**
 
 1. view/mapview.go の拡張: Snapshot から部屋の属性情報を読み取り、タイル色を属性に応じて変更
    - 部屋セルは部屋の Element に基づく色で描画

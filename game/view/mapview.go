@@ -55,11 +55,38 @@ func (mv *MapView) ScreenToCell(px, py int, gridWidth, gridHeight int) (cx, cy i
 	return cx, cy, true
 }
 
+// RoomRenderInfo holds pre-computed rendering information for a room,
+// derived from the GameState (Cave + RoomTypeRegistry).
+type RoomRenderInfo struct {
+	// Element is the room's five-element attribute, used for tile coloring.
+	Element types.Element
+	// IsDragonHole indicates whether this room is a dragon hole (core room).
+	IsDragonHole bool
+}
+
+// BuildRoomRenderMap creates a map from room ID to RoomRenderInfo by
+// inspecting the cave's rooms and the room type registry. This decouples
+// rendering from direct GameState access.
+func BuildRoomRenderMap(cave *world.Cave, registry *world.RoomTypeRegistry) map[int]RoomRenderInfo {
+	m := make(map[int]RoomRenderInfo, len(cave.Rooms))
+	for _, room := range cave.Rooms {
+		rt, err := registry.Get(room.TypeID)
+		if err != nil {
+			continue
+		}
+		m[room.ID] = RoomRenderInfo{
+			Element:      rt.Element,
+			IsDragonHole: rt.BaseCoreHP > 0,
+		}
+	}
+	return m
+}
+
 // Draw renders the entire cave tilemap onto the screen.
 // It iterates over all cells in the cave grid and draws the appropriate tile
-// using the provided TilesetProvider. Room and corridor cells are tinted
-// by their owning room's element, looked up via the RoomTypeRegistry.
-func (mv *MapView) Draw(screen *ebiten.Image, cave *world.Cave, registry *world.RoomTypeRegistry, provider asset.TilesetProvider) {
+// using the provided TilesetProvider. Room cells are tinted by their owning
+// room's element (looked up via roomInfo). Dragon hole rooms are drawn in purple.
+func (mv *MapView) Draw(screen *ebiten.Image, cave *world.Cave, roomInfo map[int]RoomRenderInfo, provider asset.TilesetProvider) {
 	for y := 0; y < cave.Grid.Height; y++ {
 		for x := 0; x < cave.Grid.Width; x++ {
 			cell, err := cave.Grid.At(types.Pos{X: x, Y: y})
@@ -69,12 +96,18 @@ func (mv *MapView) Draw(screen *ebiten.Image, cave *world.Cave, registry *world.
 
 			element := types.Wood // default for non-room cells
 			if cell.RoomID != 0 {
-				room := cave.RoomByID(cell.RoomID)
-				if room != nil {
-					rt, rtErr := registry.Get(room.TypeID)
-					if rtErr == nil {
-						element = rt.Element
+				if info, ok := roomInfo[cell.RoomID]; ok {
+					if info.IsDragonHole {
+						tile := provider.GetDragonHoleTile()
+						if tile != nil {
+							px, py := mv.CellToScreen(x, y)
+							op := &ebiten.DrawImageOptions{}
+							op.GeoM.Translate(float64(px), float64(py))
+							screen.DrawImage(tile, op)
+						}
+						continue
 					}
+					element = info.Element
 				}
 			}
 

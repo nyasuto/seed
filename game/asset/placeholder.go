@@ -18,6 +18,8 @@ type PlaceholderProvider struct {
 	beastSprites map[string]*ebiten.Image
 	// invaderSprites caches invader placeholder sprites.
 	invaderSprites map[string]*ebiten.Image
+	// dragonHoleTile caches the dragon hole tile image.
+	dragonHoleTile *ebiten.Image
 }
 
 type tileKey struct {
@@ -58,6 +60,14 @@ func (p *PlaceholderProvider) GetBeastSprite(species string, level int) *ebiten.
 	drawCenteredChar(img, 'B')
 	p.beastSprites[species] = img
 	return img
+}
+
+// GetDragonHoleTile returns a purple placeholder tile for dragon hole cells.
+func (p *PlaceholderProvider) GetDragonHoleTile() *ebiten.Image {
+	if p.dragonHoleTile == nil {
+		p.dragonHoleTile = generateColoredRect(ColorDragonHole)
+	}
+	return p.dragonHoleTile
 }
 
 // GetInvaderSprite returns a placeholder sprite for an invader.

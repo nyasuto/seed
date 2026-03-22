@@ -20,4 +20,7 @@ type TilesetProvider interface {
 
 	// GetInvaderSprite returns a sprite for an invader of the given class.
 	GetInvaderSprite(class string) *ebiten.Image
+
+	// GetDragonHoleTile returns a tile for dragon hole (core) room cells.
+	GetDragonHoleTile() *ebiten.Image
 }
