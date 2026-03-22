@@ -77,7 +77,7 @@ func TestSwitch_DelegatesUpdateAndDraw(t *testing.T) {
 	sm := NewSceneManager(a)
 
 	// Update/Draw go to A.
-	sm.Update()
+	_ = sm.Update()
 	sm.Draw(nil)
 	if a.updateCount != 1 {
 		t.Errorf("expected A.Update called once, got %d", a.updateCount)
@@ -90,7 +90,7 @@ func TestSwitch_DelegatesUpdateAndDraw(t *testing.T) {
 	sm.Switch(b)
 
 	// Update/Draw should go to B now.
-	sm.Update()
+	_ = sm.Update()
 	sm.Draw(nil)
 	if b.updateCount != 1 {
 		t.Errorf("expected B.Update called once, got %d", b.updateCount)
