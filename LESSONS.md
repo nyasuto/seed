@@ -110,3 +110,10 @@
 - ResultScene は `simulation.GameResult` と `scenario.GameSnapshot` を受け取り、勝利/敗北テキストと統計を表示する。InGameScene の `onGameOver` コールバック経由で遷移する。SceneManager.Switch は InGameScene 側からは直接呼べないため、main.go の Game 構造体がコールバックを仲介する。
 - scene パッケージ内のテストファイル（title_test.go, select_test.go, ingame_test.go, result_test.go）は ebiten を直接 import しなくても、同一パッケージ内の ingame.go 等が ebiten を import しているため、パッケージレベルの init() が発動して headless 環境で panic する。テストを headless で実行するには manager_test.go のように別パッケージ（`scene_test`）にするか、Scene インターフェースだけを別パッケージに分離する必要がある。
 - InfoPanel は部屋/仙獣/侵入者の詳細表示を担当。ModeNormal での部屋クリック → InfoPanel 表示という流れで、操作モードと情報表示を分離。選択状態（selectedRoomID）は InfoPanel 自身が持ち、InGameScene が handleClick で SelectRoom/ClearSelection を呼ぶ。
+
+## game Phase 4: セーブ/ロード + 仕上げ
+
+- セーブ/ロードは core の `SimulationEngine.Checkpoint()` / `RestoreFromCheckpoint()` を活用し、GameController レベルで `SaveCheckpoint` / `LoadCheckpoint` メソッドとして統合する設計が明快。JSON シリアライズはチェックポイントデータそのものをエンコードするだけで済む。
+- タイトル画面の [ロード] ボタンは LoadScene（セーブファイル一覧画面）に遷移する構成。セーブファイルが存在しない場合のグレーアウトは `ListSaveFiles` の結果で判定。
+- 戦闘フィードバック（部屋点滅、侵入波警告、CoreHP バー点滅、仙獣敗北表示）は `BattleFeedbackOverlay` として独立した構造体にまとめ、InGameScene の Draw から呼び出す設計。前ティックの状態を保持して差分検知する。
+- Phase 4 完了時点で game の全機能（シーン管理、操作システム、セーブ/ロード、視覚フィードバック）が揃い、Phase 5 の手動プレイテストに進める状態。

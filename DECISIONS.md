@@ -539,3 +539,14 @@
 - game Phase 2 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 3 では対応せず。Phase 4 以降で検討
 - 「BuildRoomRenderMap の毎フレーム再構築」は Phase 3 でも対応せず。パフォーマンス問題が顕在化した場合に対応
 - 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし
+
+---
+
+## game Phase 4 棚卸し（2026-03-22）
+
+全 D001〜D020 を確認済み。Phase 4 で新たな設計判断は発生せず。
+- D019 (SummonBeast Element選択): ACTIVE — 継続有効
+- D020 (Scene Draw image.Image): ACTIVE — 継続有効
+- game Phase 3 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 4 でも対応せず。Phase 5 以降で検討
+- 「BuildRoomRenderMap の毎フレーム再構築」は Phase 4 でも対応せず。パフォーマンス問題が顕在化した場合に対応
+- 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし
