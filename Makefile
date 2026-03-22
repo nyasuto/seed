@@ -6,6 +6,7 @@ all: build check
 
 build:
 	cd sim && go build -o chaosseed-sim ./cmd/chaosseed-sim
+	cd game && go build -o chaosforge .
 
 test:
 	@for mod in $(MODULES); do echo "=== test $$mod ===" && (cd $$mod && go test ./...) || exit 1; done

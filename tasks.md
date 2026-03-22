@@ -12,7 +12,7 @@
 
 ## Phase 0: Ebitengine習作 + プロジェクト初期化
 
-- [ ] **Task 0-A: プロジェクト初期化とEbitengine導入**
+- [x] **Task 0-A: プロジェクト初期化とEbitengine導入**
 
 1. game/ ディレクトリで作業する
 2. Ebitengine v2 を `go get` で導入
