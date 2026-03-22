@@ -15,10 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install system dependencies (game)
+        if: matrix.module == 'game'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache-dependency-path: ${{ matrix.module }}/go.sum
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
