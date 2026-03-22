@@ -47,10 +47,18 @@ func (er *EntityRenderer) RoomCenterFromRoom(room *world.Room) (px, py int, ok b
 
 // DrawBeasts draws all beast sprites onto the screen. Each beast is drawn
 // at the center of its assigned room. Beasts without a room (RoomID == 0)
-// are skipped.
-func (er *EntityRenderer) DrawBeasts(screen *ebiten.Image, cave *world.Cave, beasts []*senju.Beast, provider asset.TilesetProvider) {
+// are skipped. If hiddenIDs is non-nil, beasts whose IDs are in the set
+// are not drawn (used for blink effects).
+func (er *EntityRenderer) DrawBeasts(screen *ebiten.Image, cave *world.Cave, beasts []*senju.Beast, provider asset.TilesetProvider, hiddenIDs ...map[int]bool) {
+	var hidden map[int]bool
+	if len(hiddenIDs) > 0 {
+		hidden = hiddenIDs[0]
+	}
 	for _, beast := range beasts {
 		if beast.RoomID == 0 {
+			continue
+		}
+		if hidden != nil && hidden[beast.ID] {
 			continue
 		}
 		px, py, ok := er.RoomCenter(cave, beast.RoomID)

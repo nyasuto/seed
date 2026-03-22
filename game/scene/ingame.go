@@ -41,8 +41,9 @@ type InGameScene struct {
 	summonFlow      *input.SummonBeastFlow
 	upgradeFlow     *input.UpgradeRoomFlow
 
-	feedback  *view.FeedbackOverlay
-	infoPanel *view.InfoPanel
+	feedback       *view.FeedbackOverlay
+	battleFeedback *view.BattleFeedback
+	infoPanel      *view.InfoPanel
 
 	screenWidth  int
 	screenHeight int
@@ -80,7 +81,8 @@ func NewInGameScene(cfg InGameConfig) *InGameScene {
 		tooltip:      &view.Tooltip{},
 		stateMachine: input.NewInputStateMachine(),
 		actionBar:    view.NewActionBar(cfg.ScreenHeight),
-		feedback:     view.NewFeedbackOverlay(),
+		feedback:       view.NewFeedbackOverlay(),
+		battleFeedback: view.NewBattleFeedback(),
 		infoPanel:    view.NewInfoPanel(),
 		screenWidth:  cfg.ScreenWidth,
 		screenHeight: cfg.ScreenHeight,
@@ -171,6 +173,11 @@ func (s *InGameScene) Update() error {
 	_, _ = s.ctrl.UpdateTick()
 	s.feedback.Update()
 
+	// Update battle feedback with current state.
+	state := s.ctrl.Engine().State
+	snap := s.ctrl.Snapshot()
+	s.battleFeedback.Update(snap.CoreHP, state.Waves, state.Beasts)
+
 	// Check game over after tick advancement.
 	if s.ctrl.State() == controller.GameOver && !s.gameOverNotified && s.onGameOver != nil {
 		s.gameOverNotified = true
@@ -210,20 +217,29 @@ func (s *InGameScene) Draw(screen image.Image) {
 		}
 	}
 
-	// Entities.
-	s.entity.DrawBeasts(dst, cave, state.Beasts, s.provider)
+	// Battle room overlays (red blink on rooms with active combat).
+	battleRooms := view.BattleRoomIDs(state.Waves)
+	s.battleFeedback.DrawBattleRoomOverlays(dst, cave, s.mapView, battleRooms)
+
+	// Entities (with defeated beast blink).
+	hiddenBeasts := s.battleFeedback.BlinkHiddenBeastIDs()
+	s.entity.DrawBeasts(dst, cave, state.Beasts, s.provider, hiddenBeasts)
 	s.entity.DrawInvaders(dst, cave, state.Waves, s.provider)
 
 	// Top bar.
 	snap := s.ctrl.Snapshot()
 	maxCoreHP := findMaxCoreHP(state)
 	s.topBar.Draw(dst, view.TopBarData{
-		ChiPool:    int(snap.ChiPoolBalance),
-		MaxChiPool: int(state.EconomyEngine.ChiPool.Cap),
-		CoreHP:     snap.CoreHP,
-		MaxCoreHP:  maxCoreHP,
-		Tick:       int(snap.Tick),
+		ChiPool:      int(snap.ChiPoolBalance),
+		MaxChiPool:   int(state.EconomyEngine.ChiPool.Cap),
+		CoreHP:       snap.CoreHP,
+		MaxCoreHP:    maxCoreHP,
+		Tick:         int(snap.Tick),
+		HPBlinkFlash: s.battleFeedback.IsHPBlinking(),
 	})
+
+	// Wave arrival alert.
+	s.battleFeedback.DrawWaveAlert(dst, s.screenWidth)
 
 	// Action bar.
 	tickMode := s.currentTickMode()
@@ -567,6 +583,7 @@ func (s *InGameScene) handleLoad() {
 	s.resetSummonFlow()
 	s.resetUpgradeFlow()
 	s.infoPanel.ClearSelection()
+	s.battleFeedback = view.NewBattleFeedback()
 	s.gameOverNotified = false
 
 	s.feedback.ShowError(fmt.Sprintf("Loaded: %s", filepath.Base(saves[0].Path)))

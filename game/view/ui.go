@@ -10,11 +10,12 @@ import (
 
 // TopBarData holds the values needed to render the top status bar.
 type TopBarData struct {
-	ChiPool    int
-	MaxChiPool int
-	CoreHP     int
-	MaxCoreHP  int
-	Tick       int
+	ChiPool      int
+	MaxChiPool   int
+	CoreHP       int
+	MaxCoreHP    int
+	Tick         int
+	HPBlinkFlash bool // When true, the HP bar flashes red to indicate damage.
 }
 
 // FormatChiPool returns the ChiPool display string (e.g., "Chi: 150/500").
@@ -94,11 +95,15 @@ func (tb *TopBar) Draw(screen *ebiten.Image, data TopBarData) {
 	bop2.GeoM.Translate(float64(x), float64(barY))
 	screen.DrawImage(barBg, bop2)
 
-	// HP bar foreground (colored by health percentage).
+	// HP bar foreground (colored by health percentage, flashes red on damage).
 	fillW := BarWidth(data.CoreHP, data.MaxCoreHP, hpBarWidth)
 	if fillW > 0 {
 		barFg := ebiten.NewImage(fillW, hpBarHeight)
-		barFg.Fill(hpBarColor(data.CoreHP, data.MaxCoreHP))
+		if data.HPBlinkFlash {
+			barFg.Fill(color.RGBA{R: 0xFF, G: 0x00, B: 0x00, A: 0xFF})
+		} else {
+			barFg.Fill(hpBarColor(data.CoreHP, data.MaxCoreHP))
+		}
 		fop := &ebiten.DrawImageOptions{}
 		fop.GeoM.Translate(float64(x), float64(barY))
 		screen.DrawImage(barFg, fop)
