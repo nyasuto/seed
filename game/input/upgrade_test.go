@@ -71,7 +71,7 @@ func TestUpgradeRoomFlow_TrySelectRoom_ZeroRoomID(t *testing.T) {
 
 func TestUpgradeRoomFlow_Cancel(t *testing.T) {
 	f := NewUpgradeRoomFlow()
-	f.TrySelectRoom(world.RoomFloor, 1)
+	_, _ = f.TrySelectRoom(world.RoomFloor, 1)
 	if !f.Complete() {
 		t.Fatal("expected complete after selection")
 	}

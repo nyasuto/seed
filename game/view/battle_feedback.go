@@ -73,6 +73,24 @@ func (bf *BattleFeedback) Update(coreHP int, waves []*invasion.InvasionWave, bea
 		bf.initialized = true
 	}
 
+	// Decrement timers first, before detecting new events.
+	if bf.waveAlertTimer > 0 {
+		bf.waveAlertTimer--
+		if bf.waveAlertTimer == 0 {
+			bf.waveAlertMsg = ""
+		}
+	}
+	if bf.hpBlinkTimer > 0 {
+		bf.hpBlinkTimer--
+	}
+	for id, timer := range bf.defeatedBeastIDs {
+		if timer <= 1 {
+			delete(bf.defeatedBeastIDs, id)
+		} else {
+			bf.defeatedBeastIDs[id] = timer - 1
+		}
+	}
+
 	// Detect new wave arrivals.
 	if activeWaves > bf.prevActiveWaves {
 		newCount := activeWaves - bf.prevActiveWaves
@@ -93,24 +111,6 @@ func (bf *BattleFeedback) Update(coreHP int, waves []*invasion.InvasionWave, bea
 			if _, exists := bf.defeatedBeastIDs[beast.ID]; !exists {
 				bf.defeatedBeastIDs[beast.ID] = BeastDefeatBlinkDuration
 			}
-		}
-	}
-
-	// Decrement timers.
-	if bf.waveAlertTimer > 0 {
-		bf.waveAlertTimer--
-		if bf.waveAlertTimer == 0 {
-			bf.waveAlertMsg = ""
-		}
-	}
-	if bf.hpBlinkTimer > 0 {
-		bf.hpBlinkTimer--
-	}
-	for id, timer := range bf.defeatedBeastIDs {
-		if timer <= 1 {
-			delete(bf.defeatedBeastIDs, id)
-		} else {
-			bf.defeatedBeastIDs[id] = timer - 1
 		}
 	}
 }

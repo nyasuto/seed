@@ -84,7 +84,7 @@ func TestBuildTooltipInfo_HardRock(t *testing.T) {
 	}
 
 	// Manually set a cell to HardRock.
-	cave.Grid.Set(types.Pos{X: 5, Y: 5}, world.Cell{Type: world.HardRock})
+	_ = cave.Grid.Set(types.Pos{X: 5, Y: 5}, world.Cell{Type: world.HardRock})
 
 	registry := world.NewRoomTypeRegistry()
 	info := BuildTooltipInfo(cave, registry, 5, 5)
