@@ -3,7 +3,7 @@
 ## プロジェクト概要
 
 カオスシード（風水回廊記）インスパイアのダンジョン経営シミュレーション。
-Go モノレポ構成で、core（ゲームロジックライブラリ）と sim（CLIシミュレーター）を実装済み。
+Go モノレポ構成で、core（ゲームロジックライブラリ）、sim（CLIシミュレーター）、game（Ebitengine GUIクライアント）を実装済み。
 
 ## 完了フェーズ
 
@@ -36,7 +36,21 @@ Phase 0〜6 で CLIシミュレーターを完成:
 | 5 | Balance Dashboard（ベースライン → アラート → スイープ提案 → 比較の4段階フロー） |
 | 6 | 統合検証 + ドキュメント + リリース準備 |
 
+### game（v1.0.0）
+
+Phase 0〜4 で Ebitengine GUI クライアントを完成:
+
+| Phase | 内容 |
+|-------|------|
+| 0 | Ebitengine 習作 + プロジェクト初期化（カラーパレット、仮タイルセット、マップ描画、マウスホバー） |
+| 1 | GameController + ティック進行（core 接続、手動/早送り/一時停止、Snapshot→描画変換、TopBar） |
+| 2 | 操作システム（ActionMode ステートマシン、ActionBar、DigRoom/DigCorridor/SummonBeast/UpgradeRoom フロー） |
+| 3 | シーン管理 + UI（SceneManager、Title/Select/InGame/Result シーン、InfoPanel） |
+| 4 | セーブ/ロード + 仕上げ（チェックポイント保存/復元、ゲーム設定永続化、戦闘/侵入の視覚フィードバック） |
+
 ## アーキテクチャ
+
+### sim
 
 ```
 chaosseed-sim CLI
@@ -46,6 +60,24 @@ chaosseed-sim CLI
     ├── --balance→ balance        → adapter/batch → GameServer
     └── --replay → server.Replay  → GameServer → core.SimulationEngine
 ```
+
+### game
+
+```
+chaosseed-game (Ebitengine)
+    ├── SceneManager ── Title → Select → InGame → Result
+    │                          └── Load → InGame
+    ├── InGame
+    │   ├── GameController → core.SimulationEngine
+    │   ├── InputStateMachine → ActionMode (Normal/DigRoom/DigCorridor/Summon/Upgrade)
+    │   ├── MapView + EntityRenderer → 描画
+    │   ├── TopBar + ActionBar + InfoPanel → UI
+    │   ├── FeedbackOverlay + BattleFeedbackOverlay → 視覚フィードバック
+    │   └── Save/Load → ~/.chaosforge/saves/
+    └── asset → PlaceholderProvider (TilesetProvider)
+```
+
+**依存方向**: `game → core`（sim とは独立）
 
 ### Game Server（`sim/server/`）
 
@@ -72,6 +104,20 @@ Batch Mode の上位レイヤー。4段階フロー:
 3. **スイープ提案**: D002ルールに基づくパラメータ調整候補の自動生成
 4. **比較**: パラメータスイープ実行と結果比較
 
+### GameController（`game/controller/`）
+
+core の `SimulationEngine` を GUI 向けにラップ:
+- `Snapshot()` で読み取り専用の GameSnapshot を取得（描画層に最適）
+- `AddAction()` で PlayerAction をキューに積み、`AdvanceTick()` で実行
+- ティック進行モード: Manual / FastForward / Paused
+- `SaveCheckpoint()` / `LoadCheckpoint()` でセーブ/ロード
+
+### TilesetProvider（`game/asset/`）
+
+仮アセットシステム。`TilesetProvider` インターフェースで描画とアセットを分離:
+- `PlaceholderProvider`: 全 CellType 分の 32x32 色付き矩形を動的生成
+- 将来、ドット絵アセットに差し替える場合は `TilesetProvider` の別実装を提供するだけで対応可能
+
 ## 壊れるサインメトリクス（B01〜B11）
 
 「面白さの証明ではなく、壊れている兆候の検出」を目的とする11種のメトリクス:
@@ -96,28 +142,19 @@ Batch Mode の上位レイヤー。4段階フロー:
 - **D009**: 気のシステムは物理層（ChiFlowEngine）と経済層（ChiPool）の二層構造
 - **D012**: 1ティック12ステップの更新順序は不変。変更すると決定論的再現が壊れる
 - **D013**: PlayerAction は Step() の引数として毎ティック注入。リプレイ・AI・人間が同一インターフェース
+- **D019**: SummonBeast は種族選択ではなく Element 選択方式。core が species を自動決定
+- **D020**: Scene インターフェースの Draw は `image.Image` 引数。headless テスト可能
 
 詳細は [DECISIONS.md](./DECISIONS.md) を参照。
 
-## 次のステップ: chaosseed-game
+## 未解決の将来課題
 
-`game/` ディレクトリに Ebitengine ベースの GUI クライアントを構築する。
-
-### 構成
-
-```
-game → core  (sim とは独立)
-```
-
-### 留意事項
-
-- core の `SimulationEngine` は GUI からも同じインターフェースで利用可能（`Step(actions)` を毎フレーム呼ぶ）
-- `GameSnapshot` による読み取り専用のゲーム状態取得は描画層に最適
-- 組み込みシナリオ JSON は core の `scenario` パッケージから読み込み可能
-- sim のアダプター層の設計（ActionProvider パターン）は game でも参考になる
-
-### 未解決の将来課題
-
+- ドット絵アセットの作成（現在は PlaceholderProvider の色付き矩形）
+- BGM/SE の追加
+- 龍脈の可視化（気の流れをパーティクルやアニメーションで表現）
 - 罠の盗賊回避率（盗賊の SPD による罠回避メカニクス）
 - 侵入者AIの高度化（複数ステップ先読み、仙獣回避）
 - standard シナリオ向けのスイープ値チューニング
+- `game/testdata/tutorial.json` の embed 重複解消（core の `LoadBuiltinScenario` への統一）
+- `BuildRoomRenderMap` の毎フレーム再構築の最適化（パフォーマンス問題が顕在化した場合）
+- ebiten 依存パッケージのテストが headless 環境で実行不可（GLFW init panic）

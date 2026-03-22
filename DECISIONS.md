@@ -550,3 +550,36 @@
 - game Phase 3 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 4 でも対応せず。Phase 5 以降で検討
 - 「BuildRoomRenderMap の毎フレーム再構築」は Phase 4 でも対応せず。パフォーマンス問題が顕在化した場合に対応
 - 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし
+
+---
+
+## game Phase 5 最終棚卸し（2026-03-22）
+
+全 D001〜D020 を確認済み。Phase 5 で新たな設計判断は発生せず。
+
+**ACTIVE な設計判断（継続有効）:**
+- D002 (コアゲーム体験): 全フェーズの設計原則
+- D003 (仙獣の気消費): RoomChi.Current 直接減算
+- D005 (行動衝突の先着順): 決定論的解決
+- D008 (戦闘マッチング): SPD順ペアリング・1ティック1ラウンド
+- D009 (気の二層構造): 物理層 + 経済層
+- D010 (CoreHP): 龍穴コアの耐久値
+- D011 (EventCommand): コマンドパターン
+- D012 (ティック更新順序): 12ステップ固定
+- D013 (PlayerAction注入): Step()の引数方式
+- D017a (AI Mode プロトコル): JSON Lines + valid_actions
+- D019 (SummonBeast Element選択): core API に忠実
+- D020 (Scene Draw image.Image): headless テスト可能
+
+**RESOLVED な設計判断:**
+- D001, D004, D006, D007, D014, D015, D016, D017b, D018
+
+**v1.0.0 スコープ外の将来課題（変更なし）:**
+- 罠の盗賊回避率
+- 侵入者AI高度化
+- standard シナリオ向けスイープ値チューニング
+
+**技術的負債（v1.0.0 で許容）:**
+- game/testdata/tutorial.json の embed 重複（core の LoadBuiltinScenario への統一は将来対応）
+- BuildRoomRenderMap の毎フレーム再構築（パフォーマンス問題が顕在化した場合に対応）
+- ebiten 依存パッケージのテストが headless 環境で実行不可（GLFW init panic）

@@ -117,3 +117,9 @@
 - タイトル画面の [ロード] ボタンは LoadScene（セーブファイル一覧画面）に遷移する構成。セーブファイルが存在しない場合のグレーアウトは `ListSaveFiles` の結果で判定。
 - 戦闘フィードバック（部屋点滅、侵入波警告、CoreHP バー点滅、仙獣敗北表示）は `BattleFeedbackOverlay` として独立した構造体にまとめ、InGameScene の Draw から呼び出す設計。前ティックの状態を保持して差分検知する。
 - Phase 4 完了時点で game の全機能（シーン管理、操作システム、セーブ/ロード、視覚フィードバック）が揃い、Phase 5 の手動プレイテストに進める状態。
+
+## game Phase 5: 統合検証 + リリース準備
+
+- game 全 Phase（0〜4）を通じて、ebiten 依存パッケージ（asset/view/input/scene）と非依存パッケージ（controller/save）を明確に分離することが headless テストの鍵だった。controller と save は常にテスト可能で、CI でも安全に実行できる。
+- core→sim→game の3レイヤーモノレポにおいて、game は core のみに依存し sim には依存しない設計を最後まで維持できた。これにより、sim の変更が game に影響せず、逆も同様。go.work によるワークスペース管理がこの独立性を支えている。
+- PlaceholderProvider（色付き矩形）による仮アセットシステムは、TilesetProvider インターフェースの抽象化により、将来のドット絵アセット差し替えが Provider 実装の追加だけで済む設計。開発初期に「完璧なアセットがなくても動くゲーム」を優先する判断が正しかった。
