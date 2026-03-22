@@ -449,3 +449,14 @@
 - D017a (AI Mode プロトコル): ACTIVE — 設計原則として継続有効
 - D017b (D002検証): RESOLVED — Phase 4-G で確認済み
 - 未解決2件（罠の盗賊回避率、侵入者AI高度化）は v1.0.0 スコープ外で変更なし
+
+## game Phase 1 棚卸し（2026-03-22）
+
+全 D001〜D017b を確認済み。game Phase 1 で新たな設計判断は発生せず。
+- D014 (MaxRooms制約): RESOLVED — Phase 1-A で実装済み
+- D015 (AIコリドー戦略): RESOLVED — Phase 1-B で実装済み
+- D016 (caveScore正規化): RESOLVED — Phase 1-C で実装済み
+- PHASE_COMPLETE_0 の申し送り2件は Phase 1 で解消:
+  - GameController 導入 → Phase 1-A で完了
+  - main.go の SimulationEngine 直接参照 → Phase 1-E で GameController 経由に移行完了
+- game/testdata/tutorial.json の embed 重複は残存（core の LoadBuiltinScenario への統一は Phase 2 以降で検討）

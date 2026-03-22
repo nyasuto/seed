@@ -86,3 +86,11 @@
 - core の `simulation.NewSimulationEngine` でチュートリアルシナリオを読み込み、`engine.State.Cave` を直接参照することで game 側で Cave データを取得できる。Phase 1 以降は GameController 経由に変更予定。
 - game の testdata/tutorial.json は core の組み込みシナリオと同一内容を embed している。Phase 1 以降は core の `scenario.LoadBuiltinScenario` を使う方向に統一すべき。
 - チュートリアルシナリオの Cave サイズは 16x16 タイルで、想定ビューポート（24x20）に余裕を持って収まる。
+
+## game Phase 1: Game Controller + ティック進行
+
+- GameController は core の SimulationEngine をラップし、Snapshot / AddAction / AdvanceTick の3つのAPIで game 側から操作する。engine.State への直接アクセスは描画データ取得（Cave, Beasts, Waves, RoomTypeRegistry）に限定すべき。
+- TopBarData の ChiPool/MaxChiPool は `EconomyEngine.ChiPool.Balance()` / `.Cap` から取得し、int にキャストする。MaxCoreHP は龍穴部屋の `CoreHPAtLevel(room.Level)` から動的に取得する必要がある（Snapshot に含まれていない）。
+- `ebiten/v2/inpututil.IsKeyJustPressed` は前フレームとの差分でキー押下を検知するため、長押しによる連続発火を防げる。Space/F/Escape のティック制御に有用。
+- Ebitengine v2.9.9 は macOS でパッケージレベルの `init()` で GLFW を初期化し、ディスプレイアクセスがない環境（SSH、一部のターミナルマルチプレクサ）では `currentMouseLocation()` で nil pointer panic を起こす。ebiten を import するだけでテストが実行不能になるため、asset/view/input のテストはディスプレイ環境でのみ実行可能。controller パッケージは ebiten に依存しないため常にテスト可能。
+- `BuildRoomRenderMap` は毎フレーム呼ぶのではなく、Cave が変更された時のみ再構築すべき。Phase 1-E では簡潔さのため毎フレーム呼んでいるが、Phase 2 以降で最適化検討。

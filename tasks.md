@@ -165,7 +165,7 @@
 - CoreHP バーの幅計算テスト（80/100 → 80%幅）
 - `go build ./...` が成功
 
-- [ ] **Task 1-E: Phase 1 統合と確認**
+- [x] **Task 1-E: Phase 1 統合と確認**
 
 1. main.go を統合: GameController + MapView + EntityView + TopBar
    - 起動 → チュートリアルシナリオ読み込み → マップ描画 → スペースキーでティック進行
