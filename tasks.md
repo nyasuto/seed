@@ -271,7 +271,7 @@
 - 部屋ID=2, 種族="kirin" → SummonBeast PlayerAction が正しく生成されるテスト
 - ChiPool 不足時に警告が返るバリデーションテスト
 
-- [ ] **Task 2-F: UpgradeRoom フロー + Wait + ティック制御統合**
+- [x] **Task 2-F: UpgradeRoom フロー + Wait + ティック制御統合**
 
 1. ModeUpgrade の操作フロー:
    - モード進入 → 部屋セルをクリック → UpgradeRoom PlayerAction 生成

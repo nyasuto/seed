@@ -3,6 +3,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -47,6 +48,9 @@ type Game struct {
 
 	// SummonBeast flow state.
 	summonFlow *input.SummonBeastFlow
+
+	// UpgradeRoom flow state.
+	upgradeFlow *input.UpgradeRoomFlow
 
 	errorMessage string
 	errorTimer   int
@@ -108,6 +112,7 @@ func (g *Game) Update() error {
 		g.resetDigRoomFlow()
 		g.resetDigCorridorFlow()
 		g.resetSummonFlow()
+		g.resetUpgradeFlow()
 	}
 
 	// Handle mouse clicks.
@@ -119,6 +124,10 @@ func (g *Game) Update() error {
 	// Tick control keys (only when not in element panel).
 	if g.elemPanel == nil {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+			g.ctrl.AdvanceTick()
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyW) && currentMode == input.ModeNormal {
+			// Wait: advance tick with no player action.
 			g.ctrl.AdvanceTick()
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyF) {
@@ -152,14 +161,19 @@ func (g *Game) handleClick(px, py int) {
 		g.resetDigRoomFlow()
 		g.resetDigCorridorFlow()
 		g.resetSummonFlow()
-		if mode == input.ModeDigRoom {
+		g.resetUpgradeFlow()
+		switch mode {
+		case input.ModeDigRoom:
 			g.digRoomFlow = input.NewDigRoomFlow()
-		}
-		if mode == input.ModeDigCorridor {
+		case input.ModeDigCorridor:
 			g.digCorridorFlow = input.NewDigCorridorFlow()
-		}
-		if mode == input.ModeSummon {
+		case input.ModeSummon:
 			g.summonFlow = input.NewSummonBeastFlow()
+		case input.ModeUpgrade:
+			g.upgradeFlow = input.NewUpgradeRoomFlow()
+		case input.ModeNormal:
+			// "Wait W" button — advance tick with no player action.
+			g.ctrl.AdvanceTick()
 		}
 		return
 	} else if tickHit {
@@ -258,6 +272,32 @@ func (g *Game) handleClick(px, py int) {
 		}
 		// Room selected — show element panel.
 		g.elemPanel = view.NewElementPanel(screenWidth/2, screenHeight/2)
+		return
+	}
+
+	// Handle UpgradeRoom room selection.
+	if g.stateMachine.Mode() == input.ModeUpgrade && g.upgradeFlow == nil {
+		g.upgradeFlow = input.NewUpgradeRoomFlow()
+	}
+
+	if g.upgradeFlow != nil && !g.upgradeFlow.Complete() {
+		cx, cy, ok := g.mouse.CursorCell()
+		if !ok {
+			return
+		}
+		cave := g.ctrl.Engine().State.Cave
+		cell, err := cave.Grid.At(types.Pos{X: cx, Y: cy})
+		if err != nil {
+			return
+		}
+		action, selErr := g.upgradeFlow.TrySelectRoom(cell.Type, cell.RoomID)
+		if selErr != nil {
+			g.showError(selErr.Error())
+			return
+		}
+		g.ctrl.AddAction(action)
+		g.stateMachine.SetMode(input.ModeNormal)
+		g.resetUpgradeFlow()
 	}
 }
 
@@ -305,6 +345,10 @@ func (g *Game) resetSummonFlow() {
 	}
 }
 
+func (g *Game) resetUpgradeFlow() {
+	g.upgradeFlow = nil
+}
+
 func (g *Game) elemPanelContains(px, py int) bool {
 	// Simple bounds check — element panel covers center of screen.
 	cx := screenWidth / 2
@@ -347,6 +391,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Action bar.
 	tickMode := g.currentTickMode()
 	g.actionBar.Draw(screen, g.stateMachine.Mode(), tickMode)
+
+	// Pending actions display (above action bar).
+	if pending := g.ctrl.PendingActions(); len(pending) > 0 {
+		queueText := fmt.Sprintf("Queued: %d action(s)", len(pending))
+		view.DrawText(screen, queueText, 10, g.actionBar.BarY()-16)
+	}
 
 	// Element selection panel (blocks other UI).
 	if g.elemPanel != nil {
