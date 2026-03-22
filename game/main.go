@@ -10,6 +10,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/nyasuto/seed/core/scenario"
 	"github.com/nyasuto/seed/core/simulation"
+	"image/color"
+
 	"github.com/nyasuto/seed/game/asset"
 	"github.com/nyasuto/seed/game/controller"
 	"github.com/nyasuto/seed/game/scene"
@@ -86,6 +88,17 @@ func (g *Game) showTitle() {
 	g.scenes.Switch(g.makeTitleScene())
 }
 
+// showResult transitions to the result screen.
+func (g *Game) showResult(result simulation.GameResult, snap scenario.GameSnapshot) {
+	data := scene.BuildResultData(result, snap)
+	resultScene := scene.NewResultScene(screenWidth, screenHeight, data,
+		func() { g.showScenarioSelect() },
+		func() { g.showTitle() },
+		drawResultScene,
+	)
+	g.scenes.Switch(resultScene)
+}
+
 // startInGame initializes the GameController and switches to the InGame scene.
 func (g *Game) startInGame(scenarioJSON []byte) {
 	ctrl, err := controller.NewGameController(scenarioJSON, 42)
@@ -101,9 +114,7 @@ func (g *Game) startInGame(scenarioJSON []byte) {
 		MapOffsetX:   mapOffsetX,
 		MapOffsetY:   mapOffsetY,
 		OnGameOver: func(result simulation.GameResult, snap scenario.GameSnapshot) {
-			// TODO(Task 3-D): Switch to ResultScene.
-			_ = result
-			_ = snap
+			g.showResult(result, snap)
 		},
 	})
 	g.scenes.Switch(inGame)
@@ -175,6 +186,50 @@ func drawSelectScene(screen image.Image, ss *scene.ScenarioSelectScene) {
 	backBtn.Draw(dst, view.ButtonNormal)
 }
 
+// drawResultScene renders the result screen using ebiten drawing primitives.
+func drawResultScene(screen image.Image, rs *scene.ResultScene) {
+	dst := screen.(*ebiten.Image)
+	dst.Fill(asset.ColorUIBackground)
+
+	sw := rs.ScreenWidth()
+	data := rs.Data()
+	lines := data.ResultLines()
+
+	// Draw result lines centered.
+	startY := rs.ScreenHeight()/2 - 100
+	for i, line := range lines {
+		tw := view.TextWidth(line)
+		x := (sw - tw) / 2
+		y := startY + i*view.LineHeight
+		if i == 0 {
+			// Title line in color: green for victory, red for defeat.
+			c := color.RGBA{R: 0x4C, G: 0xAF, B: 0x50, A: 0xFF}
+			if !data.Won {
+				c = asset.ColorFire
+			}
+			view.DrawColoredText(dst, line, x, y, c, 1.0)
+		} else {
+			view.DrawText(dst, line, x, y)
+		}
+	}
+
+	// Buttons.
+	retryBtn := view.ButtonFromRect(rs.RetryRect(), "Retry")
+	titleBtn := view.ButtonFromRect(rs.TitleRect(), "Title")
+
+	px, py := ebiten.CursorPosition()
+	retryState := view.ButtonNormal
+	if retryBtn.Contains(px, py) {
+		retryState = view.ButtonHover
+	}
+	titleState := view.ButtonNormal
+	if titleBtn.Contains(px, py) {
+		titleState = view.ButtonHover
+	}
+	retryBtn.Draw(dst, retryState)
+	titleBtn.Draw(dst, titleState)
+}
+
 // Update delegates to the active scene via SceneManager.
 func (g *Game) Update() error {
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
@@ -183,6 +238,8 @@ func (g *Game) Update() error {
 		case *scene.TitleScene:
 			s.HandleClick(px, py)
 		case *scene.ScenarioSelectScene:
+			s.HandleClick(px, py)
+		case *scene.ResultScene:
 			s.HandleClick(px, py)
 		}
 	}

@@ -371,7 +371,7 @@
 - InGameScene の Update→Draw サイクルがエラーなく動くテスト（モック Snapshot で）
 - ゲーム終了条件で Result シーンへの遷移が発生するテスト
 
-- [ ] **Task 3-D: 結果画面**
+- [x] **Task 3-D: 結果画面**
 
 1. scene/result.go: ResultScene
    - 勝利/敗北の大きなテキスト表示
