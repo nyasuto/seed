@@ -39,7 +39,8 @@ type InGameScene struct {
 	summonFlow      *input.SummonBeastFlow
 	upgradeFlow     *input.UpgradeRoomFlow
 
-	feedback *view.FeedbackOverlay
+	feedback  *view.FeedbackOverlay
+	infoPanel *view.InfoPanel
 
 	screenWidth  int
 	screenHeight int
@@ -78,6 +79,7 @@ func NewInGameScene(cfg InGameConfig) *InGameScene {
 		stateMachine: input.NewInputStateMachine(),
 		actionBar:    view.NewActionBar(cfg.ScreenHeight),
 		feedback:     view.NewFeedbackOverlay(),
+		infoPanel:    view.NewInfoPanel(),
 		screenWidth:  cfg.ScreenWidth,
 		screenHeight: cfg.ScreenHeight,
 		onGameOver:   cfg.OnGameOver,
@@ -219,6 +221,15 @@ func (s *InGameScene) Draw(screen image.Image) {
 		queueText := fmt.Sprintf("Queued: %d action(s)", len(pending))
 		view.DrawText(dst, queueText, 10, s.actionBar.BarY()-16)
 	}
+
+	// Info panel.
+	var infoPanelData view.InfoPanelData
+	if roomID := s.infoPanel.SelectedRoomID(); roomID > 0 {
+		infoPanelData = view.BuildInfoForRoom(roomID, state)
+	} else {
+		infoPanelData = view.BuildGameInfo(state, snap)
+	}
+	s.infoPanel.Draw(dst, infoPanelData)
 
 	// Element selection panel.
 	if s.elemPanel != nil {
@@ -392,6 +403,25 @@ func (s *InGameScene) handleClick(px, py int) {
 		s.ctrl.AddAction(action)
 		s.stateMachine.SetMode(input.ModeNormal)
 		s.resetUpgradeFlow()
+		return
+	}
+
+	// ModeNormal: click on room cell to show info panel.
+	if s.stateMachine.Mode() == input.ModeNormal {
+		cx, cy, ok := s.mouse.CursorCell()
+		if !ok {
+			return
+		}
+		cave := s.ctrl.Engine().State.Cave
+		cell, err := cave.Grid.At(types.Pos{X: cx, Y: cy})
+		if err != nil {
+			return
+		}
+		if cell.RoomID > 0 {
+			s.infoPanel.SelectRoom(cell.RoomID)
+		} else {
+			s.infoPanel.ClearSelection()
+		}
 	}
 }
 
