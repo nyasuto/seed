@@ -50,7 +50,7 @@
 - 全CellTypeに対して GetTile が non-nil の *ebiten.Image を返すテスト
 - 全タイルが32x32ピクセルであるテスト
 
-- [ ] **Task 0-C: Caveデータからタイルマップ描画**
+- [x] **Task 0-C: Caveデータからタイルマップ描画**
 
 1. view/mapview.go: MapView 構造体
    - Caveデータからタイルマップへの座標変換: `CellPos(x,y) → ScreenPos(px,py)`

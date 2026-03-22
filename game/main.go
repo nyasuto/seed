@@ -2,9 +2,16 @@
 package main
 
 import (
+	_ "embed"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/nyasuto/seed/core/scenario"
+	"github.com/nyasuto/seed/core/simulation"
+	"github.com/nyasuto/seed/core/types"
+	"github.com/nyasuto/seed/core/world"
+	"github.com/nyasuto/seed/game/asset"
+	"github.com/nyasuto/seed/game/view"
 )
 
 const (
@@ -12,8 +19,36 @@ const (
 	screenHeight = 728
 )
 
+//go:embed testdata/tutorial.json
+var tutorialJSON []byte
+
 // Game implements ebiten.Game interface.
-type Game struct{}
+type Game struct {
+	cave     *world.Cave
+	registry *world.RoomTypeRegistry
+	provider asset.TilesetProvider
+	mapView  *view.MapView
+}
+
+// NewGame creates a Game with a tutorial scenario Cave loaded for rendering.
+func NewGame() (*Game, error) {
+	sc, err := scenario.LoadScenario(tutorialJSON)
+	if err != nil {
+		return nil, err
+	}
+	rng := types.NewSeededRNG(42)
+	engine, err := simulation.NewSimulationEngine(sc, rng)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Game{
+		cave:     engine.State.Cave,
+		registry: engine.State.RoomTypeRegistry,
+		provider: asset.NewPlaceholderProvider(),
+		mapView:  view.NewMapView(32, 32),
+	}, nil
+}
 
 // Update proceeds the game state.
 func (g *Game) Update() error {
@@ -22,6 +57,7 @@ func (g *Game) Update() error {
 
 // Draw draws the game screen.
 func (g *Game) Draw(screen *ebiten.Image) {
+	g.mapView.Draw(screen, g.cave, g.registry, g.provider)
 }
 
 // Layout returns the game's logical screen size.
@@ -33,7 +69,12 @@ func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("ChaosForge")
 
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	game, err := NewGame()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
 }
