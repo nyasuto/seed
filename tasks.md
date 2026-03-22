@@ -97,7 +97,7 @@
 
 ## Phase 1: Game Controller + ティック進行
 
-- [ ] **Task 1-A: GameController — core接続とSnapshot管理**
+- [x] **Task 1-A: GameController — core接続とSnapshot管理**
 
 1. controller/controller.go: GameController 構造体
    ```go
