@@ -359,7 +359,7 @@
 - シナリオ選択 → InGame シーン生成テスト
 - `go build ./...` が成功
 
-- [ ] **Task 3-C: InGame シーンへの統合**
+- [x] **Task 3-C: InGame シーンへの統合**
 
 1. scene/ingame.go: InGameScene
    - Phase 1〜2 の全コンポーネント（GameController, MapView, EntityView, TopBar, ActionBar, InputStateMachine）を統合
