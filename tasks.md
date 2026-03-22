@@ -151,7 +151,7 @@
 - 仙獣の部屋ID→描画座標の変換テスト
 - 侵入者の部屋ID→描画座標の変換テスト
 
-- [ ] **Task 1-D: Top Bar — ステータス表示**
+- [x] **Task 1-D: Top Bar — ステータス表示**
 
 1. view/ui.go: UIPanel 構造体
    - Top Bar: ChiPool（現在値/最大値）、CoreHP（バー + 数値）、Tick数
