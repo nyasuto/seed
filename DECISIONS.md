@@ -463,6 +463,30 @@
 
 ---
 
+## D019: SummonBeast フローは Element 選択方式（種族選択ではない）
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-22
+**フェーズ**: game Phase 2-E
+
+**判断**: tasks.md の Task 2-E は「種族選択パネル」と記載されているが、core の `SummonBeastAction` は `Element` のみを受け取る設計（species は core が自動決定）。そのため、DigRoom と同じ `ElementPanel` を再利用して属性選択方式とした。
+
+**フロー**:
+1. ModeSummon 進入 → 部屋セルをクリック（仙獣キャパシティの UX バリデーション）
+2. ElementPanel 表示 → 属性選択
+3. `SummonBeastAction{Element}` 生成 → ModeNormal に復帰
+4. 召喚された仙獣は未配置プール入り（部屋への配置は `PlaceBeastAction` で別途）
+
+**理由**:
+- core API に忠実：`SummonBeastAction` は `Element` のみ、room ID や species は引数に含まれない
+- core の `applySummonBeast` が element → species のマッピングを自動で行うため、GUI 側で種族を選ぶ必要がない
+- 既存の `ElementPanel` を再利用でき、コード量を最小化
+- 部屋選択ステップは UX 上のバリデーション（キャパシティ確認）のために残した
+
+**影響範囲**: `game/input/summon.go`, `game/main.go`
+
+---
+
 ## D018: input→view 循環依存の解消 — CellConverter インターフェース抽出
 
 **ステータス**: RESOLVED

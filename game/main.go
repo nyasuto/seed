@@ -45,6 +45,9 @@ type Game struct {
 	// DigCorridor flow state.
 	digCorridorFlow *input.DigCorridorFlow
 
+	// SummonBeast flow state.
+	summonFlow *input.SummonBeastFlow
+
 	errorMessage string
 	errorTimer   int
 }
@@ -87,12 +90,12 @@ func (g *Game) Update() error {
 	if g.elemPanel != nil && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		px, py := ebiten.CursorPosition()
 		if elem, ok := g.elemPanel.HandleClick(px, py); ok {
-			g.finishDigRoomElement(elem)
+			g.finishElementSelection(elem)
 			return nil
 		}
 		// Click outside panel while panel is open — cancel.
 		if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || !g.elemPanelContains(px, py) {
-			g.cancelDigRoom()
+			g.cancelElementPanel()
 			return nil
 		}
 	}
@@ -104,6 +107,7 @@ func (g *Game) Update() error {
 	if prevMode != currentMode {
 		g.resetDigRoomFlow()
 		g.resetDigCorridorFlow()
+		g.resetSummonFlow()
 	}
 
 	// Handle mouse clicks.
@@ -147,11 +151,15 @@ func (g *Game) handleClick(px, py int) {
 		g.stateMachine.SetMode(mode)
 		g.resetDigRoomFlow()
 		g.resetDigCorridorFlow()
+		g.resetSummonFlow()
 		if mode == input.ModeDigRoom {
 			g.digRoomFlow = input.NewDigRoomFlow()
 		}
 		if mode == input.ModeDigCorridor {
 			g.digCorridorFlow = input.NewDigCorridorFlow()
+		}
+		if mode == input.ModeSummon {
+			g.summonFlow = input.NewSummonBeastFlow()
 		}
 		return
 	} else if tickHit {
@@ -218,26 +226,67 @@ func (g *Game) handleClick(px, py int) {
 			g.resetDigCorridorFlow()
 		}
 	}
+
+	// Handle SummonBeast room selection.
+	if g.stateMachine.Mode() == input.ModeSummon && g.summonFlow == nil {
+		g.summonFlow = input.NewSummonBeastFlow()
+	}
+
+	if g.summonFlow != nil && g.summonFlow.Step() == input.SummonStepSelectRoom {
+		cx, cy, ok := g.mouse.CursorCell()
+		if !ok {
+			return
+		}
+		state := g.ctrl.Engine().State
+		cell, err := state.Cave.Grid.At(types.Pos{X: cx, Y: cy})
+		if err != nil {
+			return
+		}
+		hasCapacity := false
+		if cell.RoomID > 0 {
+			room := state.Cave.RoomByID(cell.RoomID)
+			if room != nil {
+				rt, rtErr := state.RoomTypeRegistry.Get(room.TypeID)
+				if rtErr == nil {
+					hasCapacity = room.HasBeastCapacity(rt)
+				}
+			}
+		}
+		if selErr := g.summonFlow.TrySelectRoom(cell.Type, cell.RoomID, hasCapacity); selErr != nil {
+			g.showError(selErr.Error())
+			return
+		}
+		// Room selected — show element panel.
+		g.elemPanel = view.NewElementPanel(screenWidth/2, screenHeight/2)
+	}
 }
 
-func (g *Game) finishDigRoomElement(elem types.Element) {
-	if g.digRoomFlow == nil {
+func (g *Game) finishElementSelection(elem types.Element) {
+	if g.digRoomFlow != nil {
+		registry := g.ctrl.Engine().State.RoomTypeRegistry
+		action, err := g.digRoomFlow.SelectElement(elem, registry)
+		if err != nil {
+			g.showError(err.Error())
+			return
+		}
+		g.ctrl.AddAction(action)
+		g.stateMachine.SetMode(input.ModeNormal)
+		g.resetDigRoomFlow()
 		return
 	}
-	registry := g.ctrl.Engine().State.RoomTypeRegistry
-	action, err := g.digRoomFlow.SelectElement(elem, registry)
-	if err != nil {
-		g.showError(err.Error())
+	if g.summonFlow != nil {
+		action := g.summonFlow.SelectElement(elem)
+		g.ctrl.AddAction(action)
+		g.stateMachine.SetMode(input.ModeNormal)
+		g.resetSummonFlow()
 		return
 	}
-	g.ctrl.AddAction(action)
-	g.stateMachine.SetMode(input.ModeNormal)
-	g.resetDigRoomFlow()
 }
 
-func (g *Game) cancelDigRoom() {
+func (g *Game) cancelElementPanel() {
 	g.stateMachine.SetMode(input.ModeNormal)
 	g.resetDigRoomFlow()
+	g.resetSummonFlow()
 }
 
 func (g *Game) resetDigRoomFlow() {
@@ -247,6 +296,13 @@ func (g *Game) resetDigRoomFlow() {
 
 func (g *Game) resetDigCorridorFlow() {
 	g.digCorridorFlow = nil
+}
+
+func (g *Game) resetSummonFlow() {
+	g.summonFlow = nil
+	if g.digRoomFlow == nil {
+		g.elemPanel = nil
+	}
 }
 
 func (g *Game) elemPanelContains(px, py int) bool {

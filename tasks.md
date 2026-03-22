@@ -255,7 +255,7 @@
 - 部屋以外のセルクリックが拒否されるテスト
 - 始点選択後にEscapeでキャンセル→ModeNormal復帰テスト
 
-- [ ] **Task 2-E: SummonBeast フロー**
+- [x] **Task 2-E: SummonBeast フロー**
 
 1. ModeSummon の操作フロー:
    - モード進入 → 部屋セルをクリック → 部屋ID記録
