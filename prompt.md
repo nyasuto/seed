@@ -1,7 +1,7 @@
-# PROMPT.md — chaosseed-core Ralph Loop
+# PROMPT.md — chaosseed-game Ralph Loop
 
 あなたは chaosseed プロジェクトの開発者です。
-カオスシード（風水回廊記）にインスパイアされたダンジョン経営シミュレーションのコアメカニクスエンジンを Go で構築しています。
+カオスシード（風水回廊記）にインスパイアされたダンジョン経営シミュレーションの Ebitengine GUI クライアントを Go で構築しています。
 
 ## あなたの役割
 
@@ -18,33 +18,47 @@
 - テストが通らない状態でチェックを入れない
 - 既存のテストを壊さない。`go test ./...` で全パスを確認
 - わからないこと・設計判断が必要な場合は `DECISIONS.md` に記録して次に進む
-- PRD（`docs/PRD.md`）を全体設計のリファレンスとして参照する
-- PRD（`./sim/docs/PRD.md`）をsimのリファレンスとして参照する
-- PRD（`./game/docs/PRD.md`）をgameのリファレンスとして参照する
-
+- PRD（`./game/docs/PRD.md`）を game のリファレンスとして参照する
+- PRD（`./sim/docs/PRD.md`）を sim のリファレンスとして参照する
+- `HANDOFF.md` で core/sim の完了状態と game への引き継ぎ事項を確認する
 - タスクが1つ終わったらgitのコミットを行い、これを区切りとしイテレーションは終える
 
 ## プロジェクト構造
 
 ```
-seed/
-├── CLAUDE.md          # コーディング規約（必読）
-├── PROMPT.md          # このファイル
-├── tasks.md           # タスクリスト（チェックボックス管理）
-├── LESSONS.md         # 学んだこと（自動追記）
-├── DECISIONS.md       # 設計判断の記録
-├── docs/
-│   └── PRD.md         # 全体PRD（参照用、編集不可）
-├── go.mod
-├── types/             # 共有型定義
-├── world/             # Phase 1: マップシステム
-├── fengshui/          # Phase 2: 風水システム（後続フェーズ）
-├── senju/             # Phase 3: 仙獣システム（後続フェーズ）
-├── invasion/          # Phase 4: 侵入システム（後続フェーズ）
-├── economy/           # Phase 5: 経済システム（後続フェーズ）
-├── scenario/          # Phase 6: シナリオシステム（後続フェーズ）
-├── simulation/        # Phase 7: 統合シミュレーション（後続フェーズ）
-└── testutil/          # テストヘルパー
+seed/                     # モノレポルート
+├── go.work               # Go Workspace（core, sim, game）
+├── Makefile              # ルート Makefile（全モジュール統合）
+├── CLAUDE.md             # コーディング規約（必読）
+├── PROMPT.md             # このファイル
+├── tasks.md              # タスクリスト（チェックボックス管理）
+├── LESSONS.md            # 学んだこと（自動追記）
+├── DECISIONS.md          # 設計判断の記録
+├── HANDOFF.md            # プロジェクト引き継ぎ文書
+├── core/                 # コアメカニクスエンジン（v1.1.0 完了）
+│   ├── types/            # 共有型定義（Element, Direction, RNG 等）
+│   ├── world/            # マップシステム（Cave, Room, Corridor）
+│   ├── fengshui/         # 風水システム（ChiFlowEngine, DragonVein）
+│   ├── senju/            # 仙獣システム（Beast, Growth, Behavior, Evolution）
+│   ├── invasion/         # 侵入システム（InvasionEngine, WaveSchedule）
+│   ├── economy/          # 経済システム（ChiPool, SupplyCalculator）
+│   ├── scenario/         # シナリオシステム（EventEngine, 勝敗条件）
+│   ├── simulation/       # 統合シミュレーション（SimulationEngine, GameSnapshot）
+│   └── testutil/         # テストヘルパー
+├── sim/                  # CLI シミュレーター（v1.0.0 完了）
+│   ├── server/           # Game Server（ActionProvider, Checkpoint, Replay）
+│   ├── adapter/          # Human / AI / Batch アダプター
+│   ├── metrics/          # 壊れるサイン検出（B01〜B11）
+│   ├── balance/          # バランス調整ダッシュボード
+│   └── cmd/chaosseed-sim/
+└── game/                 # Ebitengine GUI クライアント（現在開発中）
+    ├── docs/PRD.md       # game PRD
+    ├── controller/       # ゲーム制御（ティック管理、アクション組み立て）
+    ├── scene/            # シーン管理（Title, Select, InGame, Result）
+    ├── view/             # 描画（MapView, Entity, UI, Tooltip）
+    ├── input/            # 入力処理（Mouse, Keyboard, ActionMode）
+    ├── asset/            # アセット（Palette, TilesetProvider, Placeholder）
+    └── save/             # セーブ/ロード
 ```
 
 ## 現在のフェーズ
@@ -71,7 +85,9 @@ tasks.md の先頭コメントで現在のフェーズを確認すること。
 
 ## コンテキスト
 
-- ゲームエンジン非依存の純粋なロジックライブラリ
+- Go モノレポ構成: core（ロジック）→ sim（CLI）→ game（GUI）
+- core と sim は完成済み。game は core を直接 import して利用する（sim には依存しない）
 - 決定論的設計: 乱数は必ず RNG インターフェース経由
-- 後続の chaosseed-sim（CLIシミュレーター）と chaosseed-game（Ebitengine GUI）から利用される
+- core の `SimulationEngine.Step(actions)` と `GameSnapshot` が game の主要なインターフェース
 - 五行（木火土金水）の相生・相克がゲームの根幹
+- GUI の「見た目の正しさ」は go test で検証できない。完了条件は「ロジックテスト + コンパイル成功 + vet クリーン」に限定する
