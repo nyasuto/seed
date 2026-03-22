@@ -7,16 +7,56 @@ on:
     branches: [main]
 
 jobs:
-  check:
+  core:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        module: [core, sim, game]
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install system dependencies (game)
-        if: matrix.module == 'game'
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache-dependency-path: core/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: core
+
+      - name: Run vet
+        run: cd core && go vet ./...
+
+      - name: Run tests with race detector
+        run: cd core && go test -race ./...
+
+  sim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache-dependency-path: sim/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: sim
+
+      - name: Run vet
+        run: cd sim && go vet ./...
+
+      - name: Run tests with race detector
+        run: cd sim && go test -race ./...
+
+  game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
@@ -25,15 +65,15 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: stable
-          cache-dependency-path: ${{ matrix.module }}/go.sum
+          cache-dependency-path: game/go.sum
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          working-directory: ${{ matrix.module }}
+          working-directory: game
 
       - name: Run vet
-        run: cd ${{ matrix.module }} && go vet ./...
+        run: cd game && go vet ./...
 
       - name: Run tests with race detector
-        run: cd ${{ matrix.module }} && go test -race ./...
+        run: cd game && go test -race ./...
