@@ -120,7 +120,7 @@
 - AddAction → AdvanceTick で PlayerAction が engine に渡されるテスト
 - 既存の core テストが影響を受けないことの確認
 
-- [ ] **Task 1-B: ティック進行モード（手動/早送り/一時停止）**
+- [x] **Task 1-B: ティック進行モード（手動/早送り/一時停止）**
 
 1. controller/tick.go: ティック進行ロジック
    - Manual: AdvanceTick() の明示的呼び出しでのみ進行

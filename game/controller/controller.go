@@ -28,6 +28,7 @@ type GameController struct {
 	pending  []simulation.PlayerAction
 	state    GameState
 	result   simulation.GameResult
+	ffSpeed  int // ticks per UpdateTick call in FastForward mode
 }
 
 // NewGameController creates a GameController by loading the given scenario JSON
