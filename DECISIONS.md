@@ -501,3 +501,13 @@
 - インターフェースを `input` 側に定義することで Go の implicit interface satisfaction により `view.MapView` が自動的に満たす
 
 **影響範囲**: `input/mouse.go`, `input/mouse_test.go`（テストは stubMapView に移行）
+
+---
+
+## game Phase 2 棚卸し（2026-03-22）
+
+全 D001〜D019 を確認済み。
+- D018 (CellConverter): RESOLVED — Phase 2-B で実装済み
+- D019 (SummonBeast Element選択): ACTIVE — 設計原則として継続有効
+- game Phase 1 の残存課題「game/testdata/tutorial.json の embed 重複」は Phase 2 では対応せず。Phase 3 以降で検討
+- 未解決3件（罠の盗賊回避率、侵入者AI高度化、standardスイープ）は v1.0.0 スコープ外で変更なし

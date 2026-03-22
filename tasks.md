@@ -305,7 +305,7 @@
 - 選択パネルの項目クリック判定テスト
 - `go build ./...` が成功
 
-- [ ] **Task 2-H: Phase 2 統合と確認**
+- [x] **Task 2-H: Phase 2 統合と確認**
 
 1. 全操作フローの統合: main.go に ActionBar + InputStateMachine + 全フローを接続
 2. キーボードショートカット一覧の最終確認: D/C/S/U/W/Space/F/Escape

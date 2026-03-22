@@ -94,3 +94,11 @@
 - `ebiten/v2/inpututil.IsKeyJustPressed` は前フレームとの差分でキー押下を検知するため、長押しによる連続発火を防げる。Space/F/Escape のティック制御に有用。
 - Ebitengine v2.9.9 は macOS でパッケージレベルの `init()` で GLFW を初期化し、ディスプレイアクセスがない環境（SSH、一部のターミナルマルチプレクサ）では `currentMouseLocation()` で nil pointer panic を起こす。ebiten を import するだけでテストが実行不能になるため、asset/view/input のテストはディスプレイ環境でのみ実行可能。controller パッケージは ebiten に依存しないため常にテスト可能。
 - `BuildRoomRenderMap` は毎フレーム呼ぶのではなく、Cave が変更された時のみ再構築すべき。Phase 1-E では簡潔さのため毎フレーム呼んでいるが、Phase 2 以降で最適化検討。
+
+## game Phase 2: 操作システム
+
+- `input` と `view` の間で循環依存が発生しやすい。`input.ActionMode` を `view` が参照し、`view.MapView` を `input` が参照するため。Go の implicit interface（`CellConverter`）を `input` 側に定義して依存を逆転させるパターンが有効（D018）。
+- core の `SummonBeastAction` は `Element` のみを引数に取り、species は core 側で自動決定する。GUI 側で種族選択パネルを作る必要はなく、`ElementPanel` の再利用で十分（D019）。
+- 操作フロー（DigRoom, DigCorridor, SummonBeast, UpgradeRoom）はそれぞれ独立した Flow 構造体として実装し、ステップ状態を内部に持つ設計が明快。main.go の `handleClick` でフローの現在ステップに応じた処理を分岐する。
+- `ElementPanel`（属性選択パネル）表示中は他の操作をブロックする必要がある。main.go の `Update` で `g.elemPanel != nil` を先にチェックし、パネルのクリック処理を優先するガードが有効。
+- `FeedbackOverlay` のエラーメッセージは TPS（60fps）ベースのフレームカウントでフェードアウトする。`time.Duration` ではなくフレーム数で管理することで、決定論的なテストが可能。
