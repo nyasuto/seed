@@ -1,7 +1,23 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
-    directory: "/"
+    directory: "/core"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "type: ci/cd"
+      - "priority: low"
+
+  - package-ecosystem: "gomod"
+    directory: "/sim"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "type: ci/cd"
+      - "priority: low"
+
+  - package-ecosystem: "gomod"
+    directory: "/game"
     schedule:
       interval: "weekly"
     labels:
