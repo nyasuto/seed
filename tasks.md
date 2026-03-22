@@ -240,7 +240,7 @@
 - HardRock セルクリックが拒否されるテスト
 - 属性選択後に ModeNormal に復帰するテスト
 
-- [ ] **Task 2-D: DigCorridor フロー**
+- [x] **Task 2-D: DigCorridor フロー**
 
 1. ModeDigCorridor の操作フロー:
    - モード進入 → 始点の部屋セルをクリック → 始点部屋ID記録 → ハイライト表示

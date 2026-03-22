@@ -39,8 +39,12 @@ type Game struct {
 	actionBar    *view.ActionBar
 
 	// DigRoom flow state.
-	digRoomFlow  *input.DigRoomFlow
-	elemPanel    *view.ElementPanel
+	digRoomFlow *input.DigRoomFlow
+	elemPanel   *view.ElementPanel
+
+	// DigCorridor flow state.
+	digCorridorFlow *input.DigCorridorFlow
+
 	errorMessage string
 	errorTimer   int
 }
@@ -96,9 +100,10 @@ func (g *Game) Update() error {
 	g.stateMachine.Update()
 	currentMode := g.stateMachine.Mode()
 
-	// Reset flow if mode changed externally (e.g. Escape, or switching to another mode).
+	// Reset flows if mode changed externally (e.g. Escape, or switching to another mode).
 	if prevMode != currentMode {
 		g.resetDigRoomFlow()
+		g.resetDigCorridorFlow()
 	}
 
 	// Handle mouse clicks.
@@ -141,8 +146,12 @@ func (g *Game) handleClick(px, py int) {
 	if actionHit, mode, tickHit, tmode := g.actionBar.HandleClick(px, py); actionHit {
 		g.stateMachine.SetMode(mode)
 		g.resetDigRoomFlow()
+		g.resetDigCorridorFlow()
 		if mode == input.ModeDigRoom {
 			g.digRoomFlow = input.NewDigRoomFlow()
+		}
+		if mode == input.ModeDigCorridor {
+			g.digCorridorFlow = input.NewDigCorridorFlow()
 		}
 		return
 	} else if tickHit {
@@ -180,6 +189,34 @@ func (g *Game) handleClick(px, py int) {
 		}
 		// Cell selected — show element panel.
 		g.elemPanel = view.NewElementPanel(screenWidth/2, screenHeight/2)
+		return
+	}
+
+	// Handle DigCorridor room selection.
+	if g.stateMachine.Mode() == input.ModeDigCorridor && g.digCorridorFlow == nil {
+		g.digCorridorFlow = input.NewDigCorridorFlow()
+	}
+
+	if g.digCorridorFlow != nil && g.digCorridorFlow.Step() != input.CorridorStepComplete {
+		cx, cy, ok := g.mouse.CursorCell()
+		if !ok {
+			return
+		}
+		cave := g.ctrl.Engine().State.Cave
+		cell, err := cave.Grid.At(types.Pos{X: cx, Y: cy})
+		if err != nil {
+			return
+		}
+		action, selErr := g.digCorridorFlow.TrySelectRoom(cell.Type, cell.RoomID)
+		if selErr != nil {
+			g.showError(selErr.Error())
+			return
+		}
+		if action != nil {
+			g.ctrl.AddAction(action)
+			g.stateMachine.SetMode(input.ModeNormal)
+			g.resetDigCorridorFlow()
+		}
 	}
 }
 
@@ -206,6 +243,10 @@ func (g *Game) cancelDigRoom() {
 func (g *Game) resetDigRoomFlow() {
 	g.digRoomFlow = nil
 	g.elemPanel = nil
+}
+
+func (g *Game) resetDigCorridorFlow() {
+	g.digCorridorFlow = nil
 }
 
 func (g *Game) elemPanelContains(px, py int) bool {
