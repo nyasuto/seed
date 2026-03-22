@@ -11,6 +11,7 @@ import (
 	"github.com/nyasuto/seed/core/types"
 	"github.com/nyasuto/seed/core/world"
 	"github.com/nyasuto/seed/game/asset"
+	"github.com/nyasuto/seed/game/input"
 	"github.com/nyasuto/seed/game/view"
 )
 
@@ -28,6 +29,8 @@ type Game struct {
 	registry *world.RoomTypeRegistry
 	provider asset.TilesetProvider
 	mapView  *view.MapView
+	mouse    *input.MouseTracker
+	tooltip  *view.Tooltip
 }
 
 // NewGame creates a Game with a tutorial scenario Cave loaded for rendering.
@@ -42,22 +45,34 @@ func NewGame() (*Game, error) {
 		return nil, err
 	}
 
+	mv := view.NewMapView(32, 32)
+
 	return &Game{
 		cave:     engine.State.Cave,
 		registry: engine.State.RoomTypeRegistry,
 		provider: asset.NewPlaceholderProvider(),
-		mapView:  view.NewMapView(32, 32),
+		mapView:  mv,
+		mouse:    input.NewMouseTracker(mv, engine.State.Cave.Grid.Width, engine.State.Cave.Grid.Height),
+		tooltip:  &view.Tooltip{},
 	}, nil
 }
 
 // Update proceeds the game state.
 func (g *Game) Update() error {
+	g.mouse.Update()
 	return nil
 }
 
 // Draw draws the game screen.
 func (g *Game) Draw(screen *ebiten.Image) {
 	g.mapView.Draw(screen, g.cave, g.registry, g.provider)
+
+	cx, cy, ok := g.mouse.CursorCell()
+	if ok {
+		info := view.BuildTooltipInfo(g.cave, g.registry, cx, cy)
+		px, py := ebiten.CursorPosition()
+		g.tooltip.Draw(screen, info, px, py)
+	}
 }
 
 // Layout returns the game's logical screen size.

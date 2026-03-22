@@ -64,7 +64,7 @@
 - ScreenPos→CellPos の逆変換テスト（マウスクリック→セル座標の基礎）
 - `go build ./...` が成功
 
-- [ ] **Task 0-D: マウスホバーとセル情報表示**
+- [x] **Task 0-D: マウスホバーとセル情報表示**
 
 1. input/mouse.go: マウス座標→セル座標変換
    - ScreenPos→CellPos 変換（MapView の逆変換を利用）
