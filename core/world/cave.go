@@ -28,6 +28,12 @@ func NewCave(w, h int) (*Cave, error) {
 	}, nil
 }
 
+// NextRoomID returns the ID that will be assigned to the next room added to
+// this cave. This is useful for predicting room IDs before AddRoom is called.
+func (c *Cave) NextRoomID() int {
+	return c.nextRoomID
+}
+
 // RoomByID returns the room with the given ID, or nil if not found.
 func (c *Cave) RoomByID(id int) *Room {
 	for _, r := range c.Rooms {

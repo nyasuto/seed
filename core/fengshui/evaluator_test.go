@@ -292,6 +292,41 @@ func TestLoadScoreParams(t *testing.T) {
 	}
 }
 
+func TestMaxRoomScore(t *testing.T) {
+	p := DefaultScoreParams()
+
+	// With 4 neighbors: ChiRatioWeight(100) + DragonVeinBonus(30) + 4*GeneratesBonus(20) = 210
+	got := p.MaxRoomScore(4)
+	want := 210.0
+	if got != want {
+		t.Errorf("MaxRoomScore(4) = %v, want %v", got, want)
+	}
+
+	// With 0 neighbors: ChiRatioWeight(100) + DragonVeinBonus(30) = 130
+	got = p.MaxRoomScore(0)
+	want = 130.0
+	if got != want {
+		t.Errorf("MaxRoomScore(0) = %v, want %v", got, want)
+	}
+}
+
+func TestMaxRoomScore_SameElementLarger(t *testing.T) {
+	// When SameElementBonus > GeneratesBonus, MaxRoomScore should use SameElementBonus.
+	p := &ScoreParams{
+		GeneratesBonus:   10.0,
+		OvercomesPenalty: -5.0,
+		SameElementBonus: 25.0,
+		DragonVeinBonus:  30.0,
+		ChiRatioWeight:   100.0,
+	}
+	got := p.MaxRoomScore(4)
+	// 100 + 30 + 4*25 = 230
+	want := 230.0
+	if got != want {
+		t.Errorf("MaxRoomScore(4) = %v, want %v", got, want)
+	}
+}
+
 func TestLoadScoreParams_FileNotFound(t *testing.T) {
 	_, err := LoadScoreParams("/nonexistent/path.json")
 	if err == nil {

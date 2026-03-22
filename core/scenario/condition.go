@@ -19,6 +19,11 @@ type GameSnapshot struct {
 	TotalWaves             int
 	CaveFengShuiScore      float64
 	ConsecutiveDeficitTicks int
+	// SpawnedWaves is the number of invasion waves that have actually been
+	// created (len(state.Waves)), regardless of their current state.
+	SpawnedWaves int
+	// RoomCount is the current number of rooms in the cave.
+	RoomCount int
 }
 
 // ConditionEvaluator evaluates a game condition against a snapshot.

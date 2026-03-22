@@ -336,11 +336,116 @@
 
 ---
 
+## D014: MaxRooms制約のバリデーション追加
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-A
+
+**判断**: `simulation/action.go` の `validateDigRoom` に `GameConstraints.MaxRooms` チェックを追加。現在の部屋数が MaxRooms 以上なら DigRoom アクションを拒否する。MaxRooms が 0 の場合は制約なし（無制限）として扱う。
+
+**理由**:
+- シナリオごとに部屋数上限を設定できるようにすることで、D002原則1「不完全性の強制」を強化
+- SimpleAIPlayer も MaxRooms を参照し、上限到達時は DigRoom を試行しないよう修正
+
+**影響範囲**: `simulation/action.go`, `simulation/ai_player.go`
+
+---
+
+## D015: SimpleAIPlayerコリドー戦略
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-B
+
+**判断**: SimpleAIPlayer の DecideActions で、DigRoom 成功後の次ティックに隣接部屋への DigCorridor を自動発行する戦略を追加。龍穴からの気の伝播経路を確保する。
+
+**理由**:
+- AI が部屋を掘るだけで通路を掘らないと、気が伝播せず新部屋が活用されない
+- 通路掘りロジックにより、AIプレイヤーが最低限の機能するダンジョンを構築できるようになる
+- 通路が掘れない場合（壁、距離等）はスキップし、エラーにしない
+
+**影響範囲**: `simulation/ai_player.go`
+
+---
+
+## D016: caveScore正規化（呼び出し側）
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 1-C
+
+**判断**: `simulation/engine.go` の Step メソッドで、`CaveTotal()` の生値をそのまま `CalcTickSupply` に渡していた問題を修正。CaveTotal を MaxPossibleScore（全部屋の理論最大スコア合計）で割って [0,1] に正規化してから渡す。
+
+**理由**:
+- `CalcTickSupply` は `caveScore` を [0,1] の範囲として扱う設計だが、CaveTotal は部屋数に比例して増加する生値であり、部屋数が増えると供給量が指数的に膨らむ問題があった
+- 正規化により、部屋数が増えても供給量が適切な範囲に収まる
+- MaxPossibleScore が 0 の場合（部屋なし）は caveScore = 0.0 として安全に処理
+
+**影響範囲**: `simulation/engine.go`
+
+---
+
+## D017a: AI Mode プロトコル設計 — JSON Lines + valid_actions ホワイトリスト
+
+**ステータス**: ACTIVE
+**日付**: 2026-03-22
+**フェーズ**: sim Phase 3
+
+**判断**: AI Mode は JSON Lines プロトコルで外部プログラムと通信する。各ティックで StateMessage（ゲーム状態 + valid_actions）を送信し、クライアントは valid_actions に含まれるアクションのみ実行できる。
+
+**設計**:
+1. **valid_actions ホワイトリスト**: サーバーが毎ティック実行可能なアクションを列挙し、クライアントはその中から選択するのみ。不正なアクションは拒否
+2. **エラーリトライ**: 不正入力時は ErrorMessage + StateMessage 再送で最大3回リトライ。超過時は wait にフォールバック
+3. **タイムアウト**: `--timeout` オプションでアクション入力のタイムアウトを設定可能。タイムアウト時は wait
+4. **GameEndMessage**: ゲーム終了時に result (victory/defeat) + summary (統計情報) を送信
+
+**理由**:
+- LLM等の外部プログラムが正しいアクションのみ実行できるよう、ホワイトリスト方式を採用
+- JSON Lines は1行1メッセージで、パイプ経由の通信に最適
+- リトライ機構によりクライアントの軽微なエラーに耐性を持つ
+
+**影響範囲**: `sim/adapter/ai/`, `sim/server/`
+
+---
+
+## D017b: D002検証 — チュートリアルシナリオのBreakageReport
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: Phase 4-G
+
+**判断**: チュートリアルシナリオ × SimpleAI × 1,000ゲームの BreakageReport で、以下3件のアラートが発生する。これらはチュートリアルの意図的な easy 設計に起因し、バランス上の問題ではない。
+
+| メトリクス | 値 | 閾値 | 原因 |
+|---|---|---|---|
+| B03 (terrain block rate) | 0.0 | > 0.05 | terrain_density=0.05、意図的に制約が弱い |
+| B05 (wave overlap) | 0.0 | > 0.30 | 波が1回（tick 100）のみ、建設と重ならない |
+| B11 (surplus rate) | ~0.92 | < 0.50 | starting_chi=200 + 低コスト、リソース潤沢 |
+
+**critical アラート（B04, B06, B07, B08）は0件**であり、ゲームの基本的な健全性は確認済み。
+
+**パフォーマンス**: 1,000ゲーム × SimpleAI が約1〜2秒で完了（5分制限を大幅にクリア）。
+
+**影響範囲**: `sim/adapter/batch/integration_test.go`
+
+---
+
 ## 未解決課題サマリー
 
 | ID | 内容 | ステータス |
 |---|---|---|
 | ~~D001~~ | ~~OnCaveChanged差分更新~~ | **RESOLVED** — 差分更新不要（50部屋55μs、線形スケール） |
 | ~~D002原則3~~ | ~~経済バランスの定量検証~~ | **RESOLVED** — Phase 7-H で定量検証完了 |
+| ~~D017b~~ | ~~D002検証（チュートリアル）~~ | **RESOLVED** — critical アラート0件、基本的な健全性確認済み |
 | 罠の盗賊回避率 | 盗賊のSPDによる罠回避 | 将来拡張（v1.0.0 スコープ外） |
 | 侵入者AI高度化 | 複数ステップ先読み、仙獣回避 | 将来拡張（v1.0.0 スコープ外） |
+| standardスイープ | standard シナリオ向けスイープ値チューニング | 将来拡張（v1.0.0 スコープ外） |
+
+## Phase 6 最終棚卸し（2026-03-22）
+
+全 D001〜D017b を確認済み。Phase 6 で新たな設計判断は発生せず。
+- D001〜D016: ステータス変更なし
+- D017a (AI Mode プロトコル): ACTIVE — 設計原則として継続有効
+- D017b (D002検証): RESOLVED — Phase 4-G で確認済み
+- 未解決2件（罠の盗賊回避率、侵入者AI高度化）は v1.0.0 スコープ外で変更なし

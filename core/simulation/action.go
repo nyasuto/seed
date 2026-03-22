@@ -135,6 +135,13 @@ func ValidateAction(action PlayerAction, state *GameState) error {
 }
 
 func validateDigRoom(a DigRoomAction, state *GameState) error {
+	// Check MaxRooms constraint.
+	if state.Scenario != nil && state.Scenario.Constraints.MaxRooms > 0 {
+		if len(state.Cave.Rooms) >= state.Scenario.Constraints.MaxRooms {
+			return fmt.Errorf("max rooms reached: %d/%d", len(state.Cave.Rooms), state.Scenario.Constraints.MaxRooms)
+		}
+	}
+
 	// Check room type exists.
 	if _, err := state.RoomTypeRegistry.Get(a.RoomTypeID); err != nil {
 		return fmt.Errorf("%w: %s", ErrRoomTypeNotFound, a.RoomTypeID)
@@ -317,7 +324,12 @@ func applyDigRoom(a DigRoomAction, state *GameState) (ActionResult, error) {
 		return ActionResult{}, fmt.Errorf("dig room: %w", err)
 	}
 
-	room, err := state.Cave.AddRoom(a.RoomTypeID, a.Pos, a.Width, a.Height, nil)
+	// Auto-generate a south-center entrance for the new room.
+	entrances := []world.RoomEntrance{
+		{Pos: types.Pos{X: a.Pos.X + a.Width/2, Y: a.Pos.Y + a.Height - 1}, Dir: types.South},
+	}
+
+	room, err := state.Cave.AddRoom(a.RoomTypeID, a.Pos, a.Width, a.Height, entrances)
 	if err != nil {
 		return ActionResult{}, fmt.Errorf("dig room: %w", err)
 	}

@@ -47,7 +47,7 @@ func d002StandardScenario(terrainSeed int64) *scenario.Scenario {
 			{TriggerTick: 170, Difficulty: 1.8, MinInvaders: 4, MaxInvaders: 7},
 		},
 		Constraints: scenario.GameConstraints{
-			MaxRooms:  15,
+			MaxRooms:  50,
 			MaxBeasts: 8,
 		},
 	}

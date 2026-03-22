@@ -48,6 +48,11 @@ func BuildSnapshot(state *GameState) scenario.GameSnapshot {
 		coreHP = state.Progress.CoreHP
 	}
 
+	var roomCount int
+	if state.Cave != nil {
+		roomCount = len(state.Cave.Rooms)
+	}
+
 	return scenario.GameSnapshot{
 		Tick:                    tick,
 		CoreHP:                 coreHP,
@@ -58,6 +63,8 @@ func BuildSnapshot(state *GameState) scenario.GameSnapshot {
 		TotalWaves:             maxInt(len(state.Waves), state.ScheduledWaves),
 		CaveFengShuiScore:      caveFengShuiScore,
 		ConsecutiveDeficitTicks: state.ConsecutiveDeficitTicks,
+		SpawnedWaves:           len(state.Waves),
+		RoomCount:              roomCount,
 	}
 }
 

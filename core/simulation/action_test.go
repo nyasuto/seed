@@ -139,6 +139,44 @@ func TestValidateAction_DigRoom_Success(t *testing.T) {
 	}
 }
 
+func TestValidateAction_DigRoom_MaxRoomsReached(t *testing.T) {
+	state := newTestState(t)
+	// State already has 1 room from newTestState. Set MaxRooms=1.
+	state.Scenario = &scenario.Scenario{
+		Constraints: scenario.GameConstraints{MaxRooms: 1},
+	}
+	action := DigRoomAction{
+		RoomTypeID: "trap_room",
+		Pos:        types.Pos{X: 8, Y: 8},
+		Width:      3,
+		Height:     3,
+	}
+	err := ValidateAction(action, state)
+	if err == nil {
+		t.Fatal("expected error when MaxRooms reached")
+	}
+	if got := err.Error(); got != "max rooms reached: 1/1" {
+		t.Errorf("error = %q, want %q", got, "max rooms reached: 1/1")
+	}
+}
+
+func TestValidateAction_DigRoom_MaxRoomsZeroNoLimit(t *testing.T) {
+	state := newTestState(t)
+	// MaxRooms=0 means no limit.
+	state.Scenario = &scenario.Scenario{
+		Constraints: scenario.GameConstraints{MaxRooms: 0},
+	}
+	action := DigRoomAction{
+		RoomTypeID: "trap_room",
+		Pos:        types.Pos{X: 8, Y: 8},
+		Width:      3,
+		Height:     3,
+	}
+	if err := ValidateAction(action, state); err != nil {
+		t.Errorf("expected valid action when MaxRooms=0, got: %v", err)
+	}
+}
+
 func TestValidateAction_DigRoom_UnknownRoomType(t *testing.T) {
 	state := newTestState(t)
 	action := DigRoomAction{

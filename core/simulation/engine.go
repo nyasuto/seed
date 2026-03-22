@@ -59,11 +59,18 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 	}
 
 	// 1. Validate and execute player actions.
-	actionEvents, err := e.processActions(actions, tick)
+	actionEvents, caveChanged, err := e.processActions(actions, tick)
 	if err != nil {
 		return GameResult{}, err
 	}
 	tickEvents = append(tickEvents, actionEvents...)
+
+	// Register new rooms for chi tracking after cave modifications.
+	// We use SyncNewRooms instead of OnCaveChanged to avoid rebuilding
+	// dragon veins, which would alter their paths mid-game.
+	if caveChanged {
+		s.ChiFlowEngine.SyncNewRooms(s.Cave)
+	}
 
 	// 2. Chi flow: supply, propagation, decay.
 	s.ChiFlowEngine.Tick()
@@ -110,18 +117,30 @@ func (e *SimulationEngine) Step(actions []PlayerAction) (GameResult, error) {
 }
 
 // processActions validates and executes player actions, returning event descriptions.
-func (e *SimulationEngine) processActions(actions []PlayerAction, tick types.Tick) ([]string, error) {
+// Actions that fail validation or execution are skipped with an event log entry
+// rather than aborting the entire tick, since AI players may issue best-effort
+// actions that are not guaranteed to succeed.
+// It returns true as the second value if any cave-modifying action succeeded.
+func (e *SimulationEngine) processActions(actions []PlayerAction, tick types.Tick) ([]string, bool, error) {
 	var events []string
+	caveChanged := false
 	for _, action := range actions {
 		result, err := ApplyAction(action, e.State)
 		if err != nil {
-			return nil, fmt.Errorf("tick %d action %s: %w", tick, action.ActionType(), err)
+			events = append(events, fmt.Sprintf("action %s failed: %v", action.ActionType(), err))
+			continue
 		}
-		if result.Success && result.Description != "" {
-			events = append(events, result.Description)
+		if result.Success {
+			if result.Description != "" {
+				events = append(events, result.Description)
+			}
+			switch action.(type) {
+			case DigRoomAction, DigCorridorAction:
+				caveChanged = true
+			}
 		}
 	}
-	return events, nil
+	return events, caveChanged, nil
 }
 
 // advanceBeastSystems runs beast growth, stunned revival, and evolution checks.
@@ -267,7 +286,8 @@ func (e *SimulationEngine) advanceEconomy(tick types.Tick) []string {
 	caveScore := 0.0
 	if s.ScoreParams != nil {
 		ev := fengshui.NewEvaluator(s.Cave, s.RoomTypeRegistry, s.ScoreParams)
-		caveScore = ev.CaveTotal(s.ChiFlowEngine)
+		rawScore := ev.CaveTotal(s.ChiFlowEngine)
+		caveScore = normalizeCaveScore(rawScore, len(s.Cave.Rooms), s.ScoreParams)
 	}
 	econResult := s.EconomyEngine.Tick(
 		tick,
@@ -366,6 +386,21 @@ func derefRooms(rooms []*world.Room) []world.Room {
 		result[i] = *r
 	}
 	return result
+}
+
+// normalizeCaveScore converts a raw CaveTotal score into the [0,1] range
+// expected by CalcTickSupply. It divides by the theoretical maximum score
+// (numRooms × maxScorePerRoom) and clamps to [0,1].
+func normalizeCaveScore(rawScore float64, numRooms int, params *fengshui.ScoreParams) float64 {
+	if numRooms <= 0 {
+		return 0.0
+	}
+	maxPossible := float64(numRooms) * params.MaxRoomScore(4)
+	score := rawScore / maxPossible
+	if score > 1.0 {
+		return 1.0
+	}
+	return score
 }
 
 // evaluateEndConditions checks win and lose conditions against the current state.

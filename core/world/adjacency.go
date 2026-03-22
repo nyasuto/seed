@@ -1,5 +1,7 @@
 package world
 
+import "sort"
+
 // AdjacencyGraph represents rooms as nodes and corridors as edges,
 // providing graph operations on the cave topology.
 type AdjacencyGraph struct {
@@ -36,7 +38,8 @@ func (c *Cave) BuildAdjacencyGraph() AdjacencyGraph {
 	return g
 }
 
-// Neighbors returns the IDs of rooms directly connected to the given room.
+// Neighbors returns the IDs of rooms directly connected to the given room,
+// sorted by room ID for deterministic iteration order.
 // Returns nil if the room ID is not in the graph.
 func (g *AdjacencyGraph) Neighbors(roomID int) []int {
 	neighbors, ok := g.edges[roomID]
@@ -47,6 +50,7 @@ func (g *AdjacencyGraph) Neighbors(roomID int) []int {
 	for id := range neighbors {
 		result = append(result, id)
 	}
+	sort.Ints(result)
 	return result
 }
 
