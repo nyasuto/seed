@@ -59,7 +59,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+          sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev xvfb
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -76,4 +76,4 @@ jobs:
         run: cd game && go vet ./...
 
       - name: Run tests with race detector
-        run: cd game && go test -race ./...
+        run: cd game && xvfb-run go test -race ./...
