@@ -323,7 +323,7 @@
 
 ## Phase 3: シーン管理 + UI
 
-- [ ] **Task 3-A: シーンマネージャー**
+- [x] **Task 3-A: シーンマネージャー**
 
 1. scene/manager.go: SceneManager
    ```go

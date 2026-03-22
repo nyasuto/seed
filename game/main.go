@@ -4,6 +4,7 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"image"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/nyasuto/seed/game/asset"
 	"github.com/nyasuto/seed/game/controller"
 	"github.com/nyasuto/seed/game/input"
+	"github.com/nyasuto/seed/game/scene"
 	"github.com/nyasuto/seed/game/view"
 )
 
@@ -27,7 +29,10 @@ const (
 var tutorialJSON []byte
 
 // Game implements ebiten.Game interface.
+// It delegates Update/Draw to the active Scene via SceneManager.
 type Game struct {
+	scenes *scene.SceneManager
+
 	ctrl     *controller.GameController
 	provider asset.TilesetProvider
 	mapView  *view.MapView
@@ -55,6 +60,19 @@ type Game struct {
 	feedback *view.FeedbackOverlay
 }
 
+// inGameProxy wraps Game's existing Update/Draw logic as a Scene.
+// This is a transitional structure until full scene extraction in Task 3-C.
+type inGameProxy struct {
+	game *Game
+}
+
+func (p *inGameProxy) Update() error { return p.game.updateInGame() }
+func (p *inGameProxy) Draw(screen image.Image) {
+	p.game.drawInGame(screen.(*ebiten.Image))
+}
+func (p *inGameProxy) OnEnter() {}
+func (p *inGameProxy) OnExit()  {}
+
 // NewGame creates a Game with a tutorial scenario loaded.
 func NewGame() (*Game, error) {
 	ctrl, err := controller.NewGameController(tutorialJSON, 42)
@@ -65,7 +83,7 @@ func NewGame() (*Game, error) {
 	mv := view.NewMapView(mapOffsetX, mapOffsetY)
 	cave := ctrl.Engine().State.Cave
 
-	return &Game{
+	g := &Game{
 		ctrl:         ctrl,
 		provider:     asset.NewPlaceholderProvider(),
 		mapView:      mv,
@@ -76,11 +94,18 @@ func NewGame() (*Game, error) {
 		stateMachine: input.NewInputStateMachine(),
 		actionBar:    view.NewActionBar(screenHeight),
 		feedback:     view.NewFeedbackOverlay(),
-	}, nil
+	}
+	g.scenes = scene.NewSceneManager(&inGameProxy{game: g})
+	return g, nil
 }
 
-// Update proceeds the game state.
+// Update delegates to the active scene via SceneManager.
 func (g *Game) Update() error {
+	return g.scenes.Update()
+}
+
+// updateInGame contains the in-game update logic (delegated from inGameProxy).
+func (g *Game) updateInGame() error {
 	g.mouse.Update()
 
 	if g.ctrl.State() == controller.GameOver {
@@ -357,8 +382,13 @@ func (g *Game) showError(msg string) {
 	g.feedback.ShowError(msg)
 }
 
-// Draw draws the game screen.
+// Draw delegates to the active scene via SceneManager.
 func (g *Game) Draw(screen *ebiten.Image) {
+	g.scenes.Draw(image.Image(screen))
+}
+
+// drawInGame contains the in-game draw logic (delegated from inGameProxy).
+func (g *Game) drawInGame(screen *ebiten.Image) {
 	state := g.ctrl.Engine().State
 	cave := state.Cave
 	registry := state.RoomTypeRegistry
