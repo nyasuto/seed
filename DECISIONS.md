@@ -460,3 +460,20 @@
   - GameController 導入 → Phase 1-A で完了
   - main.go の SimulationEngine 直接参照 → Phase 1-E で GameController 経由に移行完了
 - game/testdata/tutorial.json の embed 重複は残存（core の LoadBuiltinScenario への統一は Phase 2 以降で検討）
+
+---
+
+## D018: input→view 循環依存の解消 — CellConverter インターフェース抽出
+
+**ステータス**: RESOLVED
+**日付**: 2026-03-22
+**フェーズ**: game Phase 2-B
+
+**判断**: `input/mouse.go` が `view.MapView` を直接参照していたため、`view` パッケージが `input.ActionMode` を import すると循環依存が発生。`input` パッケージに `CellConverter` インターフェースを定義し、`view.MapView` への直接依存を除去した。
+
+**理由**:
+- Action Bar が `input.ActionMode` を使って現在のモードをハイライト表示する必要がある（view → input）
+- MouseTracker は `ScreenToCell` メソッドのみ使用しており、具体型への依存は不要
+- インターフェースを `input` 側に定義することで Go の implicit interface satisfaction により `view.MapView` が自動的に満たす
+
+**影響範囲**: `input/mouse.go`, `input/mouse_test.go`（テストは stubMapView に移行）

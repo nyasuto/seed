@@ -2,12 +2,25 @@ package input
 
 import (
 	"testing"
-
-	"github.com/nyasuto/seed/game/view"
 )
 
+// stubMapView implements CellConverter for testing.
+type stubMapView struct {
+	offsetX int
+	offsetY int
+}
+
+func (s *stubMapView) ScreenToCell(px, py, gridWidth, gridHeight int) (cx, cy int, ok bool) {
+	cx = (px - s.offsetX) / 32
+	cy = (py - s.offsetY) / 32
+	if px < s.offsetX || py < s.offsetY || cx < 0 || cy < 0 || cx >= gridWidth || cy >= gridHeight {
+		return 0, 0, false
+	}
+	return cx, cy, true
+}
+
 func TestMouseTracker_CursorCell_DefaultInvalid(t *testing.T) {
-	mv := view.NewMapView(32, 32)
+	mv := &stubMapView{offsetX: 32, offsetY: 32}
 	mt := NewMouseTracker(mv, 24, 20)
 
 	// Before any Update call, cursor cell should be invalid
@@ -22,9 +35,9 @@ func TestMouseTracker_CursorCell_DefaultInvalid(t *testing.T) {
 
 func TestMouseTracker_ScreenToCellConversion(t *testing.T) {
 	// This tests the coordinate conversion that MouseTracker relies on.
-	// MouseTracker delegates to MapView.ScreenToCell, so we verify the
+	// MouseTracker delegates to CellConverter.ScreenToCell, so we verify the
 	// expected mapping: screen(320+offset, 160+offset) → cell(10, 5).
-	mv := view.NewMapView(0, 0)
+	mv := &stubMapView{offsetX: 0, offsetY: 0}
 
 	tests := []struct {
 		name    string
@@ -88,7 +101,7 @@ func TestMouseTracker_ScreenToCellConversion(t *testing.T) {
 
 func TestMouseTracker_WithOffset(t *testing.T) {
 	// With offset (32, 32), screen pixel (352, 192) should map to cell (10, 5).
-	mv := view.NewMapView(32, 32)
+	mv := &stubMapView{offsetX: 32, offsetY: 32}
 
 	cx, cy, ok := mv.ScreenToCell(352, 192, 24, 20)
 	if !ok {
@@ -100,7 +113,7 @@ func TestMouseTracker_WithOffset(t *testing.T) {
 }
 
 func TestMouseTracker_OutsideMap_BeforeOffset(t *testing.T) {
-	mv := view.NewMapView(32, 32)
+	mv := &stubMapView{offsetX: 32, offsetY: 32}
 
 	// Pixels before the offset are outside the map.
 	_, _, ok := mv.ScreenToCell(16, 16, 24, 20)

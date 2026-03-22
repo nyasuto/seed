@@ -208,7 +208,7 @@
 - Escape で ModeNormal に戻るテスト
 - ModeDigRoom 中にキー 'S' で ModeSummon に切り替わるテスト
 
-- [ ] **Task 2-B: Action Bar 描画**
+- [x] **Task 2-B: Action Bar 描画**
 
 1. view/actionbar.go: Action Bar 描画
    - 5つのアクションボタン: [掘る D] [通路 C] [召喚 S] [強化 U] [待機 W]
