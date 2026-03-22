@@ -52,8 +52,7 @@ type Game struct {
 	// UpgradeRoom flow state.
 	upgradeFlow *input.UpgradeRoomFlow
 
-	errorMessage string
-	errorTimer   int
+	feedback *view.FeedbackOverlay
 }
 
 // NewGame creates a Game with a tutorial scenario loaded.
@@ -76,6 +75,7 @@ func NewGame() (*Game, error) {
 		tooltip:      &view.Tooltip{},
 		stateMachine: input.NewInputStateMachine(),
 		actionBar:    view.NewActionBar(screenHeight),
+		feedback:     view.NewFeedbackOverlay(),
 	}, nil
 }
 
@@ -143,13 +143,8 @@ func (g *Game) Update() error {
 	// Auto-advance in FastForward mode.
 	g.ctrl.UpdateTick()
 
-	// Decrement error timer.
-	if g.errorTimer > 0 {
-		g.errorTimer--
-		if g.errorTimer == 0 {
-			g.errorMessage = ""
-		}
-	}
+	// Update feedback overlay (error timer, etc.).
+	g.feedback.Update()
 
 	return nil
 }
@@ -359,8 +354,7 @@ func (g *Game) elemPanelContains(px, py int) bool {
 }
 
 func (g *Game) showError(msg string) {
-	g.errorMessage = msg
-	g.errorTimer = 180 // ~3 seconds at 60 FPS
+	g.feedback.ShowError(msg)
 }
 
 // Draw draws the game screen.
@@ -372,6 +366,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Map tiles.
 	roomInfo := view.BuildRoomRenderMap(cave, registry)
 	g.mapView.Draw(screen, cave, roomInfo, g.provider)
+
+	// Cell highlights (valid/invalid overlay based on current mode).
+	currentMode := g.stateMachine.Mode()
+	if currentMode != input.ModeNormal {
+		for y := 0; y < cave.Grid.Height; y++ {
+			for x := 0; x < cave.Grid.Width; x++ {
+				cell, err := cave.Grid.At(types.Pos{X: x, Y: y})
+				if err != nil {
+					continue
+				}
+				hl := view.CellHighlightFor(currentMode, cell.Type)
+				if hl != view.CellNone {
+					px, py := g.mapView.CellToScreen(x, y)
+					view.DrawCellOverlay(screen, px, py, hl)
+				}
+			}
+		}
+	}
 
 	// Entities (beasts + invaders).
 	g.entity.DrawBeasts(screen, cave, state.Beasts, g.provider)
@@ -413,9 +425,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	// Error message.
-	if g.errorMessage != "" {
-		view.DrawText(screen, g.errorMessage, 10, screenHeight-actionBarHeight-20)
+	// Error message (red, fading).
+	g.feedback.DrawError(screen, 10, screenHeight-actionBarHeight-20)
+
+	// Mode label near cursor.
+	if g.elemPanel == nil {
+		curX, curY := ebiten.CursorPosition()
+		view.DrawModeLabel(screen, g.stateMachine.Mode(), curX, curY)
 	}
 
 	// Game over overlay.
