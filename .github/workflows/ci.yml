@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: stable
           cache-dependency-path: core/go.sum
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: stable
           cache-dependency-path: sim/go.sum
@@ -62,7 +62,7 @@ jobs:
           sudo apt-get install -y libx11-dev libgl1-mesa-dev libasound2-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev xvfb
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: stable
           cache-dependency-path: game/go.sum
