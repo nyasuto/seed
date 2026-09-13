@@ -336,7 +336,10 @@ func TestPhase6_Checkpoint_SaveLoadResume(t *testing.T) {
 	provider := human.NewHumanProvider(ir, out, ctxBuilder)
 	provider.SetCheckpointOps(server.NewServerCheckpointOps(gs))
 
-	result, err := gs.RunGame(provider)
+	// The run result here is deliberately discarded: the checkpoint load aborts
+	// the run, so the only meaningful outcome is the error. The result that
+	// matters comes from ResumeGame below.
+	_, err = gs.RunGame(provider)
 
 	// RunGame returns ErrCheckpointLoaded when checkpoint is loaded.
 	if !errors.Is(err, human.ErrCheckpointLoaded) {
@@ -347,7 +350,7 @@ func TestPhase6_Checkpoint_SaveLoadResume(t *testing.T) {
 	}
 
 	// Resume from checkpoint (mimics runHumanMode's loop).
-	result, err = gs.ResumeGame(provider)
+	result, err := gs.ResumeGame(provider)
 	if err != nil {
 		t.Fatalf("ResumeGame: %v", err)
 	}
