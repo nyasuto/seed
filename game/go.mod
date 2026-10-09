@@ -3,7 +3,7 @@ module github.com/nyasuto/seed/game
 go 1.26.0
 
 require (
-	github.com/hajimehoshi/ebiten/v2 v2.10.0
+	github.com/hajimehoshi/ebiten/v2 v2.10.4
 	github.com/nyasuto/seed/core v0.0.0-20260322012436-b05d0dda89a7
 )
 
